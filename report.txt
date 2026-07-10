@@ -1,0 +1,45 @@
+REPORT THAY DOI CHUC NANG UI
+
+1. File: gui/windows/main_window.py
+- Them bien self.pipeline_result = None de luu ket qua sau khi bam RUN.
+- Noi signal clear_clicked cua nut CLEAR vao ham fn_clear_clicked().
+- Them comment giai thich nhiem vu cua nut CLEAR va EXPORT.
+- Ham fn_clear_clicked():
+  + Xoa data tren bang ket qua bang self.tbl_result.clear_data().
+  + Xoa noi dung o filter bang self.filter_box.clear().
+  + Reset self.pipeline_result ve None.
+  + Doi trang thai nut ve empty_state, chi giu RUN duoc bam lai.
+- Ham fn_export_clicked():
+  + Kiem tra da co ket qua phan tich hay chua.
+  + Tao ten file mac dinh Summary_dd-mm-yyyy.xlsx.
+  + Mo cua so QFileDialog de chon noi luu file Excel.
+  + Goi controller de export workbook.
+  + Hien thong bao thanh cong hoac loi ghi file.
+
+2. File: gui/controllers/main_controllers.py
+- Sua ham fn_export_report() de goi dung export_workbook().
+- Truyen dung 3 tham so:
+  + summary = pipeline_result["summary"]
+  + ecu_reports = pipeline_result["ecu_reports"]
+  + output_file = output_file
+- Them comment giai thich controller chuyen ket qua pipeline sang tang export.
+
+3. File: core/report_export.py
+- Them comment giai thich nhiem vu cac ham export.
+- export_summary_sheet():
+  + Ghi sheet Summary chua thong ke tong hop cac ECU.
+- export_ecu_report():
+  + Ghi moi ECU vao mot sheet rieng, vi du MHU, APM, BCM.
+- export_workbook():
+  + Tao workbook Excel bang openpyxl.
+  + Ghi sheet Summary truoc.
+  + Lap qua ecu_reports va tao sheet rieng cho tung ECU.
+  + Tra ve True neu export thanh cong.
+  + Tra ve False neu gap PermissionError, thuong do file Excel dang mo.
+
+4. Kiem tra
+- Da chay py_compile cho cac file:
+  + gui/windows/main_window.py
+  + gui/controllers/main_controllers.py
+  + core/report_export.py
+- Ket qua: khong co loi cu phap.
