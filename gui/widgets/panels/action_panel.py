@@ -89,7 +89,40 @@ class ActionPanel (QWidget):
 
         )   
 
-    def fn_set_file_loaded_state(self):
+    # ==========================================================================
+    # Function: fn_set_file_loaded_state
+    #
+    # Purpose:
+    #     Set action buttons after a log file is selected.
+    #
+    # Inputs:
+    #     self: ActionPanel instance.
+    #
+    # Outputs:
+    #     None.
+    #
+    # Called by:
+    #     MainWindow.fn_log_file_changed()
+    #
+    # Calls:
+    #     ActionPanel._fn_enable_buttons()
+    #
+    # Side Effects:
+    #     Updates enabled/disabled state of action buttons.
+    #
+    # Responsibility:
+    #     Enable RUN while keeping COPY disabled until analysis is complete.
+    #
+    # Does NOT:
+    #     - Run analysis.
+    #     - Copy ASC content.
+    #     - Export Excel.
+    #     - Clear table data.
+    #     - Change selected file path.
+    #
+    # ==========================================================================
+    def fn_set_file_loaded_state(self) -> None:
+        """Update action buttons after the user selects a log file."""
 
         self._fn_enable_buttons(
 
@@ -100,7 +133,40 @@ class ActionPanel (QWidget):
 
         ) 
     
-    def fn_set_analyzed_state(self):
+    # ==========================================================================
+    # Function: fn_set_analyzed_state
+    #
+    # Purpose:
+    #     Set action buttons after analysis has completed.
+    #
+    # Inputs:
+    #     self: ActionPanel instance.
+    #
+    # Outputs:
+    #     None.
+    #
+    # Called by:
+    #     MainWindow.fn_run_clicked()
+    #
+    # Calls:
+    #     ActionPanel._fn_enable_buttons()
+    #
+    # Side Effects:
+    #     Enables result actions such as EXPORT, COPY, and CLEAR.
+    #
+    # Responsibility:
+    #     Make COPY active only after RUN has produced analysis data.
+    #
+    # Does NOT:
+    #     - Run analysis.
+    #     - Copy ASC content.
+    #     - Export Excel.
+    #     - Modify result table data.
+    #     - Change selected file path.
+    #
+    # ==========================================================================
+    def fn_set_analyzed_state(self) -> None:
+        """Update action buttons after analysis is complete."""
 
         self._fn_enable_buttons (
             run = True,
@@ -109,7 +175,40 @@ class ActionPanel (QWidget):
             clear = True
         )
     
-    def fn_set_empty_state (self):
+    # ==========================================================================
+    # Function: fn_set_empty_state
+    #
+    # Purpose:
+    #     Set action buttons after result data has been cleared.
+    #
+    # Inputs:
+    #     self: ActionPanel instance.
+    #
+    # Outputs:
+    #     None.
+    #
+    # Called by:
+    #     MainWindow.fn_clear_clicked()
+    #
+    # Calls:
+    #     ActionPanel._fn_enable_buttons()
+    #
+    # Side Effects:
+    #     Updates enabled/disabled state of RUN, EXPORT, COPY, and CLEAR buttons.
+    #
+    # Responsibility:
+    #     Keep the button state consistent after the table is cleared.
+    #
+    # Does NOT:
+    #     - Clear table data.
+    #     - Clear filter text.
+    #     - Remove the selected file path.
+    #     - Export Excel.
+    #     - Run analysis.
+    #
+    # ==========================================================================
+    def fn_set_empty_state(self) -> None:
+        """Update action buttons for an empty result table state."""
         self._fn_enable_buttons(
             run = True,
             export = False,

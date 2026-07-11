@@ -43,3 +43,89 @@ REPORT THAY DOI CHUC NANG UI
   + gui/controllers/main_controllers.py
   + core/report_export.py
 - Ket qua: khong co loi cu phap.
+
+5. Cap nhat chuc nang COPY
+
+File: gui/windows/main_window.py
+- Them import pathlib.Path de xu ly duong dan file log.
+- Them import QApplication de truy cap clipboard cua he thong.
+- Noi signal copy_clicked cua nut COPY vao ham fn_copy_clicked().
+- Them ham fn_copy_clicked():
+  + Lay duong dan log hien tai tren PathSelectorWidget.
+  + Neu file dang chon la .asc thi doc noi dung file do.
+  + Neu file dang chon la .blf thi tim file .asc cung ten de copy.
+  + Dua toan bo noi dung file ASC vao clipboard bang QApplication.clipboard().setText().
+  + Hien thong bao khi copy thanh cong hoac khi gap loi.
+
+File: gui/widgets/panels/action_panel.py
+- Sua fn_set_file_loaded_state() de nut COPY duoc bat ngay sau khi chon file log.
+- EXPORT van chi bat sau khi RUN phan tich xong.
+
+6. Cap nhat theo yeu cau giu ten file export
+
+File: gui/windows/main_window.py
+- Giu nguyen dong:
+  + default_file = export_folder / f"EEIV_EOL_ReportAllECUs_{today}.xlsx"
+- Them lai ket noi nut COPY vao ham fn_copy_clicked().
+- Ham fn_copy_clicked() copy toan bo noi dung file ASC vao clipboard de paste vao Notepad.
+- Neu nguoi dung chon file BLF, chuong trinh se tim file ASC cung ten va copy file ASC do neu ton tai.
+
+File: gui/widgets/panels/action_panel.py
+- Giu nut COPY bat sau khi da chon file log.
+- Sau khi bam CLEAR, nut COPY van bat vi duong dan file log van con tren UI.
+
+7. Chuan hoa nut CLEAR theo CODING_RULES.md
+
+File: gui/windows/main_window.py
+- Cap nhat ham fn_clear_clicked() theo function header template trong CODING_RULES.md.
+- Them type hint: fn_clear_clicked(self) -> None.
+- Them Google-style docstring.
+- Ghi ro nhiem vu:
+  + Xoa data tren bang ket qua.
+  + Xoa filter text.
+  + Reset pipeline_result ve None.
+  + Cap nhat trang thai nut sau khi CLEAR.
+- Ghi ro nhung viec ham KHONG lam:
+  + Khong xoa file log.
+  + Khong xoa duong dan file dang chon.
+  + Khong RUN lai analysis.
+  + Khong export Excel.
+  + Khong thay doi UDS transaction logic.
+
+File: gui/widgets/panels/action_panel.py
+- Cap nhat ham fn_set_empty_state() theo function header template trong CODING_RULES.md.
+- Them type hint: fn_set_empty_state(self) -> None.
+- Them docstring.
+- Ghi ro nhiem vu cua ham la cap nhat trang thai button sau khi table bi clear.
+
+8. Lam lai function COPY button theo CODING_RULES.md
+
+File: core/services/copy_service.py
+- Them CopyService de xu ly viec doc noi dung file ASC.
+- Them fn_read_asc_content(log_file: str) -> tuple[str, str].
+- Them _fn_resolve_asc_file(log_file: str) -> Path.
+- Ho tro input .asc truc tiep.
+- Ho tro input .blf bang cach tim file .asc cung ten da ton tai.
+- Service khong update GUI, khong ghi clipboard, khong convert BLF.
+
+File: gui/controllers/main_controllers.py
+- Them CopyService vao MainController.
+- Them fn_get_copy_content(log_file: str) -> tuple[str, str].
+- Controller chi coordinate workflow va delegate viec doc file sang CopyService.
+
+File: gui/windows/main_window.py
+- Lam lai fn_copy_clicked() theo function header template.
+- Them type hint va docstring.
+- GUI khong doc file ASC truc tiep nua.
+- GUI lay content qua MainController, sau do set vao QApplication clipboard.
+- GUI hien message thanh cong hoac warning khi file khong hop le/khong ton tai.
+
+File: gui/widgets/panels/action_panel.py
+- Sua fn_set_file_loaded_state(): COPY van disable sau khi chi moi chon file.
+- Sua fn_set_analyzed_state(): COPY active sau khi RUN thanh cong.
+- Sua fn_set_empty_state(): COPY disable lai sau khi CLEAR.
+- Them header/docstring/type hint cho cac state function lien quan.
+
+File: tests/test_copy_service.py
+- Them pytest cho CopyService.
+- Bao gom normal case, BLF map sang ASC, invalid suffix, missing file.

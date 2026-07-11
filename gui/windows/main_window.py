@@ -3,6 +3,7 @@ from datetime import datetime
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWidgets import (
+    QApplication,
     QWidget,
     QLabel,
     QMessageBox,
@@ -128,6 +129,11 @@ class MainWindow(QMainWindow):
             self.fn_export_clicked
         )     
 
+        # Nut COPY dua toan bo noi dung file ASC vao clipboard.
+        self.right_panel.action_panel.copy_clicked.connect(
+            self.fn_copy_clicked
+        )
+
         # Nut CLEAR xoa du lieu hien tai tren bang ket qua.
         self.right_panel.action_panel.clear_clicked.connect(
             self.fn_clear_clicked
@@ -182,10 +188,10 @@ class MainWindow(QMainWindow):
             )
             return
 
-        # Tao ten file mac dinh: Summary_ngay-thang-nam.xlsx.
+        # Tao ten file mac dinh: EEIV_EOL_ReportAllECUs_ngay-thang-nam.xlsx.
         export_folder = self.export_controller.fn_prepare_export()
         today = datetime.now().strftime("%d-%m-%Y")
-        default_file = export_folder / f"Summary_{today}.xlsx"
+        default_file = export_folder / f"EEIV_EOL_ReportAllECUs_{today}.xlsx"
 
         # Mo cua so de nguoi dung chon thu muc va ten file Excel.
         output_file, _ = QFileDialog.getSaveFileName(
@@ -228,9 +234,108 @@ class MainWindow(QMainWindow):
                 str(error)
             )
 
+    # ==========================================================================
+    # Function: fn_copy_clicked
+    #
+    # Purpose:
+    #     Handle COPY button click from the right action panel.
+    #
+    # Inputs:
+    #     self: MainWindow instance.
+    #
+    # Outputs:
+    #     None.
+    #
+    # Called by:
+    #     ActionPanel.copy_clicked signal.
+    #
+    # Calls:
+    #     PathSelectorWidget.path()
+    #     MainController.fn_get_copy_content()
+    #     QApplication.clipboard().setText()
+    #     QMessageBox.information()
+    #     QMessageBox.warning()
+    #
+    # Side Effects:
+    #     Writes ASC text content to the system clipboard and shows a message box.
+    #
+    # Responsibility:
+    #     Coordinate GUI actions for copying ASC content to clipboard.
+    #
+    # Does NOT:
+    #     - Read ASC files directly.
+    #     - Convert BLF to ASC.
+    #     - Parse UDS transactions.
+    #     - Export Excel.
+    #     - Change result table data.
+    #
+    # ==========================================================================
+    def fn_copy_clicked(self) -> None:
+        """Copy selected ASC log content to the system clipboard."""
+        log_file = self.log_selector.path().strip()
 
-    def fn_clear_clicked(self):
-        # Xoa data tren bang va reset filter/ket qua phan tich hien tai.
+        try:
+            asc_file, content = self.main_controller.fn_get_copy_content(
+                log_file
+            )
+
+            QApplication.clipboard().setText(content)
+
+            QMessageBox.information(
+                self,
+                "Copy",
+                f"Copied ASC data to clipboard:\n{asc_file}"
+            )
+
+        except (FileNotFoundError, OSError, ValueError) as error:
+            QMessageBox.warning(
+                self,
+                "Copy",
+                str(error)
+            )
+
+
+    # ==========================================================================
+    # Function: fn_clear_clicked
+    #
+    # Purpose:
+    #     Handle CLEAR button click from the right action panel.
+    #
+    # Inputs:
+    #     self: MainWindow instance.
+    #
+    # Outputs:
+    #     None.
+    #
+    # Called by:
+    #     ActionPanel.clear_clicked signal.
+    #
+    # Calls:
+    #     ResultTable.clear_data()
+    #     FilterBox.clear()
+    #     ActionPanel.fn_set_empty_state()
+    #
+    # Side Effects:
+    #     Clears table rows, clears filter text, resets current pipeline result,
+    #     and updates action button states.
+    #
+    # Responsibility:
+    #     Reset the current analysis view after the user presses CLEAR.
+    #
+    # Does NOT:
+    #     - Delete the selected log file.
+    #     - Clear the selected log path.
+    #     - Re-run analysis.
+    #     - Export Excel.
+    #     - Change UDS transaction logic.
+    #
+    # ==========================================================================
+    def fn_clear_clicked(self) -> None:
+        """Clear current table data and reset analysis UI state.
+
+        This slot is connected to the CLEAR button. It only resets the current
+        UI result view and cached pipeline result.
+        """
         self.tbl_result.clear_data()
         self.filter_box.clear()
         self.pipeline_result = None
