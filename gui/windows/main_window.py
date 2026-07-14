@@ -1,46 +1,27 @@
-from datetime import datetime
-
-from PySide6.QtWidgets import QMainWindow
-from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWidgets import (
-    QApplication,
     QWidget,
-    QMessageBox,    
+    QMainWindow,
     QVBoxLayout,
     QHBoxLayout,
-    QFileDialog
 )
 
-from gui.widgets.path_selector import PathSelectorWidget
-
-from gui.controllers.main_controllers import MainController
-
-from gui.widgets.panels.action_panel import ActionPanel
-
-from gui.widgets.result_table import ResultTable
+from gui.controllers.analysis_controller import AnalysisController
+from gui.controllers.report_controller import ReportController
+from gui.controllers.clipboard_controller import ClipboardController
 
 from gui.presenters.transaction_presenter import (
-    fn_build_table_rows
-)
-
-from gui.widgets.filter_box import FilterBox
-
-from gui.widgets.right_panel import RightPanel
-
-from gui.themes.styles.containers.window_style import (
-    fn_window_style
+    fn_build_table_rows,
 )
 
 from gui.themes.theme_manager import ThemeManager
-
 from gui.themes.styles.containers.window_style import (
-    fn_window_style
+    fn_window_style,
 )
 
-from gui.controllers.export_controller import (
-    ExportController
-)
-
+from gui.widgets.filter_box import FilterBox
+from gui.widgets.path_selector import PathSelectorWidget
+from gui.widgets.result_table import ResultTable
+from gui.widgets.right_panel import RightPanel
 
 
 class MainWindow(QMainWindow):   
@@ -55,8 +36,7 @@ class MainWindow(QMainWindow):
         # Controllers
         self._create_controllers()
 
-        # Luu ket qua sau khi bam RUN, dung lai khi EXPORT ra Excel.
-        self.pipeline_result = None
+      
 
         # Build UI
         self.setup_ui()
@@ -104,10 +84,12 @@ class MainWindow(QMainWindow):
 
     def _create_controllers(self):
 
-        self.main_controller = MainController()
+        self.analysis_controller = AnalysisController()
 
-        self.export_controller = ExportController()
-    
+        self.export_controller = ReportController()
+
+        self.clipboard_controller = ClipboardController()
+
     def _connect_signals(self):
 
         self.log_selector.path_changed.connect(
@@ -148,185 +130,48 @@ class MainWindow(QMainWindow):
             file_path: str
         ):
 
-        print(file_path)
-
         self.right_panel.action_panel.fn_set_file_loaded_state() 
     
     
         
     def fn_run_clicked(self):
-        log_file = self.log_selector.path()
 
-        # Chay pipeline phan tich log va giu ket qua de hien thi/export.
-        result = self.main_controller.fn_analyze_log(
-            log_file= log_file,
-            ecu_config="config/ecu_config.xlsx",
+        result = self.analysis_controller.fn_run(
+
+            log_file=self.log_selector.path(),
+
+            ecu_config="config/ecu_config.xlsx"
+
         )
 
-        self.pipeline_result = result
+        rows = fn_build_table_rows(
 
-        transactions = result["transactions"]
+            result["transactions"]
 
-        rows = fn_build_table_rows(transactions)
+        )
 
         self.tbl_result.set_data(rows)
 
         self.right_panel.action_panel.fn_set_analyzed_state()
     
     def fn_export_clicked(self):
-        print("Export Clicked")
 
-        # Chi cho phep export sau khi da RUN va co pipeline_result.
-        if not self.pipeline_result:
-            QMessageBox.warning(
-                self,
-                "Export",
-                "Please run analysis before exporting."
-            )
-            return
+        self.export_controller.fn_export(
 
-        # Tao ten file mac dinh: EEIV_EOL_ReportAllECUs_ngay-thang-nam.xlsx.
-        export_folder = self.export_controller.fn_prepare_export()
-        today = datetime.now().strftime("%d-%m-%Y")
-        default_file = export_folder / f"EEIV_EOL_ReportAllECUs_{today}.xlsx"
+            parent=self,
 
-        # Mo cua so de nguoi dung chon thu muc va ten file Excel.
-        output_file, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Excel Report",
-            str(default_file),
-            "Excel Files (*.xlsx)"
+            pipeline_result=self.analysis_controller.pipeline_result
         )
 
-        if not output_file:
-            return
+    def fn_copy_clicked(self):
 
-        if not output_file.lower().endswith(".xlsx"):
-            output_file = f"{output_file}.xlsx"
-
-        try:
-            # Ghi workbook: sheet Summary + moi ECU la mot sheet rieng.
-            exported = self.main_controller.fn_export_report(
-                pipeline_result=self.pipeline_result,
-                output_file=output_file
-            )
-
-            if exported:
-                QMessageBox.information(
-                    self,
-                    "Export",
-                    f"Excel report saved:\n{output_file}"
-                )
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Export",
-                    "Cannot write the Excel file. Please close it and try again."
-                )
-
-        except Exception as error:
-            QMessageBox.critical(
-                self,
-                "Export Error",
-                str(error)
-            )
-
-    # ==========================================================================
-    # Function: fn_copy_clicked
-    #
-    # Purpose:
-    #     Handle COPY button click from the right action panel.
-    #
-    # Inputs:
-    #     self: MainWindow instance.
-    #
-    # Outputs:
-    #     None.
-    #
-    # Called by:
-    #     ActionPanel.copy_clicked signal.
-    #
-    # Calls:
-    #     PathSelectorWidget.path()
-    #     MainController.fn_get_copy_content()
-    #     QApplication.clipboard().setText()
-    #     QMessageBox.information()
-    #     QMessageBox.warning()
-    #
-    # Side Effects:
-    #     Writes ASC text content to the system clipboard and shows a message box.
-    #
-    # Responsibility:
-    #     Coordinate GUI actions for copying ASC content to clipboard.
-    #
-    # Does NOT:
-    #     - Read ASC files directly.
-    #     - Convert BLF to ASC.
-    #     - Parse UDS transactions.
-    #     - Export Excel.
-    #     - Change result table data.
-    #
-    # ==========================================================================
-    def fn_copy_clicked(self) -> None:
-        """Copy selected ASC log content to the system clipboard."""
-        log_file = self.log_selector.path().strip()
-
-        try:
-            asc_file, content = self.main_controller.fn_get_copy_content(
-                log_file
-            )
-
-            QApplication.clipboard().setText(content)
-
-            QMessageBox.information(
-                self,
-                "Copy",
-                f"Copied ASC data to clipboard:\n{asc_file}"
-            )
-
-        except (FileNotFoundError, OSError, ValueError) as error:
-            QMessageBox.warning(
-                self,
-                "Copy",
-                str(error)
-            )
+        self.clipboard_controller.fn_copy(
+            parent=self,
+            log_file=self.log_selector.path()
+        )
 
 
-    # ==========================================================================
-    # Function: fn_clear_clicked
-    #
-    # Purpose:
-    #     Handle CLEAR button click from the right action panel.
-    #
-    # Inputs:
-    #     self: MainWindow instance.
-    #
-    # Outputs:
-    #     None.
-    #
-    # Called by:
-    #     ActionPanel.clear_clicked signal.
-    #
-    # Calls:
-    #     ResultTable.clear_data()
-    #     FilterBox.clear()
-    #     ActionPanel.fn_set_empty_state()
-    #
-    # Side Effects:
-    #     Clears table rows, clears filter text, resets current pipeline result,
-    #     and updates action button states.
-    #
-    # Responsibility:
-    #     Reset the current analysis view after the user presses CLEAR.
-    #
-    # Does NOT:
-    #     - Delete the selected log file.
-    #     - Clear the selected log path.
-    #     - Re-run analysis.
-    #     - Export Excel.
-    #     - Change UDS transaction logic.
-    #
-    # ==========================================================================
+
     def fn_clear_clicked(self) -> None:
         """Clear current table data and reset analysis UI state.
 

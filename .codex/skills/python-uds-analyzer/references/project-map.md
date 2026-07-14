@@ -5,7 +5,7 @@ Python UDS Analyzer is a PySide6 desktop app for parsing vehicle diagnostic logs
 ## Runtime Flow
 
 1. `main.py` creates `QApplication` and opens `gui.windows.main_window.MainWindow`.
-2. `MainWindow` collects the log file path, runs `MainController.fn_analyze_log`, displays rows through the presenter/table, and exports through `ExportController`.
+2. `MainWindow` collects the log file path, runs `AnalysisController.fn_run`, displays rows through the presenter/table, and exports through `ReportController`.
 3. `core.pipeline.run_pipeline` loads the log, loads ECU mapping, parses UDS payloads, builds transactions, builds ECU reports, and returns summary/report/transaction data.
 4. `core.report_export.export_workbook` writes Excel output with one `Summary` sheet and one sheet per ECU.
 

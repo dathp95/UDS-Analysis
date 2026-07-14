@@ -16,7 +16,7 @@ class CopyService:
     #     tuple[str, str]: ASC file path and ASC text content.
     #
     # Called by:
-    #     MainController.fn_get_copy_content()
+    #     AnalysisController.fn_get_copy_content()
     #
     # Calls:
     #     CopyService._fn_resolve_asc_file()

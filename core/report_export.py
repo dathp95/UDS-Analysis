@@ -2,147 +2,94 @@ import pandas as pd
 
 from core.report_engine import (
     get_activity_table,
-    build_summary_report
 )
 
-# TODO: Export 1 ECU - 1 sheet EXCEL
-"""
-    Export one ECU report
-    to one Excel sheet.
 
-    Parameters
-    ----------
-    report : dict
+# ==========================================================
+# Private
+# ==========================================================
 
-    writer : pd.ExcelWriter
-"""
-def export_ecu_report(
+def _export_summary_sheet(
+    summary,
+    writer,
+):
+    """
+    Export summary information
+    to the Summary worksheet.
+    """
 
-        report,
-
-        writer
-
-        ):
-   
-
-    # Chuyen danh sach activity cua 1 ECU thanh bang Excel.
-    table = get_activity_table(
-
-        report
-
-    )
-
-    df = pd.DataFrame(
-
-        table
-
-    )
-
-    sheet_name = report["ecu"]
-
-    # Moi ECU duoc ghi vao mot sheet rieng, vi du: MHU, APM, BCM.
-    df.to_excel(
-
-        writer,
-
-        sheet_name=sheet_name,
-
-        index=False
-
-    )
-
-# TODO: Export summary sheet 
-def export_summary_sheet(
-
-        summary,
-
-        writer
-
-    ):
-    # Sheet Summary chua thong ke tong hop cua tat ca ECU.
-    df = pd.DataFrame(
-
-        summary
-
-    )
+    df = pd.DataFrame(summary)
 
     df.to_excel(
-
         writer,
-
         sheet_name="Summary",
-
-        index=False
-
+        index=False,
     )
 
 
+def _export_ecu_report(
+    report,
+    writer,
+):
+    """
+    Export one ECU report
+    to one worksheet.
+    """
 
-# TODO: Export All ECU - 1 ECU/1 sheet EXCEL
-"""
-    Export all ECU reports
-    to one workbook.
+    table = get_activity_table(report)
 
-    Parameters
-    ----------
-    ecu_reports : dict
+    df = pd.DataFrame(table)
 
-    output_file : str
-"""
-              
+    df.to_excel(
+        writer,
+        sheet_name=report["ecu"],
+        index=False,
+    )
+
+
+# ==========================================================
+# Public
+# ==========================================================
+
 def export_workbook(
+    summary,
+    ecu_reports,
+    output_file,
+):
+    """
+    Export all ECU reports
+    to one Excel workbook.
 
-        summary,
+    Workbook structure
 
-        ecu_reports,
+    Summary
+    BCM
+    MHU
+    APM
+    ...
+    """
 
-        output_file
+    try:
 
-    ):
-
-    try: 
-
-        # Tao workbook Excel bang openpyxl engine.
         with pd.ExcelWriter(
-
             output_file,
-
-            engine="openpyxl"
-
+            engine="openpyxl",
         ) as writer:
 
-            # Sheet đầu tiên
-
-            export_summary_sheet(
-
+            _export_summary_sheet(
                 summary,
-
-                writer
-
+                writer,
             )
-
-            # Các sheet ECU
 
             for report in ecu_reports.values():
 
-                # Lap qua tung ECU va tao 1 sheet tuong ung.
-                export_ecu_report(
-
+                _export_ecu_report(
                     report,
-
-                    writer
-
+                    writer,
                 )
+
     except PermissionError:
-         # Thuong xay ra khi file Excel dang duoc mo.
-         print(
 
-        f"Cannot write '{output_file}'. "
-
-        "Please close the Excel file first."
-
-    )
-
-         return False
+        return False
 
     return True

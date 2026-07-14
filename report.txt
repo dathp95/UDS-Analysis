@@ -16,8 +16,8 @@ REPORT THAY DOI CHUC NANG UI
   + Goi controller de export workbook.
   + Hien thong bao thanh cong hoac loi ghi file.
 
-2. File: gui/controllers/main_controllers.py
-- Sua ham fn_export_report() de goi dung export_workbook().
+2. File: gui/controllers/analysis_controllers.py
+- Sua ham fn_export() de goi dung export_workbook().
 - Truyen dung 3 tham so:
   + summary = pipeline_result["summary"]
   + ecu_reports = pipeline_result["ecu_reports"]
@@ -40,7 +40,7 @@ REPORT THAY DOI CHUC NANG UI
 4. Kiem tra
 - Da chay py_compile cho cac file:
   + gui/windows/main_window.py
-  + gui/controllers/main_controllers.py
+  + gui/controllers/analysis_controllers.py
   + core/report_export.py
 - Ket qua: khong co loi cu phap.
 
@@ -108,8 +108,8 @@ File: core/services/copy_service.py
 - Ho tro input .blf bang cach tim file .asc cung ten da ton tai.
 - Service khong update GUI, khong ghi clipboard, khong convert BLF.
 
-File: gui/controllers/main_controllers.py
-- Them CopyService vao MainController.
+File: gui/controllers/analysis_controllers.py
+- Them CopyService vao AnalysisController.
 - Them fn_get_copy_content(log_file: str) -> tuple[str, str].
 - Controller chi coordinate workflow va delegate viec doc file sang CopyService.
 
@@ -117,7 +117,7 @@ File: gui/windows/main_window.py
 - Lam lai fn_copy_clicked() theo function header template.
 - Them type hint va docstring.
 - GUI khong doc file ASC truc tiep nua.
-- GUI lay content qua MainController, sau do set vao QApplication clipboard.
+- GUI lay content qua AnalysisController, sau do set vao QApplication clipboard.
 - GUI hien message thanh cong hoac warning khi file khong hop le/khong ton tai.
 
 File: gui/widgets/panels/action_panel.py
