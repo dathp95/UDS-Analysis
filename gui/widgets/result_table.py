@@ -91,13 +91,46 @@ class ResultTable(PrimaryTable):
                 QTableWidgetItem(item["Status"])
             )
     
-    def fn_filter(self, keyword):
+    def fn_filter(
+            self,
+            keyword: str = "",
+        ):
+        """
+        Filter table rows by keyword.
 
-        keyword = keyword.lower()
+        Search is:
+        - Case-insensitive.
+        - Ignores leading/trailing spaces.
+        - Normalizes multiple spaces into one.
+        """
+
+        # ------------------------------------------
+        # Normalize user input
+        # ------------------------------------------
+
+        keyword = " ".join(
+            keyword.strip().split()
+        ).lower()
+
+        # Empty keyword -> show all rows
+        if not keyword:
+
+            for row in range(self.rowCount()):
+
+                self.setRowHidden(
+                    row,
+                    False
+                )
+
+            return
+
+        # ------------------------------------------
+        # Search every cell
+        # ------------------------------------------
 
         for row in range(self.rowCount()):
 
-            visible = False
+            matched = False
 
             for column in range(self.columnCount()):
 
@@ -106,15 +139,18 @@ class ResultTable(PrimaryTable):
                 if item is None:
                     continue
 
-                if keyword in item.text().lower():
+                cell_text = " ".join(
+                    item.text().strip().split()
+                ).lower()
 
-                    visible = True
+                if keyword in cell_text:
 
+                    matched = True
                     break
 
             self.setRowHidden(
                 row,
-                not visible
+                not matched
             )
     
     def fn_refresh_theme(self):

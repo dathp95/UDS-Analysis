@@ -29,11 +29,11 @@ class ActionPanel (QWidget):
         # self.theme_switch = ThemeSwitch()
 
 
-        self.btn_run = PrimaryButton("RUN", width=200, height=50)                                      
+        self.btn_run = PrimaryButton("RUN", width=160, height=50)                                      
         self.btn_export = PrimaryButton("EXPORT", width = 160)                                      
-        self.btn_copy = PrimaryButton("COPY")                                      
+        self.btn_copy = PrimaryButton("COPY ASC DATA", width = 160)                                      
         
-        self.btn_clear = PrimaryButton("CLEAR")
+        self.btn_clear = PrimaryButton("CLEAR TABLE", height = 50)
 
         group_layout.addWidget(self.btn_run)
         group_layout.addWidget(self.btn_export)
