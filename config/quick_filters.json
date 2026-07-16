@@ -130,5 +130,32 @@
         },
         "id": 17,
         "enabled": true
+    },
+    {
+        "id": 20,
+        "name": "Read VIN",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "22 F1 90"
+        }
+    },
+    {
+        "id": 21,
+        "name": "Write VIN",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 90"
+        }
+    },
+    {
+        "name": "ABS_MHU Write VIN",
+        "filters": {
+            "ecu": "ABS",
+            "request": "22 F1 90"
+        },
+        "id": 22,
+        "enabled": true
     }
 ]

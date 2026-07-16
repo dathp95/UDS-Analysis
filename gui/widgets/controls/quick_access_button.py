@@ -35,6 +35,8 @@ class QuickAccessButton(QPushButton):
     # Public API
     # ====================================
 
+    
+
     def fn_refresh_theme(self):
 
         self.setStyleSheet(

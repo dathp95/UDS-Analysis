@@ -44,6 +44,13 @@ class RightPanel(QWidget):
             self.quick_filter_selected.emit
 
         )
+    def fn_enable_quick_access(self):
+
+        self.quick_access.fn_set_enabled()
+    
+    def fn_disable_quick_access(self):
+
+        self.quick_access.fn_set_disabled()
 
 
     def fn_refresh_theme(self):

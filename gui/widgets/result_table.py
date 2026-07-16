@@ -1,4 +1,6 @@
 
+from email import header
+
 from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
@@ -15,7 +17,8 @@ class ResultTable(PrimaryTable):
         super().__init__()
 
         self._setup_ui()
-        # self._setup_columns()
+
+        self._fn_setup_column_width()
 
     def _setup_ui(self):
         headers = [
@@ -31,14 +34,22 @@ class ResultTable(PrimaryTable):
         self.setColumnCount(len(headers))
         self.setHorizontalHeaderLabels(headers)
 
-    
+        header = self.horizontalHeader()
+
+        header.setSectionResizeMode(
+            QHeaderView.Interactive
+        )
+
+        header.setStretchLastSection(False)
 
     def clear_data(self):
         self.setRowCount(0)
+    
+
 
     def set_data(self, data):
 
-        self.clear_data()
+        self.clear_data()     
 
         self.setRowCount(len(data))
 
@@ -86,6 +97,47 @@ class ResultTable(PrimaryTable):
                 6,
                 QTableWidgetItem(item["Status"])
             )
+    
+    def _fn_setup_column_width(self):
+        """
+        Set default column widths.
+        """
+
+        self.setColumnWidth(
+            self._fn_column_index("ECU"),
+            120
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("Time"),
+            120
+        )
+
+       
+        self.setColumnWidth(
+            self._fn_column_index("Activity"),
+            170
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("Request"),
+            180
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("Response"),
+            180
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("RT (ms)"),
+            80
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("Status"),
+            50
+        )
     
     def fn_search(
             self,

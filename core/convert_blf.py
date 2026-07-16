@@ -31,9 +31,7 @@ def blf_to_asc(blf_file):
 
     writer.stop()
 
-    print(f"[BLF] Convert : {blf_path.name}")
-
-    print(f"[ASC] Output  : {asc_file}")
+   
 
     return str(asc_file)
 

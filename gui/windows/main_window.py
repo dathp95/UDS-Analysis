@@ -13,6 +13,7 @@ from gui.presenters.transaction_presenter import (
     fn_build_table_rows,
 )
 
+from gui.themes.icon_manager import IconManager
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.window_style import (
     fn_window_style,
@@ -23,7 +24,8 @@ from gui.widgets.path_selector import PathSelectorWidget
 from gui.widgets.result_table import ResultTable
 from gui.widgets.right_panel import RightPanel
 
-
+from PySide6.QtGui import QIcon
+from gui.themes.icon_manager import IconManager
 
 
 class MainWindow(QMainWindow):   
@@ -32,7 +34,11 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Window properties
-        self.setWindowTitle(" Analyze DIAG CODING- V1.0.0- AES EEIV by DAT TRAN")
+        self.setWindowTitle(" Analyze DIAG CODING v1.0.0 | AES EEIV by DAT TRAN")
+        self.setWindowIcon(
+            IconManager.app()
+        )
+        
         self.resize(1200, 800)
 
         # Runtime data
@@ -49,7 +55,7 @@ class MainWindow(QMainWindow):
 
         # Initial UI state
         self.right_panel.action_panel.fn_set_startup_state()
-
+        self.right_panel.fn_disable_quick_access()
         
         # # Apply theme
 
@@ -168,6 +174,8 @@ class MainWindow(QMainWindow):
         self.tbl_result.set_data(rows)
 
         self.right_panel.action_panel.fn_set_analyzed_state()
+
+        self.right_panel.fn_enable_quick_access()
     
     def fn_export_clicked(self):
 
@@ -197,6 +205,8 @@ class MainWindow(QMainWindow):
         self.filter_box.clear()
         self.pipeline_result = None
         self.right_panel.action_panel.fn_set_empty_state()
+
+        self.right_panel.fn_disable_quick_access()
     
     
     def fn_filter_transactions(self, keyword = None):

@@ -61,7 +61,7 @@ class QuickFilterDialog(QDialog):
             ),
 
             "request": PrimaryLineEdit(
-                "Request"
+                "XX XX .. .."
             ),            
 
         }

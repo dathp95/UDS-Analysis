@@ -226,11 +226,11 @@ class QuickAccessWidget(QWidget):
         menu = QMenu(self)
 
         action_edit = menu.addAction(
-            "✏ Edit"
+            "Edit"
         )
 
         action_delete = menu.addAction(
-            "🗑 Delete"
+            "Delete"
         )
 
         action = menu.exec(
@@ -307,4 +307,18 @@ class QuickAccessWidget(QWidget):
         )
 
         self.fn_reload()
+
+    def fn_set_enabled(self):
+        """
+        Enable Quick Access.
+        """
+
+        self.setEnabled(True)
+    
+    def fn_set_disabled(self):
+        """
+        Disable Quick Access.
+        """
+
+        self.setEnabled(False)
 
