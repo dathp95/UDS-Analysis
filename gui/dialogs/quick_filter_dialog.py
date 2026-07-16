@@ -19,7 +19,7 @@ from gui.widgets.controls.primary_lineedit import (
 
 class QuickFilterDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, quick_filter=None, parent=None):
 
         super().__init__(parent)
 
@@ -29,7 +29,16 @@ class QuickFilterDialog(QDialog):
 
         self.resize(420, 200)
 
+        self.quick_filter = quick_filter
+
+
         self.setup_ui()
+
+        self._connect_signals()
+
+        if self.quick_filter is not None:
+
+            self._fn_load_data()
     
     def setup_ui(self):
 
@@ -115,7 +124,7 @@ class QuickFilterDialog(QDialog):
         )
 
 
-        self._connect_signals()
+        
     
     def _connect_signals(self):
 
@@ -133,11 +142,8 @@ class QuickFilterDialog(QDialog):
     
     
     def fn_get_data(self) -> dict:
-        """
-        Return quick filter data from the dialog.
-        """
 
-        return {
+        data = {
 
             "name": self.fields["name"].text().strip(),
 
@@ -145,11 +151,19 @@ class QuickFilterDialog(QDialog):
 
                 "ecu": self.fields["ecu"].text().strip().upper(),
 
-                "request": self.fields["request"].text().strip().upper()              
+                "request": self.fields["request"].text().strip().upper()
 
             }
 
-    }
+        }
+
+        if self.quick_filter is not None:
+
+            data["id"] = self.quick_filter["id"]
+
+            data["enabled"] = self.quick_filter["enabled"]
+
+        return data
 
     def fn_set_data(
             self,
@@ -177,6 +191,14 @@ class QuickFilterDialog(QDialog):
 
         )
 
-       
+    def _fn_load_data(self) -> None:
+        """
+        Load quick filter data into the dialog.
+        """
 
+        self.fn_set_data(
+            self.quick_filter
+        )
+
+        
     

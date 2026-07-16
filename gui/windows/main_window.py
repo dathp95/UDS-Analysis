@@ -32,8 +32,8 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Window properties
-        self.setWindowTitle("Python UDS Analyzer")
-        self.resize(1200, 700)
+        self.setWindowTitle(" Analyze DIAG CODING- V1.0.0- AES EEIV by DAT TRAN")
+        self.resize(1200, 800)
 
         # Runtime data
         self.pipeline_result = None

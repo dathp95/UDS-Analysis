@@ -52,25 +52,7 @@ class QuickAccessService:
 
             )
    
-    # def fn_add(
-    #         self,
-    #         quick_filter: dict,
-    #     )-> None:
-    #     """
-    #     Add one quick filter.
-    #     """
-
-    #     filters = self.fn_load()
-
-    #     new_filter = quick_filter.copy()
-    #     new_filter["id"] = self._fn_next_id(filters)
-    #     new_filter["enabled"] = True
-
-    #     filters.append(new_filter)
-        
-    #     self.fn_save(
-    #         filters
-    #     )
+ 
 
     def fn_add(
             self,
@@ -121,9 +103,7 @@ class QuickAccessService:
 
                 filters[index] = quick_filter
 
-                self.fn_save(
-                    filters
-                )
+                self.fn_save(filters)
 
                 return
 

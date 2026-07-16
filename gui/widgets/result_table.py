@@ -31,11 +31,7 @@ class ResultTable(PrimaryTable):
         self.setColumnCount(len(headers))
         self.setHorizontalHeaderLabels(headers)
 
-        # header = self.horizontalHeader()
-        # header.setStretchLastSection(True)
-        # header.setSectionResizeMode(QHeaderView.ResizeToContents)
-
-        # self.setSortingEnabled(True)
+    
 
     def clear_data(self):
         self.setRowCount(0)
@@ -154,6 +150,37 @@ class ResultTable(PrimaryTable):
             )
 
   
+    def _fn_column_index(
+            self,
+            header: str,
+        ) -> int:
+        """
+        Return the column index by header text.
+
+        Raises
+        ------
+        ValueError
+            If the header does not exist.
+        """
+
+        for column in range(self.columnCount()):
+
+            item = self.horizontalHeaderItem(column)
+
+            if item is None:
+
+                continue
+
+            if item.text().strip().lower() == header.lower():
+
+                return column
+
+        raise ValueError(
+
+            f"Column '{header}' not found."
+
+        )
+    
     def fn_apply_quick_filter(
             self,
             filter_data: dict,
@@ -161,19 +188,74 @@ class ResultTable(PrimaryTable):
         """
         Apply one quick filter.
 
-        Current version only supports
-        Request filtering.
+        Empty filter fields are ignored.
+        All non-empty fields must match (AND logic).
         """
 
-        request = filter_data.get(
+        filters = filter_data.get(
             "filters",
             {}
-        ).get(
-            "request",
-            ""
         )
 
-        self.fn_search(request)
+        ecu = filters.get("ecu", "").strip().upper()
+
+        request = filters.get("request","").strip().upper()
+
+        ecu_col = self._fn_column_index("ECU")
+
+        request_col = self._fn_column_index("Request")
+
+        for row in range(self.rowCount()):
+
+            matched = True
+
+            # --------------------------
+            # ECU
+            # --------------------------
+
+            if ecu:
+
+                item = self.item(
+                    row,
+                    ecu_col
+                )
+
+                cell = ""
+
+                if item is not None:
+
+                    cell = item.text().strip().upper()
+
+                matched &= ecu in cell
+
+            # --------------------------
+            # Request
+            # --------------------------
+
+            if request:
+
+                item = self.item(
+                    row,
+                    request_col
+                )
+
+                cell = ""
+
+                if item is not None:
+
+                    cell = " ".join(
+                        item.text().strip().split()
+                    ).upper()
+
+                matched &= request in cell
+
+            self.setRowHidden(
+
+                row,
+
+                not matched
+
+            )
     
     def fn_refresh_theme(self):
 

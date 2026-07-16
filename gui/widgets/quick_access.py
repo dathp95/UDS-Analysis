@@ -1,18 +1,19 @@
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QGroupBox,
+    QScrollArea,
+    QMenu,
+    QMessageBox
 )
 from gui.controllers.quick_access_controller import QuickAccessController
 from gui.dialogs.quick_filter_dialog import QuickFilterDialog
-from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.quick_access_button import QuickAccessButton
 
-from PySide6.QtWidgets import (
-    QScrollArea,
-)
+
 
 from gui.widgets.controls.secondary_button import SecondaryButton
 
@@ -74,7 +75,7 @@ class QuickAccessWidget(QWidget):
             self.scroll_area
         )
 
-        self.scroll_area.setMaximumHeight(260)
+        self.scroll_area.setMaximumHeight(240)
         self.scroll_area.setMinimumHeight(200)
 
         self.group_layout.addSpacing(10)
@@ -124,7 +125,10 @@ class QuickAccessWidget(QWidget):
         Show Add Quick Filter dialog.
         """
 
-        dialog = QuickFilterDialog(self)
+        dialog = QuickFilterDialog(
+            quick_filter=None,
+            parent=self
+        )
 
         if dialog.exec():
 
@@ -144,12 +148,15 @@ class QuickAccessWidget(QWidget):
 
         for item in self.quick_filters:
 
-            button = PrimaryButton(
+            button = QuickAccessButton(
 
                 text=item["name"],
 
                 height=24
 
+            )
+            button.setContextMenuPolicy(
+                Qt.CustomContextMenu
             )
 
             button.clicked.connect(
@@ -157,6 +164,17 @@ class QuickAccessWidget(QWidget):
                 lambda checked=False, data=item:
 
                 self._fn_button_clicked(data)
+
+            )
+            button.customContextMenuRequested.connect(
+
+                lambda pos, data=item, btn=button:
+
+                self._fn_show_context_menu(
+                    btn,
+                    pos,
+                    data
+                )
 
             )
 
@@ -194,3 +212,99 @@ class QuickAccessWidget(QWidget):
             filter_data
 
         )
+    
+    def _fn_show_context_menu(
+            self,
+            button,
+            pos,
+            quick_filter,
+        ):
+        """
+        Show context menu.
+        """
+
+        menu = QMenu(self)
+
+        action_edit = menu.addAction(
+            "✏ Edit"
+        )
+
+        action_delete = menu.addAction(
+            "🗑 Delete"
+        )
+
+        action = menu.exec(
+
+            button.mapToGlobal(pos)
+
+        )
+
+        if action == action_edit:
+
+            self._fn_edit_filter(quick_filter)
+
+        elif action == action_delete:
+
+            self._fn_delete_filter(quick_filter)
+    
+    
+    def _fn_delete_filter(
+            self,
+            quick_filter: dict,
+        ):
+        """
+        Delete a quick filter.
+        """
+
+        answer  = QMessageBox.question(
+
+            self,
+
+            "Delete Quick Filter",
+
+            f"Are you sure you want to delete the quick filter '{quick_filter['name']}' ?\n\nThis action cannot be undone.👻",
+
+            QMessageBox.Yes | QMessageBox.No,
+
+            QMessageBox.No
+
+        )
+
+        if answer  == QMessageBox.Yes:
+
+            self.quick_access_controller.fn_delete(
+
+                quick_filter["id"]
+
+            )
+
+            self.fn_reload()
+
+    def _fn_edit_filter(
+            self,
+            quick_filter: dict,
+        ):
+        """
+        Edit one quick filter.
+        """
+
+        dialog = QuickFilterDialog(
+
+            quick_filter=quick_filter,
+
+            parent=self
+
+        )
+
+        if not dialog.exec():
+
+            return
+
+        updated_filter = dialog.fn_get_data()
+
+        self.quick_access_controller.fn_update(
+        updated_filter
+        )
+
+        self.fn_reload()
+

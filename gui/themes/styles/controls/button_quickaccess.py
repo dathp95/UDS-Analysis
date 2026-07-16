@@ -50,48 +50,6 @@ def _fn_base_button_style(
         }}
         """
 
-def fn_primary_button_style():
-
-    colors = ThemeManager.fn_colors()
-
-    palette = ButtonPalette(
-
-        background=colors.PRIMARY,
-
-        hover=colors.PRIMARY_HOVER,
-
-        pressed=colors.PRIMARY_PRESSED,
-
-        text=colors.TEXT_INVERT,
-
-        border=colors.BORDER
-    )
-
-    return _fn_base_button_style(
-        palette
-    )
-
-def fn_secondary_button_style():
-
-    colors = ThemeManager.fn_colors()
-
-    palette = ButtonPalette(
-
-        background=colors.SECONDARY,
-
-        hover=colors.SECONDARY_HOVER,
-
-        pressed=colors.SECONDARY_PRESSED,
-
-        text=colors.SECONDARY_TEXT,
-
-        border=colors.BORDER
-    )
-
-    return _fn_base_button_style(
-        palette
-    )
-
 def fn_quick_access_button_style():
 
     colors = ThemeManager.fn_colors()
@@ -104,7 +62,7 @@ def fn_quick_access_button_style():
 
         pressed=colors.QUICK_ACCESS_PRESSED,
 
-        text=colors.QUICK_ACCESS_TEXT,
+        text=colors.TEXT_INVERT,
 
         border=colors.BORDER
     )
