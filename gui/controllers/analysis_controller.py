@@ -17,8 +17,7 @@ class AnalysisController:
         ecu_config: str,
     ):
 
-        print("[AnalysisController] Analyze Started")
-        print(f"[AnalysisController] Log File : {log_file}")
+        
 
         result = run_pipeline(
 

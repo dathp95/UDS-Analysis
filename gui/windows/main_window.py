@@ -24,6 +24,8 @@ from gui.widgets.result_table import ResultTable
 from gui.widgets.right_panel import RightPanel
 
 
+
+
 class MainWindow(QMainWindow):   
 
     def __init__(self):
@@ -33,10 +35,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Python UDS Analyzer")
         self.resize(1200, 700)
 
-        # Controllers
-        self._create_controllers()
+        # Runtime data
+        self.pipeline_result = None
 
-      
+        # Controllers
+        self._create_controllers()    
 
         # Build UI
         self.setup_ui()
@@ -47,7 +50,9 @@ class MainWindow(QMainWindow):
         # Initial UI state
         self.right_panel.action_panel.fn_set_startup_state()
 
-        # Apply theme
+        
+        # # Apply theme
+
         self.fn_refresh_theme()
 
 
@@ -73,6 +78,8 @@ class MainWindow(QMainWindow):
     
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
+        # self.quick_access_widget = QuickAccessWidget()
+
 
         content_layout.addWidget(self.tbl_result, 4)
         content_layout.addWidget(self.right_panel, 1)
@@ -90,6 +97,7 @@ class MainWindow(QMainWindow):
 
         self.clipboard_controller = ClipboardController()
 
+
     def _connect_signals(self):
 
         self.log_selector.path_changed.connect(
@@ -99,6 +107,8 @@ class MainWindow(QMainWindow):
         self.filter_box.filter_changed.connect(
             self.fn_filter_transactions
             )
+
+        
 
         self.right_panel.action_panel.analyze_clicked.connect(
                 self.fn_run_clicked
@@ -118,6 +128,11 @@ class MainWindow(QMainWindow):
             self.fn_clear_clicked
         )
         
+        self.right_panel.quick_filter_selected.connect(
+
+            self.fn_quick_filter
+
+        )
 
         self.right_panel.theme_switch.theme_changed.connect(
 
@@ -186,7 +201,14 @@ class MainWindow(QMainWindow):
     
     def fn_filter_transactions(self, keyword = None):
 
-        self.tbl_result.fn_filter(keyword)
+        self.tbl_result.fn_search(keyword)
+
+    def fn_quick_filter(self, filter_data: dict,):
+
+        self.tbl_result.fn_apply_quick_filter(filter_data)
+    
+   
+    
     
     def fn_change_theme(self,theme):
            

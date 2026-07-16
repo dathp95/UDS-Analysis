@@ -50,27 +50,6 @@ def _fn_base_button_style(
         }}
         """
 
-def fn_primary_button_style():
-
-    colors = ThemeManager.fn_colors()
-
-    palette = ButtonPalette(
-
-        background=colors.PRIMARY,
-
-        hover=colors.PRIMARY_HOVER,
-
-        pressed=colors.PRIMARY_PRESSED,
-
-        text=colors.TEXT_INVERT,
-
-        border=colors.BORDER
-    )
-
-    return _fn_base_button_style(
-        palette
-    )
-
 def fn_secondary_button_style():
 
     colors = ThemeManager.fn_colors()
@@ -83,7 +62,7 @@ def fn_secondary_button_style():
 
         pressed=colors.SECONDARY_PRESSED,
 
-        text= "#444444",
+        text=colors.TEXT_INVERT,
 
         border=colors.BORDER
     )

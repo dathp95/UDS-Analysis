@@ -91,7 +91,7 @@ class ResultTable(PrimaryTable):
                 QTableWidgetItem(item["Status"])
             )
     
-    def fn_filter(
+    def fn_search(
             self,
             keyword: str = "",
         ):
@@ -152,6 +152,28 @@ class ResultTable(PrimaryTable):
                 row,
                 not matched
             )
+
+  
+    def fn_apply_quick_filter(
+            self,
+            filter_data: dict,
+        ):
+        """
+        Apply one quick filter.
+
+        Current version only supports
+        Request filtering.
+        """
+
+        request = filter_data.get(
+            "filters",
+            {}
+        ).get(
+            "request",
+            ""
+        )
+
+        self.fn_search(request)
     
     def fn_refresh_theme(self):
 

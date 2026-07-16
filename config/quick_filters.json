@@ -1,0 +1,146 @@
+[
+    {
+        "id": 1,
+        "name": "Handshake",
+        "enabled": true,
+        "filters": {
+            "ecu": "MHU",
+            "request": "31 03 02 13",
+            "response": "71 03 02 13 00",
+            "service": "",
+            "status": ""
+        }
+    },
+    {
+        "id": 2,
+        "name": "Write VIN",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 90",
+            "response": "",
+            "service": "",
+            "status": ""
+        }
+    },
+    {
+        "id": 3,
+        "name": "Lock provision",
+        "enabled": true,
+        "filters": {
+            "ecu": "MHU",
+            "request": "31 01 02 07 00",
+            "response": ""
+        }
+    },
+    {
+        "id": 4,
+        "name": "Read VOD",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "22 F1 12",
+            "response": "62 F1 12"
+        }
+    },
+    {
+        "id": 5,
+        "name": "Search read VIN",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "22 F1 90",
+            "response": ""
+        }
+    },
+    {
+        "id": 6,
+        "name": "CDS",
+        "enabled": true,
+        "filters": {
+            "ecu": "MHU",
+            "request": "22 F1 08"
+        }
+    },
+    {
+        "id": 7,
+        "name": "1",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 8,
+        "name": "2",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 9,
+        "name": "3",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 10,
+        "name": "4",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 11,
+        "name": "5",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 12,
+        "name": "6",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 13,
+        "name": "7",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 14,
+        "name": "8",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 15,
+        "name": "9",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    }
+]

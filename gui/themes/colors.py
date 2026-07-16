@@ -15,6 +15,12 @@ class ThemeColors:
     PRIMARY_HOVER: str
     PRIMARY_PRESSED: str
 
+    # Secondary
+    SECONDARY: str  
+    SECONDARY_HOVER: str
+    SECONDARY_PRESSED: str
+    
+
     # Status
     SUCCESS: str
     WARNING: str
@@ -40,6 +46,10 @@ LIGHT_COLORS = ThemeColors(
     PRIMARY_HOVER="#2899F5",
     PRIMARY_PRESSED="#005A9E",
 
+    SECONDARY="#E1E1E1",
+    SECONDARY_HOVER="#D1D1D1",  
+    SECONDARY_PRESSED="#B0B0B0",
+
     SUCCESS="#2E8B57",
     WARNING="#E67E22",
     DANGER="#C0392B",
@@ -60,6 +70,10 @@ DARK_COLORS = ThemeColors(
     PRIMARY="#4CC2FF",
     PRIMARY_HOVER="#70D1FF",
     PRIMARY_PRESSED="#008ECC",
+
+    SECONDARY="#3A3A3A",
+    SECONDARY_HOVER="#4A4A4A",  
+    SECONDARY_PRESSED="#5A5A5A",
 
     SUCCESS="#3CB371",
     WARNING="#F4A261",
