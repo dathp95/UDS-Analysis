@@ -1,7 +1,0 @@
-agents:
-  - codex
-  - cursor
-  - copilot
-nested_depth: 2
-gitignore: false
-

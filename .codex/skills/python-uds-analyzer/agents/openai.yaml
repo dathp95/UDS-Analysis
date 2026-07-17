@@ -1,4 +1,0 @@
-interface:
-  display_name: "Python UDS Analyzer"
-  short_description: "Workflow for UDS analyzer project work"
-  default_prompt: "Use $python-uds-analyzer to inspect UDS parsing, reporting, GUI, export, Git, or agent-rule work while preserving behavior unless explicitly approved."

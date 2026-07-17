@@ -3,16 +3,17 @@ import pandas as pd
 from core.report_engine import (
     get_activity_table,
 )
-
+from gui.presenters.transaction_presenter import fn_build_table_rows
 
 # ==========================================================
 # Private
 # ==========================================================
 
 def _export_summary_sheet(
-    summary,
-    writer,
-):
+        summary,
+        writer,
+    ):
+    
     """
     Export summary information
     to the Summary worksheet.
@@ -54,6 +55,7 @@ def _export_ecu_report(
 def export_workbook(
     summary,
     ecu_reports,
+    transactions,
     output_file,
 ):
     """
@@ -80,6 +82,11 @@ def export_workbook(
                 summary,
                 writer,
             )
+            _export_all_ecus(
+                transactions,
+                writer,
+            )
+
 
             for report in ecu_reports.values():
 
@@ -87,9 +94,29 @@ def export_workbook(
                     report,
                     writer,
                 )
+            
+            
 
     except PermissionError:
 
         return False
 
     return True
+
+
+def _export_all_ecus(
+    transactions,
+    writer,
+):
+
+    rows = fn_build_table_rows(
+        transactions
+    )
+
+    df = pd.DataFrame(rows)
+
+    df.to_excel(
+        writer,
+        sheet_name="ALL_ECUS",
+        index=False,
+    )

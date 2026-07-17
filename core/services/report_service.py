@@ -26,6 +26,8 @@ class ReportService:
 
         ):
 
+        
+
         output_file = self.fn_choose_output_file(parent)
 
         if output_file is None:
@@ -37,6 +39,8 @@ class ReportService:
             summary=pipeline_result["summary"],
 
             ecu_reports=pipeline_result["ecu_reports"],
+            
+            transactions=pipeline_result["transactions"],
 
             output_file=output_file
 
