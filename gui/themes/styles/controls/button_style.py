@@ -14,8 +14,7 @@ Called By:
 from gui.themes.theme_manager import ThemeManager
 
 from gui.themes.styles.controls.button_palette import ButtonPalette
-
-
+from gui.themes.theme_manager import ThemeManager
 
 # ==========================================================
 # Private
@@ -25,6 +24,7 @@ def _fn_base_button_style(
         palette: ButtonPalette
 
     ):
+    colors = ThemeManager.fn_colors()
 
     return  f"""
         QPushButton {{
@@ -35,11 +35,28 @@ def _fn_base_button_style(
 
             border: 0px solid {palette.border};
 
+            font-family: "Segoe UI";
+
+            font-size: 10pt;
+
+            font-weight: 600;
+
+
         }}
 
         QPushButton:hover {{
 
             background-color: {palette.hover};
+
+        }}
+
+        QPushButton:disabled {{
+
+            background-color: {colors.BUTTON_DISABLED};
+
+            color: {colors.BUTTON_DISABLED_TEXT};
+
+            border: 1px solid {colors.BUTTON_DISABLED_BORDER};
 
         }}
 

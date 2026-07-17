@@ -1,5 +1,4 @@
 """
-license/validator.py
 
 Validate a license.
 
@@ -25,7 +24,6 @@ from typing import Any
 from .crypto import load_public_key, verify_signature
 from .exceptions import (
     LicenseExpiredError,
-    LicenseFormatError,
     LicenseInvalidError,
     LicenseParseError,
 )
@@ -59,7 +57,6 @@ def validate_license(
     LicenseInvalidError
     LicenseExpiredError
     LicenseParseError
-    LicenseFormatError
     """
 
     logger.debug("Validating license...")
@@ -72,13 +69,13 @@ def validate_license(
     )
 
     payload = _parse_payload(
-        raw_license.payload
+        raw_license.payload,
     )
 
     license_model = License.from_dict(payload)
 
     _validate_expiration(
-        license_model
+        license_model,
     )
 
     logger.debug(
@@ -118,7 +115,6 @@ def _parse_payload(
     """
 
     try:
-
         return json.loads(
             payload.decode("utf-8")
         )
@@ -142,13 +138,13 @@ def _validate_expiration(
     """
 
     if license_model.is_expired:
-
         raise LicenseExpiredError(
             f"License expired on "
-            f"{license_model.expire_date.isoformat()}."
+            f"{license_model.expire_date.strftime('%d/%m/%Y %H:%M:%S')}."
         )
 
     logger.debug(
-        "License expires in %d day(s).",
+        "License valid until %s (%d day(s) remaining).",
+        license_model.expire_date.strftime("%d/%m/%Y %H:%M:%S"),
         license_model.days_remaining,
     )

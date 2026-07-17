@@ -1,5 +1,4 @@
 """
-license/models.py
 
 License data model for Python UDS Analyzer.
 
@@ -10,7 +9,7 @@ No business logic, file I/O or cryptography.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
 from .exceptions import (
@@ -27,8 +26,8 @@ class License:
 
     customer: str
     edition: str
-    issue_date: date
-    expire_date: date
+    issue_date: datetime
+    expire_date: datetime
 
     # Reserved for future versions
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -38,7 +37,7 @@ class License:
         """
         Return True if the license has expired.
         """
-        return date.today() > self.expire_date
+        return datetime.now() > self.expire_date
 
     @property
     def days_remaining(self) -> int:
@@ -52,7 +51,7 @@ class License:
             Zero     -> expires today
             Negative -> already expired
         """
-        return (self.expire_date - date.today()).days
+        return (self.expire_date - datetime.now()).days
 
     @property
     def status(self) -> str:
@@ -69,8 +68,8 @@ class License:
         return {
             "customer": self.customer,
             "edition": self.edition,
-            "issue_date": self.issue_date.isoformat(),
-            "expire_date": self.expire_date.isoformat(),
+            "issue_date": self.issue_date.isoformat(timespec="seconds"),
+            "expire_date": self.expire_date.isoformat(timespec="seconds"),
             "metadata": self.metadata,
         }
 
@@ -85,7 +84,7 @@ class License:
             Missing or invalid required fields.
 
         LicenseParseError
-            Invalid date format.
+            Invalid datetime format.
         """
 
         required_fields = (
@@ -127,20 +126,17 @@ class License:
             )
 
         try:
+            issue_date = datetime.fromisoformat(
+                data["issue_date"]
+            )
 
-            issue_date = datetime.strptime(
-                data["issue_date"],
-                "%Y-%m-%d",
-            ).date()
-
-            expire_date = datetime.strptime(
-                data["expire_date"],
-                "%Y-%m-%d",
-            ).date()
+            expire_date = datetime.fromisoformat(
+                data["expire_date"]
+            )
 
         except ValueError as ex:
             raise LicenseParseError(
-                f"Invalid date format: {ex}"
+                f"Invalid datetime format: {ex}"
             ) from ex
 
         return cls(

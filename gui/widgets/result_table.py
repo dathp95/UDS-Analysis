@@ -1,5 +1,4 @@
 
-from email import header
 
 from PySide6.QtWidgets import (
     QTableWidget,
@@ -7,10 +6,9 @@ from PySide6.QtWidgets import (
     QHeaderView,
     
 )
-from gui.widgets.controls.primary_table import (
-    PrimaryTable
-)
 
+from gui.themes.theme_manager import ThemeManager
+from gui.widgets.controls.primary_table import PrimaryTable
 
 class ResultTable(PrimaryTable):
     def __init__(self):
@@ -19,6 +17,8 @@ class ResultTable(PrimaryTable):
         self._setup_ui()
 
         self._fn_setup_column_width()
+
+        self.fn_refresh_theme()
 
     def _setup_ui(self):
         headers = [
@@ -55,48 +55,15 @@ class ResultTable(PrimaryTable):
 
         for row, item in enumerate(data):
 
-            self.setItem(
-                row,
-                0,
-                QTableWidgetItem(item["ECU"])
-            )
+            self.setItem(row, 0, self.fn_create_item(item["ECU"], row))
+            self.setItem(row, 1, self.fn_create_item(item["Time"], row))
+            self.setItem(row, 2, self.fn_create_item(item["Activity"], row))
+            self.setItem(row, 3, self.fn_create_item(item["Request"], row))
+            self.setItem(row, 4, self.fn_create_item(item["Response"], row))
+            self.setItem(row, 5, self.fn_create_item(item["RT (ms)"], row))
+            self.setItem(row, 6, self.fn_create_item(item["Status"], row))
 
-            self.setItem(
-                row,
-                1,
-                QTableWidgetItem(str(item["Time"]))
-            )
-
-            
-            self.setItem(
-                row,
-                2,
-                QTableWidgetItem(item["Activity"])
-            )
-
-            self.setItem(
-                row,
-                3,
-                QTableWidgetItem(item["Request"])
-            )
-
-            self.setItem(
-                row,
-                4,
-                QTableWidgetItem(item["Response"])
-            )
-
-            self.setItem(
-                row,
-                5,
-                QTableWidgetItem(str(item["RT (ms)"]))
-            )
-
-            self.setItem(
-                row,
-                6,
-                QTableWidgetItem(item["Status"])
-            )
+   
     
     def _fn_setup_column_width(self):
         """

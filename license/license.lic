@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "algorithm": "RSA-PSS-SHA256",
+    "payload": "eyJjdXN0b21lciI6IkFFUyIsImVkaXRpb24iOiJQcm9mZXNzaW9uYWwiLCJleHBpcmVfZGF0ZSI6IjIwMjYtMDgtMzFUMTE6Mjk6MDMiLCJpc3N1ZV9kYXRlIjoiMjAyNi0wNy0xN1QxMToyOTowMyIsIm1ldGFkYXRhIjp7ImNvbXBhbnkiOiJEQVQgVFJBTiBBRVMifX0=",
+    "signature": "j20FCgOZ6XSWMdIKu0mcgrnaR/Y29rTDk2ygZYmgIoqvN+MoWhy6eZheDFYpKLXHbxAp0rJ9WkR0eJKGO/C9vQIR64GmvkYr0Yg3Mo7TPB7HyulkoVmPdpwaMOIB72lHW7b12QYSiViBEHzduysBxRiYlKJntcoZtqPnsL399qq+dZ18+z2NPd9wcQHAOm1aifFXUWzkeLxePN8tdScV/mK7fGkOLXn+Ab/s7na7SOSPUIQQ4mKOGCKye1tjM+x0a5nqd5Xp2RFS+NDM6rMCr1x3ocOTrxXzbUC0/gJRLAG56bReX30kTP8tgAw3qkhciy2yKUYxKl/ZkcXrflH35A=="
+}

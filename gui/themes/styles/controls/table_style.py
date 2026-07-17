@@ -9,7 +9,7 @@ def fn_table_style():
 
     QTableWidget {{
 
-        background: {colors.WINDOW};
+        background-color: {colors.WINDOW};
 
         color: {colors.TEXT};
 
@@ -21,17 +21,31 @@ def fn_table_style():
 
         selection-color: {colors.TEXT_INVERT};
 
-        alternate-background-color: {colors.PANEL};
-
         font-family: "Segoe UI";
 
         font-size: 10pt;
 
     }}
 
+    QTableWidget::item{{
+
+        padding:4px;
+
+    }}
+
+    QTableWidget::item:selected{{
+
+        background:{colors.PRIMARY};
+
+        color:{colors.TEXT_INVERT};
+
+    }}
+
+    
+
     QHeaderView::section {{
 
-        background: {colors.TABLE_HEADER};
+        background-color: {colors.TABLE_HEADER};
 
         color: {colors.TEXT};
 
@@ -44,5 +58,7 @@ def fn_table_style():
         font-weight: bold;
 
     }}
+
+    
 
     """

@@ -33,6 +33,10 @@ class ThemeColors:
     WARNING: str
     DANGER: str
 
+    BUTTON_DISABLED: str
+    BUTTON_DISABLED_TEXT: str
+    BUTTON_DISABLED_BORDER: str
+
     # Background
     WINDOW: str
     PANEL: str
@@ -46,6 +50,11 @@ class ThemeColors:
 
     # Table
     TABLE_HEADER: str
+    TABLE_ROW: str
+    TABLE_ROW_ALT: str
+    TABLE_GRID: str
+    TABLE_SELECTION: str
+    TABLE_HOVER: str
 
 LIGHT_COLORS = ThemeColors(
 
@@ -68,15 +77,28 @@ LIGHT_COLORS = ThemeColors(
     WARNING="#E67E22",
     DANGER="#C0392B",
 
+    BUTTON_DISABLED         = "#E5E7EB",
+    BUTTON_DISABLED_TEXT    = "#9CA3AF",
+    BUTTON_DISABLED_BORDER  = "#D1D5DB",
+
     WINDOW="#FFFFFF",
-    PANEL="#F5F5F5",
+    PANEL="#F6F8FA",
 
     BORDER="#D9D9D9",
 
     TEXT="#202020",
     TEXT_INVERT="#FFFFFF",
 
-    TABLE_HEADER="#EFEFEF"
+    TABLE_HEADER="#EFEFEF",
+
+    TABLE_ROW="#FFFFFF",
+    TABLE_ROW_ALT="#DADADA",
+
+    TABLE_GRID="#D9D9D9",
+
+    TABLE_SELECTION="#A4CBE9",
+
+    TABLE_HOVER="#9AC1F4",
 )
 
 DARK_COLORS = ThemeColors(
@@ -96,11 +118,15 @@ DARK_COLORS = ThemeColors(
     QUICK_ACCESS_PRESSED = "#1C6FB5",
     QUICK_ACCESS_TEXT = "#ECE7E7",
 
+    BUTTON_DISABLED         = "#3A3A3A",
+    BUTTON_DISABLED_TEXT    = "#7D7D7D",
+    BUTTON_DISABLED_BORDER  = "#4A4A4A",
+
     SUCCESS="#3CB371",
     WARNING="#F4A261",
     DANGER="#FF6B6B",
 
-    WINDOW="#1E1E1E",
+    WINDOW="#202124",
     PANEL="#2B2B2B",
 
     BORDER="#444444",
@@ -108,5 +134,15 @@ DARK_COLORS = ThemeColors(
     TEXT="#F2F2F2",
     TEXT_INVERT="#FFFFFF",
 
-    TABLE_HEADER="#333333"
+    TABLE_HEADER="#333333",
+
+    TABLE_ROW="#202124",
+    TABLE_ROW_ALT="#121316",
+
+    TABLE_GRID="#444444",
+
+    TABLE_SELECTION="#4CC2FF",
+
+    TABLE_HOVER="#4CC2FF",
+
 )

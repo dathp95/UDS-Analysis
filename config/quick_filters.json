@@ -157,5 +157,23 @@
         },
         "id": 22,
         "enabled": true
+    },
+    {
+        "name": "WRITE BCM",
+        "filters": {
+            "ecu": "BCM",
+            "request": "2E"
+        },
+        "id": 23,
+        "enabled": true
+    },
+    {
+        "name": "Write MHU",
+        "filters": {
+            "ecu": "MHU",
+            "request": "2E"
+        },
+        "id": 24,
+        "enabled": true
     }
 ]
