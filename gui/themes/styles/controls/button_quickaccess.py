@@ -26,6 +26,8 @@ def _fn_base_button_style(
 
     ):
 
+    colors = ThemeManager.fn_colors()
+
     return  f"""
         QPushButton {{
 
@@ -33,7 +35,32 @@ def _fn_base_button_style(
 
             color: {palette.text};
 
-            border: 0px solid {palette.border};
+            border: 1px solid {palette.border};
+
+
+            font-family: "Segoe UI";
+
+            font-size: 10pt;
+
+            font-weight: 600;
+
+            text-align: left;
+
+            padding-left: 16px;
+            padding-right: 10px;
+
+            min-height: 34px;
+            border-radius: 4px;
+
+        }}
+
+        QPushButton:disabled {{
+
+            background-color: {colors.BUTTON_DISABLED};
+
+            color: {colors.BUTTON_DISABLED_TEXT};
+
+            border: 1px solid {colors.BUTTON_DISABLED_BORDER};
 
         }}
 

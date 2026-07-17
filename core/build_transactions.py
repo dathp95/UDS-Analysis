@@ -466,9 +466,7 @@ def parse_negative_response(payload):
 # INPUT: Code NRC XX (HEX: 78, OR DEC) => NAME of NRC
 
 def get_nrc_name(nrc):
-    # print(get_nrc_name(120)) #Response Pending
-    # print(get_nrc_name(0x78)) Response Pending
-    # print(get_nrc_name(0x79)) Unknown NRC    
+    
 
     return NRC_TABLE.get(
         nrc,

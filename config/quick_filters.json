@@ -1,179 +1,65 @@
 [
     {
-        "id": 2,
-        "name": "Write VIN",
+        "id": 1,
+        "name": "01. Key learn BCM",
         "enabled": true,
         "filters": {
-            "ecu": "",
-            "request": "2E F1 90",
-            "response": "",
-            "service": "",
-            "status": ""
+            "ecu": "BCM",
+            "request": "31 01 02 07"
+        }
+    },
+    {
+        "id": 2,
+        "name": "02. Learn Key",
+        "enabled": true,
+        "filters": {
+            "ecu": "BCM",
+            "request": ""
         }
     },
     {
         "id": 3,
-        "name": "Lock provision",
+        "name": "03 OK",
         "enabled": true,
         "filters": {
-            "ecu": "MHU",
-            "request": "31 01 02 07 00",
-            "response": ""
+            "ecu": "BCM",
+            "request": ""
         }
     },
     {
         "id": 4,
-        "name": "Read VOD",
+        "name": "4",
         "enabled": true,
         "filters": {
             "ecu": "",
-            "request": "22 F1 12",
-            "response": "62 F1 12"
+            "request": ""
         }
     },
     {
         "id": 5,
-        "name": "Search read VIN",
+        "name": "4",
         "enabled": true,
         "filters": {
             "ecu": "",
-            "request": "22 F1 90",
-            "response": ""
+            "request": ""
         }
     },
     {
         "id": 6,
-        "name": "1",
+        "name": "5",
         "enabled": true,
         "filters": {
-            "ecu": "",
+            "ecu": "BCM",
             "request": ""
         }
     },
     {
         "id": 7,
-        "name": "2",
+        "name": "6",
         "enabled": true,
         "filters": {
             "ecu": "",
             "request": ""
         }
-    },
-    {
-        "name": "Xoa",
-        "filters": {
-            "ecu": "MHU",
-            "request": "22 F1 90"
-        },
-        "id": 10,
-        "enabled": true
-    },
-    {
-        "id": 11,
-        "name": "Find ABS",
-        "enabled": true,
-        "filters": {
-            "ecu": "ABS",
-            "request": "22 F1 90"
-        }
-    },
-    {
-        "name": "VCU VIN",
-        "filters": {
-            "ecu": "VCU",
-            "request": "22 F1 90"
-        },
-        "id": 12,
-        "enabled": true
-    },
-    {
-        "id": 13,
-        "name": "FRS number",
-        "enabled": true,
-        "filters": {
-            "ecu": "MHU",
-            "request": "22 F1 5C"
-        }
-    },
-    {
-        "id": 14,
-        "name": "Find BCM",
-        "enabled": true,
-        "filters": {
-            "ecu": "BCM",
-            "request": ""
-        }
-    },
-    {
-        "id": 15,
-        "name": "Find MHU",
-        "enabled": true,
-        "filters": {
-            "ecu": "MHU",
-            "request": ""
-        }
-    },
-    {
-        "id": 16,
-        "name": "Find ABS",
-        "enabled": true,
-        "filters": {
-            "ecu": "ABS",
-            "request": ""
-        }
-    },
-    {
-        "name": "12345",
-        "filters": {
-            "ecu": "MHU",
-            "request": ""
-        },
-        "id": 17,
-        "enabled": true
-    },
-    {
-        "id": 20,
-        "name": "Read VIN",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": "22 F1 90"
-        }
-    },
-    {
-        "id": 21,
-        "name": "Write VIN",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": "2E F1 90"
-        }
-    },
-    {
-        "name": "ABS_MHU Write VIN",
-        "filters": {
-            "ecu": "ABS",
-            "request": "22 F1 90"
-        },
-        "id": 22,
-        "enabled": true
-    },
-    {
-        "name": "WRITE BCM",
-        "filters": {
-            "ecu": "BCM",
-            "request": "2E"
-        },
-        "id": 23,
-        "enabled": true
-    },
-    {
-        "name": "Write MHU",
-        "filters": {
-            "ecu": "MHU",
-            "request": "2E"
-        },
-        "id": 24,
-        "enabled": true
     }
 ]

@@ -27,6 +27,8 @@ class QuickAccessWidget(QWidget):
         super().__init__()
 
         self.quick_filters = []
+        self.buttons = []
+
 
         self.quick_access_controller = QuickAccessController()
 
@@ -155,6 +157,10 @@ class QuickAccessWidget(QWidget):
                 height=24
 
             )
+
+            self.buttons.append(button)
+
+
             button.setContextMenuPolicy(
                 Qt.CustomContextMenu
             )
@@ -188,6 +194,8 @@ class QuickAccessWidget(QWidget):
         """
         Remove all quick filter buttons.
         """
+        self.buttons.clear()
+
 
         while self.button_layout.count():
 
@@ -309,16 +317,22 @@ class QuickAccessWidget(QWidget):
         self.fn_reload()
 
     def fn_set_enabled(self):
-        """
-        Enable Quick Access.
-        """
 
-        self.setEnabled(True)
-    
+        self.fn_enable_buttons(True)
+
     def fn_set_disabled(self):
+
+        self.fn_enable_buttons(False)
+    
+    def fn_enable_buttons(
+            self,
+            enabled: bool
+        ):
         """
-        Disable Quick Access.
+        Enable or disable all quick access buttons.
         """
 
-        self.setEnabled(False)
+        for button in self.buttons:
 
+            button.fn_enable(enabled)
+        

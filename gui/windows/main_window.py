@@ -84,7 +84,6 @@ class MainWindow(QMainWindow):
     
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
-        # self.quick_access_widget = QuickAccessWidget()
 
 
         content_layout.addWidget(self.tbl_result, 4)

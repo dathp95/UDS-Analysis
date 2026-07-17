@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QPushButton
 
-from gui.themes.styles.controls.button_style import (
+from gui.themes.styles.controls.button_quickaccess import (
     fn_quick_access_button_style
 )
 
@@ -15,7 +15,7 @@ class QuickAccessButton(QPushButton):
         parent = None
     ):
 
-        super().__init__(text)
+        super().__init__(text,parent)
 
         self.setMinimumSize(width, height)
 
