@@ -364,10 +364,8 @@
         "22 F1 49": "HUD FONT Data Block Part Number rev Level",
         "22 01 6D": "VOD Validation Flag for Category 1 and 2 ECUs",
         "22 D1 00": "KEY SW Number",
-        "22 FD 02": "Key Fob Number",
         "22 5C 00": "IMMO_SK_BCM",
-        "22 5C 02": "Lock Status",
-        "22 5C 03": "Immobilizer Secret Key (ISK)",
+       
         "22 D1 02": "Read Switch Input of BCM",
         "22 D1 03": "Read Output State of BCM",
         "22 D1 04": "Door Lock Type",
@@ -387,9 +385,18 @@
         "31 01 03 0A 02":   "MHU Start Check Camera Preview",
         "31 02 03 0A 02":   "MHU stop check Camera",
         "31 01 02 0A":  "MHU Start Calib routine",
-        "31 03 02 0A":  "MHU Check Calib Result"
+        "31 03 02 0A":  "MHU Check Calib Result",
 
-        
+        "22 FD 02": "BCM KEYFOB - Check Key Fob Learning Status",
+        "31 01 02 06": "BCM KEYFOB - Start Key Fob Learning",
+        "31 03 02 06": "BCM KEYFOB - Check Key Fob Learning Result",
+        "31 02 02 06": "BCM KEYFOB - End Key Fob Learning",
+        "31 01 02 FF": "BCM KEYFOB - Key Fob Factory Reset",
+        "31 03 02 FF": "BCM KEYFOB - Confirm Key Fob Factory Reset Result",
+        "22 5C 02": "BCM-IMMOKEY - Read BCM Immobilizer Lock Status",
+        "2E 5C 00 02": "BCM-IMMOKEY - Write BCM Immobilizer Secret Key",
+        "22 5C 03": "BCM-IMMOKEY - Confirm BCM ISK Write",
+        "2E 5C 00 21": "BCM-IMMOKEY - Set BCM Immo Lock Status to Locked"     
 
 
     }

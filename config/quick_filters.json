@@ -7,59 +7,5 @@
             "ecu": "BCM",
             "request": "31 01 02 07"
         }
-    },
-    {
-        "id": 2,
-        "name": "02. Learn Key",
-        "enabled": true,
-        "filters": {
-            "ecu": "BCM",
-            "request": ""
-        }
-    },
-    {
-        "id": 3,
-        "name": "03 OK",
-        "enabled": true,
-        "filters": {
-            "ecu": "BCM",
-            "request": ""
-        }
-    },
-    {
-        "id": 4,
-        "name": "4",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 5,
-        "name": "4",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 6,
-        "name": "5",
-        "enabled": true,
-        "filters": {
-            "ecu": "BCM",
-            "request": ""
-        }
-    },
-    {
-        "id": 7,
-        "name": "6",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
     }
 ]

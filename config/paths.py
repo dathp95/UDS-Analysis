@@ -1,16 +1,28 @@
 from pathlib import Path
+import sys
 
-PROJECT_ROOT = Path.cwd()
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 REPORT_DIR = OUTPUT_DIR / "Reports"
-
 LOG_DIR = OUTPUT_DIR / "Logs"
-
 TEMP_DIR = OUTPUT_DIR / "Temp"
-
 CACHE_DIR = OUTPUT_DIR / "Cache"
+
+
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 QUICK_FILTER_FILE = CONFIG_DIR / "quick_filters.json"
+
+if getattr(sys, "frozen", False):
+    RESOURCE_ROOT = Path(sys._MEIPASS)
+else:
+    RESOURCE_ROOT = PROJECT_ROOT
+
+RESOURCE_DIR = RESOURCE_ROOT / "gui" / "resources"
+ICON_DIR = RESOURCE_DIR / "icons"
+IMAGE_DIR = RESOURCE_DIR / "images"

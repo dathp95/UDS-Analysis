@@ -27,6 +27,7 @@ from gui.widgets.right_panel import RightPanel
 from PySide6.QtGui import QIcon
 from gui.themes.icon_manager import IconManager
 
+from config.paths import CONFIG_DIR
 
 class MainWindow(QMainWindow):   
 
@@ -160,7 +161,7 @@ class MainWindow(QMainWindow):
 
             log_file=self.log_selector.path(),
 
-            ecu_config="config/ecu_config.xlsx"
+            ecu_config=CONFIG_DIR / "ecu_config.xlsx"
 
         )
 

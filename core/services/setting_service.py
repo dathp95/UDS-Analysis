@@ -21,6 +21,7 @@
 import json
 
 from pathlib import Path
+from config.paths import CONFIG_DIR
 
 
 class SettingsService:
@@ -28,7 +29,7 @@ class SettingsService:
     def __init__(self):
 
         self.settings_file = Path(
-            "config/settings.json"
+            CONFIG_DIR / "settings.json"
         )
 
         self._settings = self._fn_load()

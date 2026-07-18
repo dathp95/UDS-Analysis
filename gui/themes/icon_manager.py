@@ -1,14 +1,9 @@
-from pathlib import Path
 from PySide6.QtGui import QIcon
+from config.paths import ICON_DIR
 
 
 class IconManager:
 
-    ICON_DIR = Path("gui/resources/icons")
-
     @classmethod
     def app(cls):
-
-        return QIcon(
-            str(cls.ICON_DIR / "webhook.svg")
-        )
+        return QIcon(str(ICON_DIR / "webhook.svg"))

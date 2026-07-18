@@ -1,16 +1,11 @@
-"""
-license/paths.py
-
-Common paths used by the License System.
-"""
-
 from pathlib import Path
+import sys
 
-# Folder: license/
-LICENSE_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+    LICENSE_DIR = PROJECT_ROOT / "license"
+else:
+    LICENSE_DIR = Path(__file__).resolve().parent
 
-# Public key
 PUBLIC_KEY_PATH = LICENSE_DIR / "public.pem"
-
-# Default license file
 LICENSE_FILE_PATH = LICENSE_DIR / "license.lic"

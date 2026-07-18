@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from core.services.startup_service import ensure_directories
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -16,6 +17,7 @@ APP_AUTHOR = "AES EEIV by DAT TRAN"
 
 
 def main() -> int:
+    ensure_directories()
     app = QApplication(sys.argv)
 
     try:
