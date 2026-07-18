@@ -1,0 +1,675 @@
+{
+    "10 01": {
+        "display_name": "End Diagnostic Session"
+    },
+    "10 02": {
+        "display_name": "Programming Session"
+    },
+    "10 03": {
+        "display_name": "Start Diagnostic Session"
+    },
+    "27 01": {
+        "display_name": "Perform Security Access -Request Seed Level 1"
+    },
+    "27 02": {
+        "display_name": "Perform Security Access -Send Key Level 1"
+    },
+    "27 03": {
+        "display_name": "Perform Security Access -Request Seed Level 2"
+    },
+    "27 04": {
+        "display_name": "Perform Security Access -Send Key Level 2"
+    },
+    "27 05": {
+        "display_name": "Perform Security Access -Request SeedLevel 3"
+    },
+    "27 06": {
+        "display_name": "Perform Security Access -Send Key Level 3"
+    },
+    "14 FF FF FF": {
+        "display_name": "Clear Diagnostic Information"
+    },
+    "85 02": {
+        "display_name": "DTC Setting Control Sub 02"
+    },
+    "85 01": {
+        "display_name": "DTC Setting Control Sub 01"
+    },
+    "10 41": {
+        "display_name": "Coding Diagnostic Session"
+    },    
+    "11 01": {
+        "display_name": "Hard Reset"
+    },
+    "11 03": {
+        "display_name": "Hard Reset-Bootloader"
+    },
+    "11 02": {
+        "display_name": "Soft Reset"
+    },
+    "19 02 09": {
+        "display_name": "Read DTC Information - Report DTC by Status Mask"
+    },
+    "19 02 0A": {
+        "display_name": "Read DTC Information - Report DTC Snapshot"
+    },
+    "19 02 0B": {
+        "display_name": "Read DTC Information - Report DTC Extended"
+    },
+
+
+    
+    "22 F1 90": {
+        "display_name": "Read VIN"
+    },
+    "2E F1 90": {
+        "display_name": "WRITE VIN"
+    },
+    "22 F1 08": {
+        "display_name": "Read CODING CDS"
+    },
+    "22 F1 11": {
+        "display_name": "Read VOD Factory"
+    },
+    "22 F1 12": {
+        "display_name": "Read VOD Current Vehicle"
+    },
+    "22 F1 13": {
+        "display_name": "Read Coding Finger Print"
+    },
+    "2E F1 08": {
+        "display_name": "Read CODING CDS"
+    },
+    "2E F1 11": {
+        "display_name": "Write Factory VOD Data"
+    },
+    "2E F1 12": {
+        "display_name": "Write Current VOD Data"
+    },
+    "2E F1 13": {
+        "display_name": "Write VOD coding finger Print"
+    },
+    "2E F1 0A": {
+        "display_name": "Write Coding for CDS Fingerprint"
+    },
+    "22 F1 0A": {
+        "display_name": "Read Coding for CDS Fingerprint"
+    },
+    "22 F1 94": {
+        "display_name": "Read ECU Software Version"
+    },
+    "2E F1 94": {
+        "display_name": "Write ECU Software Version"
+    },
+    "22 FA 1B": {
+        "display_name": " Read ACM PyroFuse | Pyro fuse: 01 | No Prypro Fuse:00"
+    },
+    "2E FA 1B ": {
+        "display_name": " Write ACM PyroFuse | Pyro fuse: 01 | No Prypro Fuse:00"
+    },
+    "22 FF 01": {
+        "display_name": "Read Writing Value- ACM mode | 01: normal mode | 02:factory mode"
+    },
+    "2E FF 01": {
+        "display_name": "Write Writing Value- ACM mode | 01: normal mode | 02:factory mode"
+    },
+    "31 01 F1 15": {
+        "display_name": "ABS-Slope calibration-Start Zero Slope calibration|01 finished|02 still running|03 stopped or not start"
+    },
+    "31 03 F1 15": {
+        "display_name": "ABS-Slope calibration-Result of Slope calibration|01:finished|02:still running|03:stopped OR not start|04:routine stopped abnormal"
+    },
+
+
+     "22 C0 00": {
+        "display_name": "VCU-Immo Key-Check Lock in VCU|40: Locked |00: abort process"
+    },
+    "2E C0 01 03": {
+        "display_name": "VCU-Immo Key-Write Secret key (ISK) into VCU"
+    },
+    "2E C0 01 04": {
+        "display_name": "VCU-Immo Key-Check Secret Key (ISK) in VCU"
+    },
+    "2E C0 01 20": {
+        "display_name": "VCU-Immo Key-Lock Secret Key (ISK) in VCU |00: Success"
+    },
+    "2E C0 05 03": {
+        "display_name": "VCU-Immo Key-Rewrite Secret Key (ISK) in VCU"
+    },
+
+
+
+
+
+    "22 FD 02": {
+        "display_name": "BCM-KEYFOB-Check Key Fob Learning Status"
+    },
+    "31 01 02 06": {
+        "display_name": "BCM-KEYFOB-Start Key Fob Learning-MHU-Lock Provision Data-Verify Reprogramming Credential Dataset"
+    },
+    "31 03 02 06": {
+        "display_name": "BCM-KEYFOB-Check Key Fob Learning Result 00 Key not detected|01 Key learned successfully|02 Paired keys for this vehicle|03 Keys learned from other cars|04 base station error|05 exceeds the maximum learning quantity|06 Other errors (such as abnormal communication"
+    },
+    "31 02 02 06": {
+        "display_name": "BCM-KEYFOB-End Key Fob Learning"
+    },
+    "31 01 02 FF": {
+        "display_name": "BCM-KEYFOB-Key Fob Factory Reset"
+    },
+    "31 03 02 FF": {
+        "display_name": "BCM-KEYFOB-Confirm Key Fob Factory Reset Result|00 Key not detected|01 Key Fob factory reset successfully|04 base station error|06 Other errors (such as abnormal communication)"
+    },
+    "22 5C 02": {
+        "display_name": "BCM-IMMOKEY-Read BCM Immobilizer Lock Status| BCM is writing 1st 62 5C 02 00| 2nd: 62 5C 02 40"
+    },
+    "2E 5C 00 02": {
+        "display_name": "BCM-IMMOKEY-Write BCM Immobilizer Secret Key"
+    },
+    "22 5C 03": {
+        "display_name": "BCM-IMMOKEY-Confirm BCM ISK Write"
+    },
+    "2E 5C 00 21": {
+        "display_name": "BCM-IMMOKEY-Set BCM Immo Lock Status to Locked"
+    },
+    "2E FD 03": {
+        "display_name": "BCM-LVTopup-Write configuration-V1-T1-T2-C1TH"
+    },
+    "22 FD 03": {
+        "display_name": "BCM-LVTopup-Read configuration-V1-T1-T2-C1TH"
+    },
+    "31 01 02 07": {
+        "display_name": "BCM-KeyFOB learn-Erase Previous Key Fobs"
+    },
+    "31 03 02 07": {
+        "display_name": "BCM-KeyFOB learn-Confirm the result of erasing Previous Key Fobs | 01:OK | 00:NOK"
+    },
+
+
+    "22 F1 02": {
+    "display_name": "ECU Calibration SW Part Number"
+    },
+    "22 F1 03": {
+        "display_name": "ECU Purchase Part Number"
+    },
+       "22 F1 04": { "display_name": "ECU Application SW Part Number" },
+    "22 F1 05": { "display_name": "ECU Basic SW Part Number" },
+    "22 F1 06": { "display_name": "ECU HMI SW Data Part Number" },
+    "22 F1 41": { "display_name": "VEH MF ECU HW Part Number rev Level" },
+    "22 F1 42": { "display_name": "VEH MF ECU Calibration Part Number rev Level" },
+    "22 F1 43": { "display_name": "VEH MF ECU Purchase Part Number rev Level" },
+    "22 F1 44": { "display_name": "VEH MF ECU Application SW Part Number rev Level" },
+    "22 F1 45": { "display_name": "VEH MF ECU Basic SW Part Number rev Level" },
+    "22 F1 46": { "display_name": "VEH MF ECU HMI SW Part Number rev Level" },
+    "22 F1 48": { "display_name": "VEH MF ECU SW Part Number rev Level" },
+    "22 F1 91": { "display_name": "VEH MF ECU HW Number Data Identifier" },
+    "22 F1 88": { "display_name": "VEH MF ECU SW Number Data Identifier" },
+    "22 F1 86": { "display_name": "Active Diagnostic Session Data Identifier" },
+    "22 F1 8B": { "display_name": "ECU Manufacturing Date" },
+    "22 F1 07": { "display_name": "Programming Fingerprint" },
+    "22 F1 31": { "display_name": "Read Programming Fingerprint1" },
+    "22 F1 32": { "display_name": "Read Programming Fingerprint2" },
+    "22 F1 33": { "display_name": "Read Programming Fingerprint3" },
+    "22 F1 34": { "display_name": "Read Programming Fingerprint4" },
+    "22 F1 35": { "display_name": "Read Programming Fingerprint5" },
+    "22 F1 1A": { "display_name": "ECU PT CAN DBC File Version" },
+    "22 F1 1B": { "display_name": "ECU TC CAN DBC File Version" },
+    "22 F1 0F": { "display_name": "Service Date" },
+    "22 FD 01": { "display_name": "Supplier Specific Part Number Data Identifier" },
+    "22 F1 92": { "display_name": "System Supplier ECU Hardware Number" },
+    "22 F1 95": { "display_name": "System Supplier ECU SW Number" },
+    "22 F1 10": { "display_name": "ECU Name Data Identifier" },
+    "22 F1 8C": { "display_name": "ECU Serial Number" },
+    "22 F1 0C": { "display_name": "ECU Body CAN DBC File Version" },
+    "22 F1 0E": { "display_name": "INFOT CAN DBC File Version" },
+    "22 F1 25": { "display_name": "ADAS CAN ECU DBC File" },
+    "22 F1 8F": { "display_name": "Regulation SW ID Number" },
+    "22 F1 26": { "display_name": "Diagnostic CAN DBC File" },
+    "22 F1 27": { "display_name": "FA CAN DBC File" },
+    "22 F8 00": { "display_name": "Vehicle Iden num #2" },
+    "22 F8 01": { "display_name": "Vehicle Iden num #" },
+    "22 F8 02": { "display_name": "Vehicle Iden num #1" },
+    "22 F1 28": { "display_name": "ECU FLEXRAY FIBEX File Version" },
+    "22 F1 0D": { "display_name": "ECU LIN1 LDF File" },
+    "22 F1 1C": { "display_name": "ECU LIN2 LDF File Version" },
+    "22 F1 29": { "display_name": "ECU LIN3 LDF File Version" },
+    "22 F1 01": { "display_name": "Boot Loader Version Number" },
+    "22 01 6C": { "display_name": "HV Status and Charging Status" },
+    "22 D0 5B": { "display_name": "SW Status Check" },
+    "22 D0 6B": { "display_name": "Signed SW Consistency Check" },
+    "22 01 79": { "display_name": "Check ECU Control of HV" },
+    "22 02 22": { "display_name": "Valid Application" },
+    "22 08 03": { "display_name": "Vehicle Iden num 5 (VIN5)" },
+    "22 08 04": { "display_name": "Diagnostic Specification Number Applied" },
+    "22 08 05": { "display_name": "Flash Specification Number Applied" },
+    "22 08 06": { "display_name": "AUTOSAR Version Number Applied" },
+    "22 08 07": { "display_name": "ODX Template Version Applied" },
+    "22 08 08": { "display_name": "EOL Template Version Applied" },
+    "22 08 09": { "display_name": "AS Template Version Applied" },
+    "22 20 70": { "display_name": "Transport Mode" },
+    "22 48 84": { "display_name": "Internal Fault Data" },
+    "22 D0 20": { "display_name": "Internal Fail Code" },
+    "22 DD 01": { "display_name": "Cabin Temperature" },
+    "22 DD 02": { "display_name": "Outside Temperature" },
+    "22 DD 03": { "display_name": "ECU Temperature" },
+    "22 DD 04": { "display_name": "ECU Voltage" },
+    "22 DD 05": { "display_name": "Motor RPM" },
+    "22 DD 07": { "display_name": "GPS Time" },
+    "22 DD 09": { "display_name": "Vehicle Speed" },
+    "22 EF 00": { "display_name": "VOD Validation States for a Category 2 ECU" },
+    "22 EF 02": { "display_name": "Last Stored VOD Category 2 ECU" },
+    "22 EF 03": { "display_name": "Last Stored VOD Category 2 ECU Backup" },
+    "22 EF 04": { "display_name": "ECU Validation States for a Category 1 ECU" },
+    "22 EF 05": { "display_name": "Compare Category 2 Master and Backup ECU Checksum" },
+    "22 F1 09": { "display_name": "HUD FONT Data Block Part Number" },
+    "22 F1 20": { "display_name": "Global Time" },
+    "22 F1 21": { "display_name": "Odometer" },
+    "22 F1 22": { "display_name": "Vehicle Supply Voltage" },
+    "22 F1 23": { "display_name": "Ignition Status" },
+    "22 F1 3A": { "display_name": "ECU LIN4 LDF File Version" },
+    "22 F1 3B": { "display_name": "ECU LIN5 LDF File Version" },
+    "22 F1 49": { "display_name": "HUD FONT Data Block Part Number rev Level" },
+    "22 01 6D": { "display_name": "VOD Validation Flag for Category 1 and 2 ECUs" },
+    "22 D1 00": { "display_name": "KEY SW Number" },
+    "22 5C 00": { "display_name": "IMMO_SK_BCM" },
+    "22 D1 02": { "display_name": "Read Switch Input of BCM" },
+    "22 D1 03": { "display_name": "Read Output State of BCM" },
+    "22 D1 04": { "display_name": "Door Lock Type" },
+
+
+
+    "22 F1 70": {
+        "display_name": "Telematics provisioning fingerfprint"
+    },
+    "22 F1 71": {
+        "display_name": "MHU-Telemetrics-Read Telemetic Device CSR (Certificate Signing Request)"
+    },
+    "22 F1 72": {
+        "display_name": "Telematics Public key"
+    },
+    "22 F1 73": {
+        "display_name": "Device Certificate"
+    },
+    "22 F1 74": {
+        "display_name": "Encrypted FOTA data cryption key"
+    },
+    "22 F1 75": {
+        "display_name": "VF Signature Public key"
+    },
+    "22 F1 76": {
+        "display_name": "Amazon-root-CA-1"
+    },
+    "22 F1 77": {
+        "display_name": "Encrypted ECUs repogramming credential dataset"
+    },
+    "22 F1 78": {
+        "display_name": "AWS Endpoint Address"
+    },
+    "22 F1 79": {
+        "display_name": "MHU-Telemetrics-Read Telemetic's eSIM Serial Number"
+    },
+    "22 F1 6F": {
+        "display_name": "TBOX SW Info"
+    },
+    "22 F1 52": {
+        "display_name": "IPL Version"
+    },
+    "22 F1 53": {
+        "display_name": "Calibration TripInfo"
+    },
+    "22 F1 55": {
+        "display_name": "MHU-Telemetrics-Read Telemetic's eSIM Serial Number IMEI"
+    },
+    "22 F1 56": {
+        "display_name": "MHU-Telemetrics-Read Telemetic's eSIM Serial Number EID"
+    },
+    "22 F1 5C": {
+        "display_name": "MHU-Read FRS Number Coding"
+    },
+    "2E F1 5C": {
+        "display_name": "MHU-Write FRS Number Coding"
+    },
+    "22 F1 5D": {
+        "display_name": "BCM handshake key CRC-32"
+    },
+    "22 F1 5E": {
+        "display_name": "ADAS handshake key CRC-32"
+    },
+    "22 F1 5F": {
+        "display_name": "MHU LTE connection switch"
+    },
+    "22 F1 60": {
+        "display_name": "HV ON during FOTA permission"
+    },
+    "22 F1 66": {
+        "display_name": "Thermal Sensor"
+    },
+    "22 F1 65": {
+        "display_name": "Complied FW Date Time"
+    },
+    "22 F1 67": {
+        "display_name": "S32K SW Info"
+    },
+    "22 F1 68": {
+        "display_name": "Provision Info"
+    },
+    "22 F1 7B": {
+        "display_name": "eCall historical expired time"
+    },
+    "22 F1 7C": {
+        "display_name": "eCall location data"
+    },
+    "22 F1 7D": {
+        "display_name": "S32K Commit ID"
+    },
+    "22 F1 69": {
+        "display_name": "eCall manual phone number"
+    },
+    "22 F1 7E": {
+        "display_name": "eCall ACN phone number"
+    },
+    "22 F1 7F": {
+        "display_name": "eCall test phone number"
+    },
+    "22 F1 50": {
+        "display_name": "eCall network registration period"
+    },
+    "22 F1 54": {
+        "display_name": "eCall network deregistration period"
+    },
+    "22 F1 6A": {
+        "display_name": "ESIM Public APN"
+    },
+    "22 F1 6B": {
+        "display_name": "ESIM Private APN"
+    },
+    "22 F1 6C": {
+        "display_name": "APN Bundle"
+    },
+    "22 F1 6D": {
+        "display_name": "LTE Firmware Info"
+    },
+   "22 F1 51": {
+        "display_name": "TBOX SIM type"
+    }, 
+    "31 01 02 13 00": {
+        "display_name": "MHU-Handshake-Start Key-learning with supported clients"
+    },
+    "31 03 02 13": {
+        "display_name": "MHU-Handshake-Get result of Key-learning with supported client"
+    },
+    "31 01 02 19 ": {
+        "display_name": "MHU-Activation-HereMap-Start activation HERE MAP"
+    },
+    "31 03 02 19": {
+        "display_name": "MHU-Activation-HereMap-Get result activation HERE MAP"
+    },
+    "31 01 02 07 00": {
+        "display_name": "MHU-Lock Provision Data-Confirm all credentials"
+    },
+    "2E F1 73": {
+        "display_name": "MHU-Lock Provision Data-Write Device Certificate (Bootstrap Certificate)"
+    },
+    "2E F1 74": {
+        "display_name": "MHU-Lock Provision Data-Write Encrypted FOTA Data Encryption Key"
+    },
+    "2E F1 75": {
+        "display_name": "MHU-Lock Provision Data-Write VF Verify Public Key"
+    },
+    "2E F1 77": {
+        "display_name": "MHU-Lock Provision Data-Write Encrypted ECUs Reprogramming Credential Dataset"
+    },
+    "2E F1 76": {
+        "display_name": "MHU-Lock Provision Data-Write AWS Root CA"
+    },
+    "2E F1 78": {
+        "display_name": "MHU-Lock Provision Data-Write AWS Endpoint Address"
+    },
+    "31 01 02 04": {
+        "display_name": "MHU-Lock Provision Data-Validate Credential by Challenge"
+    },
+    "31 01 02 05": {
+        "display_name": "MHU-Lock Provision Data-Validate Data Encryption Key by Challenge"
+    },
+    "31 01 02 0E 00": {
+        "display_name": "MHU-Lock Provision Data-Validate Connectivity with Internet"
+    },
+    "31 01 02 0E 01": {
+        "display_name": "MHU-Lock Provision Data-Validate Connectivity with Backend"
+    },
+    "31 01 F0 30": {
+        "display_name": "MHU-RVC Calibration-Check PreCondition"
+    },
+    "31 01 03 0A": {
+        "display_name": "MHU-RVC Calibration-Start Check Camera Preview"
+    },
+    "31 02 03 0A": {
+        "display_name": "MHU-RVC Calibration-Stop Check Camera "
+    },
+    "31 01 02 0A": {
+        "display_name": "MHU-RVC Calibration-Start Calibration Routin "
+    },
+    "31 03 02 0A": {
+        "display_name": "MHU-RVC Calibration-Check Calibration Result "
+    },
+    "2E F1 6E": {
+        "display_name": "MHU-Reconfigure TotalMileage | only allow write Total Mileage greater than current Total Mileage and using in case of replacing old MHU with new MHU "
+    },
+    "22 F1 6E": {
+        "display_name": " MHU-Confirm TotalMileage "
+    },
+    "31 01 02 08": {
+        "display_name": "Generate device connected identity | 8 bytes random vector"
+    },
+    "31 01 02 00 ": {
+        "display_name": "Check CDS Coding State- 00: Coding Valid  "
+    },
+    "31 01 02 01": {
+        "display_name": " Check VOD Coding State |01: VOD valid "
+    },
+    "31 01 02 0C": {
+        "display_name": " Check Ecall Mic | VF3-No| 00: OK, 01:NOK "
+    },
+    "31 01 02 0E ": {
+        "display_name": "Verify connectivity - 00=to internet only|01=to vinfast cloud|02=provision finalized  "
+    },
+    "31 01 02 12 00": {
+        "display_name": " Clear provision data standard "
+    },
+    "31 01 02 13": {
+        "display_name": "Start Key-learning with supported client (ADAS/BCM,…) | 00: success 01: failed  "
+    },
+    "31 01 02 15": {
+        "display_name": "Get TBOX challenge code -0: Pass|1: Failed, Unknown error|2: Failed, not ready  "
+    },
+    "31 01 02 16": {
+        "display_name": " Clear TBOX provision data advance | 00=to internet only|01=to vinfast cloud|02=provision finalized "
+    },
+    
+    "31 01 02 03": {
+        "display_name": "Check Programming Preconditions  | Driver Presence: 0=OK, 1=Not Ready | Vehicle Speed: 0=OK, 2=Moving | Programming Voltage: 0=OK, 4=Out of Range"
+    },
+    "31 01 FF 00": {
+        "display_name": "Erase Memory  | 0=Correct | 1=Incorrect"
+    },
+    "31 01 02 02": {
+        "display_name": "Check Memory  | 0=Correct | 1=Incorrect"
+    },
+    "31 01 FF 01": {
+        "display_name": "Check Programming Dependencies  | 0=Correct | 1=Incorrect"
+    },
+    "31 01 03 02": {
+        "display_name": "Check TPM | 0=Fail | 1=Pass"
+    },
+    "31 01 03 03": {
+        "display_name": "Check Audio | 0=Fail | 1=Pass"
+    },
+    "31 01 03 04": {
+        "display_name": "Check GPS"
+    },
+    "31 01 03 05": {
+        "display_name": "Check LTE | 0=Fail | 1=Pass"
+    },
+    "31 01 03 06": {
+        "display_name": "Check Play eCall Speaker"
+    },
+    "31 01 03 1C": {
+        "display_name": "Check Play Media Speaker"
+    },
+    "31 01 03 07": {
+        "display_name": "Check Sosbuttion"
+    },
+    "31 01 03 0B": {
+        "display_name": "Check Wifi"
+    },
+    "31 01 03 0C": {
+        "display_name": "Check Bluetooth"
+    },
+    "31 01 03 0D": {
+        "display_name": "Check Apple Authentication | 0=Fail | 1=Pass"
+    },
+    "31 01 03 0E": {
+        "display_name": "Check Rtc | 0=Fail | 1=Pass"
+    },
+    "31 01 03 11": {
+        "display_name": "Check Usb | 0=Fail | 1=Pass"
+    },
+    "31 01 03 12": {
+        "display_name": "Check IPCsensor"
+    },
+    "31 01 03 13": {
+        "display_name": "Check Io"
+    },
+    "31 01 03 14": {
+        "display_name": "By Pass Shut Down Timer"
+    },
+    "31 01 03 15": {
+        "display_name": "Check Amfm"
+    },
+    "31 01 03 16": {
+        "display_name": "Write Eeprom | 0=Fail | 1=Pass"
+    },
+    "31 01 03 18": {
+        "display_name": "Rom_Get Socid"
+    },
+    "31 01 03 19": {
+        "display_name": "Read Eeprom"
+    },
+    "31 01 03 1A": {
+        "display_name": "Verify Eeprom | 0=Fail | 1=Pass"
+    },
+    "31 01 03 17": {
+        "display_name": "Check Emmctbox"
+    },
+    "31 01 03 1F": {
+        "display_name": "Get E Mmc Format Duration"
+    },
+    "31 01 03 20": {
+        "display_name": "Tbox Factory Reset"
+    },
+    "31 01 03 1D": {
+        "display_name": "Check Bub"
+    },
+    "31 01 03 1E": {
+        "display_name": "Get Last Connection Status"
+    },
+   
+    "31 01 02 0E": {
+        "display_name": "Verify connectivity - 00=to internet only|01=to vinfast cloud|02=provision finalized"
+    },
+   
+    "31 01 02 09": {
+        "display_name": "Verify Vehicle Information"
+    },
+    "31 01 02 0B": {
+        "display_name": "Realize Public Data"
+    },
+    
+    "31 01 02 0D": {
+        "display_name": "Check eCall Led"
+    },
+    "31 01 02 00": {
+        "display_name": "Check CDS Coding State- 00: Coding Valid"
+    },
+    "31 02 02 0A": {
+        "display_name": "Stop Auto Calibration Function"
+    },
+    "31 01 F0 33": {
+        "display_name": "Start Manual Calibration Function"
+    },
+    "31 02 F0 33": {
+        "display_name": "Stop Manual Calibration Function"
+    },
+    "31 03 F0 33": {
+        "display_name": "Check Manual Calibratin Result"
+    },
+    "31 01 02 14": {
+        "display_name": "Set Tbox Datetime (Utc+0) | 0=Fail | 1=Pass"
+    },
+    "31 01 02 12": {
+        "display_name": "Clear Provision Data Standard"
+    },
+    "31 03 02 12": {
+        "display_name": "Get Result Of Clearing Provision Data Standard"
+    },
+    "31 02 02 13": {
+        "display_name": "Exit Key-Learning With Supported Client (Adas/Bcm,…)"
+    },
+    "31 01 02 17": {
+        "display_name": "Check Usb Connector Between Mhu And Tbox"
+    },
+    "31 01 02 18": {
+        "display_name": "Clear Data GPS"
+    },
+    "31 01 02 1B": {
+        "display_name": "Clear Warning History"
+    },
+    "31 01 02 1C": {
+        "display_name": "Clear On Boarding"
+    },
+    "31 01 02 1D": {
+        "display_name": "Start Store Android Bug Report"
+    },
+    "31 03 02 1D": {
+        "display_name": "Get Result Of Store Android Bug Report"
+    },
+    "31 01 02 20": {
+        "display_name": "Start Factory Reset"
+    },
+    "31 01 02 22": {
+        "display_name": "Start Check Adascamera"
+    },
+    "31 02 02 22": {
+        "display_name": "Stop Check Adascamera"
+    },
+    "31 01 02 23": {
+        "display_name": "Disable Disclaimer Popup"
+    },
+    "31 01 02 24": {
+        "display_name": "Mhu Select Profile"
+    },
+    "31 01 03 21": {
+        "display_name": "Check LTE Rx Diversity Antenna | 0=Fail | 1=Pass"
+    },
+    "31 01 03 22": {
+        "display_name": "Check Gsm | 0=Fail | 1=Pass"
+    },
+    "31 01 03 23": {
+        "display_name": "Check Wcmda | 0=Fail | 1=Pass"
+    },
+    "31 01 03 24": {
+        "display_name": "Redirect QXDM Log"
+    },
+    "31 02 03 24": {
+        "display_name": "Redirect QXDM Log"
+    },
+    "31 01 03 25": {
+        "display_name": "Clear Fota Fail Safe State"
+    },
+    "31 01 03 1B": {
+        "display_name": "Check Play IPC Speaker"
+    },
+    "31 01 03 0F": {
+        "display_name": "Reset Odo"
+    }
+}
+    

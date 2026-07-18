@@ -2,6 +2,8 @@ from core.config_loader import *
 
 
 UDS_CONFIG = load_uds_config()
+UDS_DISPLAY_NAMES = load_display_names()
+
 POSITIVE_RESPONSE_TIMEOUT = float(
 
     UDS_CONFIG["timeout"]["positive_response"]
@@ -22,8 +24,10 @@ DID_NAME_MAP = UDS_CONFIG["dids"]
 NRC_NAME_MAP = UDS_CONFIG["nrc"]
 ROUTINE_NAME_MAP = UDS_CONFIG.get("routine_ids",{})
 MATCH_RULE_MAP = UDS_CONFIG["match_rule"]
-DISPLAY_NAME_MAP = UDS_CONFIG.get("display_name",{})
-
+DISPLAY_NAME_MAP = {
+        key: value.get("display_name", key)
+        for key, value in UDS_DISPLAY_NAMES.items()
+    }
 
 MATCH_DID = "did"
 MATCH_SUB = "sub"

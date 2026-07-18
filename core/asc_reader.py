@@ -406,12 +406,7 @@ def extract_positive_responses(completed_payloads):
 # TODO - SHOW: Convert bytes -> HEX 
 def show_positive_responses(positive_responses):
 
-    print(
-        "Positive Responses:",
-        len(positive_responses)
-    )
-
-    print()
+    
 
     for item in positive_responses:
 
@@ -426,10 +421,7 @@ def show_positive_responses(positive_responses):
                 " "
             ).upper()
 
-        print(
-            hex(item["can_id"]),
-            item["payload"]
-        )
+      
 
 def show_requests(requests):
 

@@ -7,5 +7,14 @@
             "ecu": "BCM",
             "request": "31 01 02 07"
         }
+    },
+    {
+        "name": "02. MHU",
+        "filters": {
+            "ecu": "MHU",
+            "request": "31 01 02 13 01"
+        },
+        "id": 2,
+        "enabled": true
     }
 ]

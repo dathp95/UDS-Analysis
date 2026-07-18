@@ -1,0 +1,796 @@
+﻿Back to first page,,,,,,,,,,,,,,,
+Session,ControlType,RID Number (hex),RID Name,Req/Resp,Parameter,BytePos (from 0),BitPos,BitLength,DataType,MethodType,Unit,security level,conditions,Supported (YES/NO),Comment
+"10 03
+(Extended Session)",01,0x0203,checkProgrammingPreConditions ,Req,,,,,,,,L0,,No,MHU is not applied Flashing Sequence via CAN but FOTU/FOTA
+,,,,Resp,routineStatus#1,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00= 0x02 ON (Driver Present) or 0x04 Software Update OTA
+0x01= Stat terminal condition not met",,L0,,,
+,,,,,routineStatus#2,5,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00= Vehicle speed condition met
+0x02= Vehicle speed condition not met",,,,,
+,,,,,routineStatus#3,6,0,8,MSB/LSB BITPATTERN,"Response 3
+This is a redundant response for reporting ignition state and will always respond with 00",,,,,
+,,,,,routineStatus#4,7,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Voltage conditions are met
+0x04=Under or above programming voltage (11.5v ~ 16v)",,,,,
+,,,,,,,,,,,,,,,
+"10 02
+(Programming Session)",01,0xFF00,eraseMemory ,Req,addressAndLengthFormatIdentifier ,4,0,8,MSB/LSB UNSIGNED,"type=identical
+value=0x44",,L4,,No,"Recomment value is
+Value(Hex)=44"
+,,,,,memoryAddress,5,0,32,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,memorysize,9,0,32,MSB/LSB UNSIGNED,type=identical,,,,,The memoryAddressIndex should be the logical block number.
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=correctResult
+0x01=incorrectResult",,L4,,,MHU is not applied Flashing Sequence via CAN but FOTU/FOTA
+,,,,,,,,,,,,,,,
+"10 02
+(Programming Session)",01,0x0202,checkMemory ,Req,Checksum,4,0,32,BYTEFIELD,type=identical,,L4,,No,MHU is not applied Flashing Sequence via CAN but FOTU/FOTA
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=correctResult
+0x01=incorrectResult",,L4,,,
+,,,,,,,,,,,,,,,
+"10 02
+(Programming Session)",01,0xFF01,checkProgrammingDependencies ,Req,,,,,,,,L4,,No,MHU is not applied Flashing Sequence via CAN but FOTU/FOTA
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=correctResult
+0x01=incorrectResult
+",,L4,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0302,CheckTPM,Req,,,,,,,,L1/L2,yes,No,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0303,CheckAudio,Req,Microphone Index,4,0,8,MSB/LSB BITPATTERN,type=integer,,L1/L2,yes,YES,"Microphone index (0,1)"
+,,,,,Speaker Index,5,0,8,MSB/LSB BITPATTERN,type=identical,,,,,Speaker index
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+Extended Session,02,,,Req,Microphone Index,4,0,8,MSB/LSB BITPATTERN,type=integer, ,L1/L2,yes,YES,"Microphone index (0,1)"
+,,,,,Speaker Index,5,0,8,MSB/LSB BITPATTERN,type=identical, ,,, ,Speaker index
+,,,,Resp,Stop State,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass", , ,, ,"0: Fail
+1: Pass"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0304,CheckGps,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Latitude,4,0,32,MSB/LSB BITPATTERN,type=int,,,,,RawValue = PhysicalValue*100
+,,,,,Longtitude,8,0,32,MSB/LSB BITPATTERN,type=int,,,,,RawValue = PhysicalValue*100
+,,,,,Speed,12,0,32,MSB/LSB BITPATTERN,type=int,,,,,RawValue = PhysicalValue*100
+,,,,,Timestamp,16,0,32,MSB/LSB BITPATTERN,type=int,,,,,
+,,,,,Metadata,20,0,32,MSB/LSB BITPATTERN,type=int,,,,,
+,,,,,RSSI,24,0,32,MSB/LSB BITPATTERN,type=int,dBm,,,,RawValue = PhysicalValue*100*(-1)
+,,,,,SNR,28,0,8,MSB/LSB BITPATTERN,type=int,%,,,,RawValue = PhysicalValue
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0305,CheckLte,Req,Band,4,0,32,MSB/LSB BITPATTERN,"type=texttable
+- Byte 0:
+0x00: RF Test
+0x01: FTM ON
+0x02: FTM OFF
+- Byte 1:
+0x00: TX
+0x01: RX
+- Byte 2: Band test
+0x1=Band 1
+0x3=Band 3
+0x5=Band 5
+0x7=Band 7
+0x8=Band 8
+0x14=Band 20
+0x1C=Band 28
+0x26=Band 38
+0x28=Band 40
+0x30=GSM
+0x40=WCDMA/UMTS
+- Byte 3:
+0x3E: 20 dBm
+0x41: 23 dBm",,L1/L2,yes,YES,
+,,,,,Channel,8,0,32,MSB/LSB BITPATTERN,type=integer,,,,,Channel index
+,,,,,Modulation type,12,0,32,MSB/LSB BITPATTERN,"type=texttable
+0x0=QPSK 
+0x1=16QAM
+0x2=64QAM
+0x3=256QAM",,,,,"0: QPSK 
+1: 16QAM:
+2: 64QAM
+3:256QAM"
+,,,,Resp,Test Result,4,,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,BER,5,0,32,MSB/LSB UNSIGNED,type=identical (optional),%,,,,
+,,,,,RSSI,6,0,32,MSB/LSB UNSIGNED,type=identical,dBm,,,,RawValue = PhysicalValue*(-1)/10
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0306,CheckPlayEcallSpeaker,Req,Mode,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00=Play shoud mode
+0x01=Diagnostics mode",,L1/L2,yes,No,
+,,,,Resp,Routine result,4,0,32,MSB/LSB BITPATTERN,"0x00: success
+0x80: TBOX not respond
+Failure mask of ""Play sound mode"":
+* Bit 0: Global judgement. 0: success. 1: failed.
+* Bit 1: Sound source corrupted. 0: success. 1: corrupted.
+* Bit 2: Sound source invalid. 0: success. 1: source invalid.
+* Bit 3: Software failure. 0: success. 1: SW failure.
+Failure mask of ""diagnostics mode"":
+* Bit 0: Global judgement. 0: success. 1: failed.
+* Bit 1: Communication with amplifier error status. 0: success. 1: failed. 
+* Bit 2: Output short to PVDD is present. 0: success. 1: short to VCC.
+* Bit 3: Output short to Ground is present. 0: success. 1: short to ground.
+* Bit 4: Open load. 0: success. 1: open load.
+* Bit 5: Shorted load. 0: success. 1: shorted load.
+* Bit 6: In fault condition. 0: success. 1: fault.
+* Bit 7: Ongoing diagnostics. 0: success. 1: on diagnostics.
+* Bit 8: mute mode. 0: success. 1: on muted.
+* Bit 9: In play mode. 0: success. 1: on playmode.
+* Bit 10-31: Reserved.",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x031C,CheckPlayMediaSpeaker,Req,Speaker Channel,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x01=Front Left Main Speaker Ch Output TestTone 1
+0x02=Front Left Main Speaker Ch Output TestTone 2
+0x03=Front Right Main Speaker Ch Output TestTone 1
+0x04=Front Right Main Speaker Ch Output TestTone 2
+0x05=Rear Left Main Speaker Ch Output TestTone 1
+0x06=Rear Left Main Speaker Ch Output TestTone 2
+0x07=Rear Right Main Speaker Ch Output TestTone 1
+0x08=Rear Right Main Speaker Ch Output TestTone 2
+0x11=ALL Ch Output TestTone 1
+0x12=ALL Ch Output TestTone 2",,L1/L2 ,yes,No,
+,,,,Resp,Speaker Channel,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x01=Front Left Main Speaker Ch Output TestTone 1
+0x02=Front Left Main Speaker Ch Output TestTone 2
+0x03=Front Right Main Speaker Ch Output TestTone 1
+0x04=Front Right Main Speaker Ch Output TestTone 2
+0x05=Rear Left Main Speaker Ch Output TestTone 1
+0x06=Rear Left Main Speaker Ch Output TestTone 2
+0x07=Rear Right Main Speaker Ch Output TestTone 1
+0x08=Rear Right Main Speaker Ch Output TestTone 2
+0x11=ALL Ch Output TestTone 1
+0x12=ALL Ch Output TestTone 2",,,,,
+Extended Session,02,,,Req,Speaker Channel,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x01=Front Left Main Speaker Ch Output TestTone 1
+0x02=Front Left Main Speaker Ch Output TestTone 2
+0x03=Front Right Main Speaker Ch Output TestTone 1
+0x04=Front Right Main Speaker Ch Output TestTone 2
+0x05=Rear Left Main Speaker Ch Output TestTone 1
+0x06=Rear Left Main Speaker Ch Output TestTone 2
+0x07=Rear Right Main Speaker Ch Output TestTone 1
+0x08=Rear Right Main Speaker Ch Output TestTone 2
+0x11=ALL Ch Output TestTone 1
+0x12=ALL Ch Output TestTone 2", , L1/L2 ,, ,
+,,,,Resp,Speaker Channel,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x01=Front Left Main Speaker Ch Output TestTone 1
+0x02=Front Left Main Speaker Ch Output TestTone 2
+0x03=Front Right Main Speaker Ch Output TestTone 1
+0x04=Front Right Main Speaker Ch Output TestTone 2
+0x05=Rear Left Main Speaker Ch Output TestTone 1
+0x06=Rear Left Main Speaker Ch Output TestTone 2
+0x07=Rear Right Main Speaker Ch Output TestTone 1
+0x08=Rear Right Main Speaker Ch Output TestTone 2
+0x11=ALL Ch Output TestTone 1
+0x12=ALL Ch Output TestTone 2", , ,, ,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0307,CheckSOSButtion,Req,Mode,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00=Regular mode
+0x01=Test Mode (without call triggering)",,L1/L2 ,yes,No,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=TEST_SUCCESS
+0x01=TEST_TIME_OUT
+0x02=SOS IN1 short to ground
+0x04=SOS IN1 short to VDD
+0x08=SOS IN2 short to ground
+0x10=SOS IN2 short to VDD
+0x20=TBOX not respond",,,,,"0: TEST_SUCCESS
+1: TEST_TIME_OUT
+2: TEST_NOT_SUCCESS"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030A,CheckCamera,Req,Camera index,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=All Camera
+0x1=Front Camera
+0x2=Rear Camera
+0x3=Left Camera
+0x4=Right Camera",,L1/L2,yes,YES,VF3 only Rear Camera
+,,,,Resp,Camera index,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=All Camera
+0x1=Front Camera
+0x2=Rear Camera
+0x3=Left Camera
+0x4=Right Camera
+0xFF=Invalid ",,,,,VF3 only Rear Camera
+Extended Session,02,,,Req,Camera index,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=All Camera
+0x1=Front Camera
+0x2=Rear Camera
+0x3=Left Camera
+0x4=Right Camera",,L1/L2,,,VF3 only Rear Camera
+,,,,Resp,Camera index,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=All Camera
+0x1=Front Camera
+0x2=Rear Camera
+0x3=Left Camera
+0x4=Right Camera
+0xFF=Invalid ",,,,,VF3 only Rear Camera
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030B,CheckWifi,Req,Wifi test command,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Request connect to wifi access point name
+0x1=Query wifi RSSI",,L1/L2 ,yes,YES,"0: Request connect to wifi access point name
+1: Query wifi RSSI"
+,,,,,Access point name,5,0,80,ASCII,type=texttable,,,,,Name of access point that want to test with
+,,,,Resp,RSSI,4,0,32,MSB/LSB UNSIGNED,type=identical,dBm,,,,"RawValue = PhysicalValue*100*(-1)
+if Wifi test command is 0 -  Request connect to wifi access point name:
+return RSSI is 0xFFFFFFFF if connect wifi failure
+return RSSI is 0 if connect wifi sucessful"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030C,CheckBluetooth,Req,Bluetooth test command,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Scan bluetooth
+0x1=Pair bluetooth
+0x2=Query RSSI value",,L1/L2 ,yes,YES,"0: Active Bluetooth mode
+1: Bluetooth audio mode
+2: Query RSSI value"
+,,,,,Bluetooth Name,5,0,80,ASCII,type=texttable,,,,,Bluetooth Name that want to test with
+,,,,Resp,RSSI,4,0,32,MSB/LSB UNSIGNED,type=identical,dBm,,,,"RawValue = PhysicalValue*100*(-1)
+return RSSI is 0x00 if Scan bluetooth or Pair bluetooth successful
+return RSSI is 0xFFFFFFFF If Scan bluetooth or Pair bluetooth value failure"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030D,CheckAppleAuthentication,Req,,,,,,,,L1/L2 ,yes,YES,
+,,,,Resp,Authentication result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,Apple ID,5,0,32,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030E,CheckRTC,Req,,,,,MSB/LSB UNSIGNED,type=identical,,L1/L2 ,yes,YES,
+,,,,Resp,Date,4,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Date range (1, 31)"
+,,,,,Month,5,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Month range (1, 12)"
+,,,,,Year,6,,16,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,Hour,8,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Hour format 24h(0, 23)"
+,,,,,Minute,9,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Minute range (0, 59)"
+,,,,,Second,10,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Second range (0, 59)"
+,,,,,Routine result,11,,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0311,CheckUSB,Req,,,,,,,,L1/L2 ,yes,YES,
+,,,,Resp,Test result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0312,CheckIPCSensor,Req,Sensor type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fuel level Left sensor
+0x1=Fuel level Right sensor
+0x2=Coolant sensor
+0x3=Ambient temperature sensor",,L1/L2 ,yes,YES,"0: Fuel level Left sensor
+1: Fuel level Right sensor
+2: Coolant sensor
+3: Ambient temperature sensor"
+,,,,Resp,Sensor type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fuel level Left sensor
+0x1=Fuel level Right sensor
+0x2=Coolant sensor
+0x3=Ambient temperature sensor",,,,,"0: Fuel level Left sensor
+1: Fuel level Right sensor
+2: Coolant sensor
+3: Ambient temperature sensor"
+,,,,,Sensor data,5,0,32,MSB/LSB UNSIGNED,type=int,,,,,"Sensor data read by eCockpit:
+Fuel level Left sensor: unit lit; RawValue =PhysicalValue*100
+Fuel level Right sensor: unit lit; RawValue =PhysicalValue*100
+Coolant Level: 1 is Full(Đầy bình), 0 is not full (Không đầy bình)
+Ambient temperature sensor: Unit oC; RawValue =PhysicalValue*2 + 80"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0313,CheckIO,Req,IO type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=IG
+0x1=ACC
+0x2=Knob button
+0x3=AIRBAG_INPUT", ,L1/L2 ,yes,YES,"0: IG: HIGH or LOW
+1: ACC: HIGH or LOW
+2: Knob button
+    0: Release 
+    1: Short press
+    2: Long press
+    3: Clockwise
+    4: Counter Clockwise
+
+3: AIRBAG_INPUT"
+,,,, Resp,IO type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=IG
+0x1=ACC
+0x2=Knob button
+0x3=AIRBAG_INPUT", , ,, ,"0: IG
+1: ACC
+2: Knob button
+3: AIRBAG_INPUT"
+,,,,,IO Value,5,0,8,MSB/LSB UNSIGNED,type=identical, , ,, ,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0314,ByPass ShutDown Timer,Req,none,,,,,,,L2,yes,YES,This RID is using for Manufactering
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0315,CheckAMFM,Req,Radio Frequency Type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=AM
+0x1=FM
+0x2=DAB",,L1/L2 ,yes,YES,"0: AM
+1: FM
+2: DAB"
+,,,,,Radio frequency Hz,5,0,32,MSB/LSB UNSIGNED,type=int,Hz,,,,
+,,,,Resp,Radio Frequency Type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=AM
+0x1=FM
+0x2=DAB",,,,,"0: AM
+1: FM
+2: DAB"
+,,,,,RSSI,5,0,32,MSB/LSB UNSIGNED,type=int,dBm,,,,RawValue = PhysicalValue*100*(-1)
+,,,,,Noise Level ,9,0,64,MSB/LSB UNSIGNED,type=int,%,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0316,WriteEEPROM,Req,Data Write,4,0,432,,,,L1/L2 ,yes,No,"Data need be written:
+8E 00 62 6D E5 E5 36 B1 E4 E4 E4 E4 36 20 20 0A F4 F4 44 44 F4 F4 44 44 44 44 F4 F4 F4 4F 01 52 52 52 52 53 51 4F 4D 01 52 53 60 00 00 00 00 00 00 00 11 41 00 76"
+,,,,Resp,Test result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0318,ROM_GetSOCID,Req, , , , , , , ,L1/L2 ,yes,YES, 
+,,,,Resp,Result SOC ID,4,0,256,MSB/LSB UNSIGNED,type=identical, , ,, , 
+, , , , , , , , , , , , ,, , 
+Extended Session,01,0x0319,ReadEEPROM,Req, , , , , , , ,L1/L2 ,yes,No, 
+,,,,Resp,Result,4,0,432,MSB/LSB UNSIGNED,type=identical, , ,, , 
+, , , , , , , , , , , , ,, , 
+Extended Session,01,0x031A,VerifyEEPROM,Req, , , , , , , ,L1/L2 ,yes,No, 
+,,,,Resp,Test result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass", , ,, ," 0: Fail
+1: Pass"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0317,CheckEMMCTbox,Req,,,,,,,,L1/L2 ,yes,No,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=SUCCESS
+0x1=MOUNT_ERROR
+0x2=READ_ERROR
+0x3=WRITE_ERROR
+0x4=SIZE_ERROR
+0x5=UNKNOWN_ERROR
+",,,,,"SUCCESS = 0x00,
+MOUNT_ERROR = 0x01
+READ_ERROR = 0x02
+WRITE_ERROR = 0x03
+SIZE_ERROR = 0x04
+UNKNOWN_ERROR = 0x05
+"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x031F,Get eMMC format duration,Req,,,,,,,,L0,yes,No,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00: Success
+0x01: TBOX not respond",,,,,
+,,,,,Duration,5,0,8,MSB/LSB BITPATTERN,"type=texttable
+Duration of format eMMC from TBOX. The return value presented as seconds.
+",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0320,TBOX factory reset,Req,,,,,,,,L1/L2 ,yes,YES,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00: success
+0x01: TBOX not respond
+0x02: internal TBOX failure
+0x03: Timeout. Timeout for TBOX to respond to factory reset is 60s. During 60s, MHU keep sending out respond pending NRC78
+",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x031D,Check BUB,Req,type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00: Get BUB Voltage
+0x01: Get BUB SOH
+0x02: Get BUB Charging Status
+0x03: Set BUB Charge Enforcing Start
+0x04: Set BUB Charge Enforcing Stop
+0x05: Set BUB Charge Enforcing Auto",,L1/L2 ,yes,No,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00: Success
+0x01: TBOX not respond
+0x02: BUB absent",,,,,
+,,,,,Parameter,5,0,32,MSB/LSB BITPATTERN,"type=texttable
+if mode == 0x00:
+    value = hex of (float32 BUB Voltage)
+if mode == 0x01:
+    value = hex of SOH (%)
+if mode == 0x02
+    value = 0x00: IDLE
+    value = 0x01: Charging
+if mode == 0x03 | 0x04 | 0x05
+    value = mode",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x031E,Get last connection status,Req,,,,,,,,L0,yes,YES,
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00: Success
+0x01: TBOX not respond",,,,,
+,,,,,Unix Timestamp GMT,5,0,32,MSB/LSB BITPATTERN,"type=texttable
+GNSS lat value",,,,,
+,,,,,Lat,9,0,32,MSB/LSB BITPATTERN,"type=texttable
+GNSS lat value hex presentation of float32",,,,,
+,,,,,Long,13,0,32,MSB/LSB BITPATTERN,"type=texttable
+GNSS long value hex presentation of float32",,,,,
+,,,,,Vehicle speed,17,0,8,MSB/LSB BITPATTERN,"type=texttable
+Vehicle speed (Km/h)",,,,,
+,,,,,RSSI,18,0,8,MSB/LSB BITPATTERN,"type=texttable
+RSSI value",,,,,
+,,,,,Network technology,19,0,8,MSB/LSB BITPATTERN,"type=texttable
+00=Unknown
+01=2G/GSM
+02=3G/WCDMA/UMTS
+03=4G/LTE",,,,,
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x0208,Generate device connected identity,Req,8 bytes random vector,4,0,64,BYTEFIELD,type=identical,,L1/L2/L3/L4,yes,YES,Random value
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=success
+0xXX=fail ",,,,,"0x00: success
+0xXX: fail
+"
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x0204,Validate credential by challenge,Req,16 bytes random vector,4,0,128,BYTEFIELD,type=identical,,L1/L2/L3/L4,yes,YES,"routineControlSuccess                   = 0x00
+routineControlPending                   = 0x01
+routineControlStartError                = 0x02
+routineControlLogicalError              = 0x03
+routineControlAccessDidFailed           = 0x04
+routineControlOptionRecordNotCorrect    = 0xFF"
+,,,,,Signature of random vector,20,0,2048,BYTEFIELD,type=identical,,,,,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=success
+0xXX=fail ",,,,,"0x00: success
+0xXX: fail
+"
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x0205,Validate data encryption key by challenge,Req,Length of encrypted data (cipher text),4,0,16,MSB/LSB BITPATTERN,type=identical,,L1/L2/L3/L4,yes,YES,
+,,,,,Encrypted data (cipher text),6,0,16384,BYTEFIELD,type=identical,,,,,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=success
+0x1=fail",,,,,"0x00: success
+0x01: fail"
+,,,,,Result of sha1 of raw data,5,0,160,BYTEFIELD,type=identical,,,,,
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x0206,Verify repogramming keyset,Req,CRC-32,4,0,32,BYTEFIELD,type=identical,,L1/L2/L3/L4,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,0x00: success,,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,0x01: fail,,,,,
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x020E,Verify connectivity,Req,Connection type,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x00=to internet only
+0x01=to vinfast cloud
+0x02=provision finalized",,L1/L2/L3/L4,yes,YES,"0x00=to internet only
+0x01=to vinfast cloud
+0x02=provision finalized"
+,,,,Resp,Connection type,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x00=to internet only
+0x01=to vinfast cloud
+0x02=provision finalized",,,,,"type=identical
+0x00=to internet only
+0x01=to vinfast cloud
+0x02=provision finalized"
+,,,,,Routine result,5,0,8,MSB/LSB BITPATTERN,"type=identical
+0x00: success
+0x01: fail",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x0207,Confirm credential ,Req,Credential result,4,0,8,MSB/LSB BITPATTERN,,,L1/L2/L3/L4,yes,YES,
+,,,,Resp,List of unconfirmed DID,4,0,0,BYTEFIELD,    ,,,,,"1. Only returning an empty list (response = 71, 01, 02, 07) means that all credential are valid."
+,,,,,,,,,,,,,,,2. Return a list of identifier pointing to invalid credential
+,,,,,,,,,,,,,,,
+,01,0x0209,Verify Vehicle Information,Req,,,,,,,,L1/L2/L3/L4,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,0x00: success,,,,," Verify and Import vehicle info (VIN, car type, car platform ..) to be ready for use in T-Box"
+,,,,,,,,,,0x01: fail ,,,,,
+,,,,,,,,,,,,,,,
+Extended/Coding/Programing Session,01,0x020B,Realize Public Data,Req,,,,,,,,L1/L2/L3/L4,yes,YES,
+,,,,Resp,List of invalid DID,4,0,0,BYTEFIELD,    ,,,,,"1. Only returning an empty list (response = 71, 01, 02, 0B) means that all public information are ready to use."
+,,,,,,,,,,,,,,,2. Return a list of identifier pointing to invalid public data (missing or invalid value).
+,,,,,,,,,,,,,,,0xF176=AmazonRootCA
+,,,,,,,,,,,,,,,0xF178=AWSEndPointAddress
+,,,,,,,,,,,,,,,
+Extended Session,01,0x020C,Check Ecall Mic,Req,,,,,,,,L1/L2,yes,No,Use to check functionality of Ecall microphone
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,0x00: success,,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,0x01: fail,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x020D,Check Ecall LED,Req,Mode,4,0,8,MSB/LSB BITPATTERN,"""type=texttable
+0x00=Turn ON SOS LED
+0x01=Turn OFF SOS LED
+0x02=Return control to eCall function",,L1/L2,yes,No,Use to check functionality of Ecall Led Blinking
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,0x00: success,,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,0x01: fail,,,,,
+,,,,,,,,,,,,,,,
+Coding  Session,01,0x0200,Check CDS Coding State,Req,,,,,,,,L3,yes,YES,
+,,,,Resp,End of PDU,4,0,0,BYTEFIELD,type=MinMaxLengthType,,,,,"1. Only returning an empty list (response = 71, 01, 02, 00) means that the ECU’s state is ""Coding
+valid"". (CodingStateFlag= codingValid)
+2. Return a list of identifier pointing to invalid coding data.(CodingStateFlag= CodingInvalid)
+0xF10A=CDSFingerprintInvalid
+0xF108=CodingDataStringInvalid"
+,,,,,,,,,,,,,,,
+Coding  Session,01,0x0201,Check VOD Coding State,Req,,,,,,,,L3,yes,YES,
+,,,,Resp,End of PDU,4,0,0,BYTEFIELD,type=MinMaxLengthType,,,,,"1. Only returning an empty list (response = 71, 01, 02, 01) means that the ECU’s state is ""VOD valid"". (VODStateFlag= VODValid)
+2. Return a list of identifier pointing to invalid coding data.(CodingStateFlag= CodingInvalid)
+0xF113=VODFingerprintInvalid
+0xF111=FactoryVODDataStringInvalid
+0xF112=CurrentVODDataStringInvalid"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x020A,Start AutoCalibration Function,REQ,,,,,,,,L1/L2,yes,YES,
+,,,,RESP,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,02,0x020A,Stop AutoCalibration Function,REQ,,,,,,,,L1/L2,yes,YES,
+,,,,RESP,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,03,0x020A,Check AutoCalibration Result,REQ,,,,,,,,L1/L2,yes,YES,
+,,,,RESP,routine result,4,0,8,MSB/LSB BITPATTERN,type=texttable,,,,,
+,,,,,,,,,,0x01=calibration success,,,,,
+,,,,,,,,,,0x02=uncalibrated or calibrated fail ,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0xF030,Start CheckCalibrationPreConditions ,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,routineStatus#1,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=SVM system is active
+0x01=SVM system is not active",,,,,
+,,,,,routineStatus#2,5,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Park or Neutral gear
+0x02=Gear is not in park or neutral",,,,,
+,,,,,routineStatus#3,6,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Voltage conditions are met
+0x03=Under or above calibration voltage(9.0V~16V)",,,,,
+,,,,,routineStatus#4,7,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=SVM system OK
+0x04=SVM system fault",,,,,
+,,,,,routineStatus#5,8,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Starting key is OK
+0x05=Starting key is not ignition",,,,,
+,,,,,routineStatus#6,9,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Gear position is OK
+0x06=Gear position is fail",,,,,
+,,,,,routineStatus#7,10,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Vehicle speed is 0km
+0x07=Vehicle speed is not 0km",,,,,
+,,,,,routineStatus#8,11,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Steering angle is valid
+0x08=Steering angle is not valid",,,,,
+,,,,,routineStatus#9,12,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=All doors is closed
+0x09=All doors is not closed",,,,,
+,,,,,routineStatus#10,13,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Hood is closed
+0x0A=Hood is not closed",,,,,
+,,,,,routineStatus#11,14,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Side mirrorrs is unfolded
+0x0B=Side mirrorrs is not unfolded",,,,,
+,,,,,routineStatus#12,15,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=All lamps and turn signal are off
+0x0C=All lamps and turn signal are not off",,,,,
+,,,,,routineStatus#13,16,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Tire inflation pressure is normal
+0x0D=Tire inflation pressure is not normal",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0xF033,Start ManualCalibration function,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,02,0xF033,Stop ManualCalibration function,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,03,0xF033,Check ManualCalibration Result,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,type=texttable,,,,,
+,,,,,,,,,,0x01=calibration success,,,,,
+,,,,,,,,,,0x02=uncalibrated or calibrated fail ,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0214,Set TBOX datetime (UTC+0),Req,Date,4,,8,MSB/LSB UNSIGNED,type=identical,,L1/L2,yes,No,"Date range (1, 31)"
+,,,,,Month,5,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Month range (1, 12)"
+,,,,,Year,6,,16,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,Hour,8,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Hour format 24h(0, 23)"
+,,,,,Minute,9,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Minute range (0, 59)"
+,,,,,Second,10,,8,MSB/LSB UNSIGNED,type=identical,,,,,"Second range (0, 59)"
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=pass
+Others=Failed, with error code",,,,,"0: Pass
+1: Failed, Unknown error
+2: Failed, not ready"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0215,Get TBOX challenge code,Req,,,,,,,,L1/L2,yes,YES,
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=pass
+Others=Failed, with error code",,,,,"0: Pass
+1: Failed, Unknown error
+2: Failed, not ready"
+,,,,,Challenge code,5,0,48,BYTEFIELD,type=identical,,,,,Random challenge code (6 bytes). All zero if failed
+,,,,,"Current time (in ms, UTC+0)",11,,64,BYTEFIELD,type=identical,,,,,Current TBOX date time in ms (UTC+0). All zero if failed
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0216,Clear TBOX provision data advance,Req,Clear type,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=All
+0x01=Provision data only whole eCockpit
+0x02=provision data MHU
+0x03=provision data ADAS
+0x04=BCM Handshake
+0x05=ADAS Handshake",,L1/L2,yes,YES,"Scope of data to be clear
+0: Clear all provision data, including TBOX kepair, CSR, ...
+1: Clear only eCockpit provision data (FOTA key, bootstrap cert, etc.). TBOX keypair/CSR is still kept
+2: Clear only ADAS provision data. TBOX keypair/CSR is still kept
+3: Clear only MHU provision data. TBOX keypair/CSR is still kept"
+,,,,,Authen type,5,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=TOTP
+0x01=Secure boot keyl",,,,,"Authen type:
+0: Authen using TOTP
+1: Authen using secure boot key"
+,,,,,Authen data,6,0,24560,BYTEFIELD,type=identical,,,,,"Authen data, depend on authen type, max 3070 bytes
+* TOTP type:
+- Byte 5-10: TOTP (6 bytes)
+- Byte 11-18: Host date time in ms, UTC+0 (8 bytes)
+* Secure boot key type:
+- Byte 5-260: Signed data of challenge code (256 bytes)
+- Byte 261-end: Secure boot root CA or hash of CA (max 2048 bytes)"
+,,,,Resp,routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=pass
+0x00=Failed, with error code",,,,,"0: Pass
+1: Failed, Unknown error
+2: Failed, not ready
+3: Failed, prohibit"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0212,Clear provision data standard,Req,Clear type,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x00=All
+0x01=Provision data and client provisioning only
+0x02=Provision data of all clients only.
+0x03=provision data MHU
+0x04=provision data ADAS",,L1/L2,yes,YES,"Scope of data to be clear
+0: Clear all provision data, including TBOX kepair, CSR, ...
+1: Provision data only whole clients and TBOX provision data. TBOX keypair/CSR is still kept
+2. Clear all client provision data
+3: Clear only ADAS provision data.
+4: Clear only MHU provision data."
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x0=success
+0x1=fail",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended Session,03,0x0212,Get result of clearing provision data standard,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x0=success
+0x1=fail",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0213,"Start Key-learning with supported client (ADAS/BCM,…)",Req,target ECU ID,4,0,8,MSB/LSB BITPATTERN,"type=identical
+0x00=all supported clients
+others: ECU ID
+examples: 
+0x01=BCM
+0x40=ADAS",,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=success
+0x1=fail",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended Session,02,0x0213,"Exit Key-learning with supported client (ADAS/BCM,…)",Req,None,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=success
+0x1=fail",,,,,"0x00: success
+0x01: fail"
+,,,,,,,,,,,,,,,
+Extended Session,03,0x0213,"Get result of Key-learning with supported client (ADAS/BCM,…)",Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,0,BYTEFIELD,type=MinMaxLengthType,,,,,"0x00: success
+Others: failed with indicated ECU IDs (1 ECU ID per 1 byte following)"
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0217,Check USB connector between MHU and Tbox,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=USB connector between MHU and Tbox Not OK
+0x1=USB connector between MHU and Tbox OK",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0218,Clear Data GPS,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x021B,ClearWarningHistory,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x021C,ClearOnBoarding,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x021D,Start Store Android Bug Report,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,03,0x021D,Get Result of Store Android Bug Report,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0: Store log failure
+0x1: Store log sucessful
+0x2: Store log processing
+0x3: Still not trigger store log",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0220,Start Factory reset,Req,none,,,,,,,L1/L2,yes,YES,"Clear all user data (Contact, favorite,…) and pairing history"
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0222,Start CheckADASCamera,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x1=success
+0x0=fail",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,02,0x0222,Stop CheckADASCamera,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x1=success
+0x0=fail",,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0223,Disable Disclaimer Popup,Req,none,,,,,,,L1/L2,yes,YES,
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0224,MHU Select Profile,Req,Select Profile,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Primary
+0x1=Guess",,L1/L2,yes,YES,
+,,,,Resp,Routine result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0 = fail
+0x1 = success
+0xFF= Invalid",,,,,Return Invalid if Select Profile input is not Primary/Guess
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0321,Check LTE RX Diversity antenna,Req,Band,4,0,8,MSB/LSB BITPATTERN,"Band test
+0x1=Band 1
+0x2=Band 2
+0x3=Band 3
+0x4=Band 4
+0x5=Band 5
+0x7=Band 7
+0x8=Band 8
+0x14=Band 20
+0x1C=Band 28
+0x26=Band 38
+0x28=Band 40",,L1/L2,yes,No,
+,,,,,Channel,5,0,32,MSB/LSB BITPATTERN,type=integer,,,,,Channel index
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,RSSI,5,0,32,MSB/LSB UNSIGNED,type=integer,dBm,,,,RawValue = PhysicalValue*(-1)/10
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0322,Check GSM,Req,Mode,4,0,8,MSB/LSB BITPATTERN,"Mode test
+0x00: TX
+0x01: RX",,L1/L2,yes,No,
+,,,,,Band,5,0,8,MSB/LSB BITPATTERN,"Band test
+0x01=GSM850
+0x02=GSM900
+0x03=GSM1800
+0x04=GSM1900",,,,,
+,,,,,Channel,6,0,32,MSB/LSB BITPATTERN,type=integer,,,,,Channel index
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x00=Fail
+0x01=pass",,,,,"0: Fail
+1: Pass"
+,,,,,RSSI,5,0,32,MSB/LSB UNSIGNED,"If mode = TX return 0x00 00 00 00
+If mode = RX return RSSI",dBm,,,,RawValue = PhysicalValue*(-1)/10
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0323,Check WCMDA,Req,Mode,4,0,8,MSB/LSB BITPATTERN,"Mode test
+0x00: TX
+0x01: RX",,L1/L2,yes,No,
+,,,,,Band,5,0,8,MSB/LSB BITPATTERN,"Band test
+0x01=WCDMA BAND1
+0x02=WCDMA BAND2
+0x03=WCDMA BAND3
+0x04=WCDMA BAND4
+0x05=WCDMA BAND5
+0x06=WCDMA BAND6
+0x07=WCDMA BAND7
+0x08=WCDMA BAND8
+0x09=WCDMA BAND9
+0x0B=WCDMA BAND11
+0x13=WCDMA BAND19",,,,,
+,,,,,Channel,6,0,32,MSB/LSB BITPATTERN,type=integer,,,,,Channel index
+,,,,Resp,Test Result,4,0,8,MSB/LSB BITPATTERN,"type=texttable
+0x0=Fail
+0x1=pass",,,,,"0: Fail
+1: Pass"
+,,,,,RSSI,5,0,32,MSB/LSB UNSIGNED,"If mode = TX return 0x00 00 00 00
+If mode = RX return RSSI",dBm,,,,RawValue = PhysicalValue*(-1)/10
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0324,Redirect QXDM log,Req,none,,,,,,,L1/L2 ,yes,YES,Start redirect QXDM log to TBOX log
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,02,0x0324,Redirect QXDM log,Req,none,,,,,,,L1/L2 ,yes,YES,Stop redirect QXDM log to TBOX log
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x0325,Clear FOTA FailSafe state,Req,none,,,,,,,L1/L2 ,yes,YES,Clear FOTA FailSafe state
+,,,,Resp,none,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x031B,CheckPlayIpcSpeaker,Req,Speaker Index,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00: Ipc Speaker",,L1/L2,yes,YES,
+,,,,Resp,Speaker Index,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00: Ipc Speaker",,,,,
+Extended Session,02,,,Req,Speaker Index,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00: Ipc Speaker", ,L1/L2 ,yes,YES,
+,,,,Resp,Speaker Index,4,0,8,MSB/LSB UNSIGNED,"type=texttable
+0x00: Ipc Speaker", , , ,,
+,,,,,,,,,,,,,,,
+Extended Session,01,0x030F,ResetODO,Req,none,,,,,,,L2,yes,YES,
+,,,,Resp,Current ODO Value,4,0,8,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,Total Accumulated Reset Value,5,0,16,MSB/LSB UNSIGNED,type=identical,,,,,
+,,,,,,,,,,,,,,,
