@@ -3,7 +3,9 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QHBoxLayout,
+    
 )
+
 
 from gui.controllers.analysis_controller import AnalysisController
 from gui.controllers.report_controller import ReportController
@@ -76,9 +78,10 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
         
         self.log_selector = PathSelectorWidget(
-            "Log File",
+            "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...CAN ",
             "Log Files (*.blf *.asc)"
         )
+        
 
         self.filter_box = FilterBox()
 
