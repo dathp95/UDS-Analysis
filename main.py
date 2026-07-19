@@ -40,7 +40,7 @@ def main() -> int:
         f"{license.expire_date.strftime('%d/%m/%Y %H:%M:%S')}"
     )
 
-    window.show()
+    window.showMaximized()
 
     return app.exec()
 

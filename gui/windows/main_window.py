@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QHBoxLayout,
+    QMessageBox
     
 )
 
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
         
         self.log_selector = PathSelectorWidget(
-            "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...CAN ",
+            "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...",
             "Log Files (*.blf *.asc)"
         )
         
@@ -158,15 +159,36 @@ class MainWindow(QMainWindow):
     
     
         
+
     def fn_run_clicked(self):
 
-        result = self.analysis_controller.fn_run(
+        try:
 
-            log_file=self.log_selector.path(),
+            result = self.analysis_controller.fn_run(
 
-            ecu_config=CONFIG_DIR / "ecu_config.xlsx"
+                log_file=self.log_selector.path(),
 
-        )
+                ecu_config=CONFIG_DIR / "ecu_config.xlsx"
+
+            )
+
+        except ValueError as e:
+
+            QMessageBox.warning(
+                self,
+                "No Log Selected",
+                str(e)
+            )
+            return
+
+        except FileNotFoundError as e:
+
+            QMessageBox.warning(
+                self,
+                "Log File Not Found",
+                str(e)
+            )
+            return
 
         rows = fn_build_table_rows(
 
@@ -179,7 +201,9 @@ class MainWindow(QMainWindow):
         self.right_panel.action_panel.fn_set_analyzed_state()
 
         self.right_panel.fn_enable_quick_access()
-    
+
+        
+        
     def fn_export_clicked(self):
 
         self.export_controller.fn_export(

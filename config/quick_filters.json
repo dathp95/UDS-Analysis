@@ -16,5 +16,32 @@
         },
         "id": 2,
         "enabled": true
+    },
+    {
+        "id": 3,
+        "name": "1",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 4,
+        "name": "2",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 5,
+        "name": "3",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
     }
 ]
