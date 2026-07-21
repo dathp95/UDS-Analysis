@@ -77,7 +77,7 @@ class ResultTable(PrimaryTable):
 
         self.setColumnWidth(
             self._fn_column_index("Time"),
-            120
+            80
         )
 
        

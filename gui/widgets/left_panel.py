@@ -43,6 +43,5 @@ class LeftPanel(QWidget):
 
 
     def fn_refresh_theme(self):
-
-
+        self.quick_access.fn_refresh_theme()
         self.theme_switch.fn_refresh_theme()

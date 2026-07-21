@@ -23,29 +23,32 @@ class ActionPanel (QWidget):
         self._connect_signals()
 
     def _setup_ui(self):
-        group_box = QGroupBox("Actions")
-        group_layout = QVBoxLayout(group_box)
+        # container = QWidget()
+        layout = QVBoxLayout(self)
 
         # self.theme_switch = ThemeSwitch()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
 
 
         self.btn_run = PrimaryButton("RUN", width=160, height=50)                                      
         self.btn_export = PrimaryButton("EXPORT", width = 160)                                      
-        self.btn_copy = PrimaryButton("COPY ASC DATA", width = 160)                                      
-        
+        self.btn_copy = PrimaryButton("COPY ASC DATA", width = 160)
         self.btn_clear = PrimaryButton("CLEAR TABLE", height = 50)
 
-        group_layout.addWidget(self.btn_run)
-        group_layout.addWidget(self.btn_export)
-        group_layout.addWidget(self.btn_copy)
-        group_layout.addWidget(self.btn_clear)
+        layout.addWidget(self.btn_run)
+        layout.addWidget(self.btn_export)
+        layout.addWidget(self.btn_copy)
+        layout.addWidget(self.btn_clear)
 
-        main_layout = QVBoxLayout(self)
-        main_layout.addWidget(group_box)
+        layout.addStretch()
+
+        # main_layout = QVBoxLayout(self)
+        # main_layout.setContentsMargins(0, 0, 0, 0)
+        # main_layout.addWidget(container)
 
         # main_layout.addWidget(self.theme_switch)
 
-        main_layout.addStretch()
 
     def _connect_signals (self):
         self.btn_run.clicked.connect(

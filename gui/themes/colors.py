@@ -56,6 +56,9 @@ class ThemeColors:
     TABLE_SELECTION: str
     TABLE_HOVER: str
 
+    SCROLLBAR: str
+    SCROLLBAR_HOVER: str
+
 LIGHT_COLORS = ThemeColors(
 
     PRIMARY="#0078D4",
@@ -99,6 +102,9 @@ LIGHT_COLORS = ThemeColors(
     TABLE_SELECTION="#A4CBE9",
 
     TABLE_HOVER="#9AC1F4",
+
+    SCROLLBAR="#BDBDBD",
+    SCROLLBAR_HOVER="#8C8C8C",
 )
 
 DARK_COLORS = ThemeColors(
@@ -144,5 +150,8 @@ DARK_COLORS = ThemeColors(
     TABLE_SELECTION="#4CC2FF",
 
     TABLE_HOVER="#4CC2FF",
+
+    SCROLLBAR="#666666",
+    SCROLLBAR_HOVER="#AAAAAA",
 
 )

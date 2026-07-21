@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Window properties
-        self.setWindowTitle(" V-CODE v1.0.0 | AES EEIV by DAT TRAN")
+        self.setWindowTitle(" V-CODE v1.0.1 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )

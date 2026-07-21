@@ -14,8 +14,10 @@ from gui.dialogs.quick_filter_dialog import QuickFilterDialog
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
-
 from gui.widgets.controls.secondary_button import SecondaryButton
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 
 class QuickAccessWidget(QWidget):
@@ -38,65 +40,48 @@ class QuickAccessWidget(QWidget):
     
     def setup_ui(self):
 
-        self.group = QGroupBox(
-            "Quick Access"
-        )
+        root_layout = QVBoxLayout(self)
 
-        self.group_layout = QVBoxLayout()
+        root_layout.setContentsMargins(8, 8, 8, 8)
+        root_layout.setSpacing(8)
 
-        self.group.setLayout(
-            self.group_layout
-        )
+        # --------------------------
+        # Quick Filter
+        # --------------------------
 
-        self.group_layout.setContentsMargins(8, 8, 8, 8)
-
-        self.group_layout.setSpacing(8)
-
-        # Quick filter buttons
         self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-        self.scroll_area.setWidgetResizable(
-            True
-        )
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         self.scroll_widget = QWidget()
 
-        self.button_layout = QVBoxLayout(
-            self.scroll_widget
-        )
+        self.button_layout = QVBoxLayout(self.scroll_widget)
 
         self.button_layout.setContentsMargins(8, 8, 8, 8)
-
         self.button_layout.setSpacing(4)
 
-        self.scroll_area.setWidget(
-            self.scroll_widget
-        )
+        self.scroll_area.setWidget(self.scroll_widget)
 
-        self.group_layout.addWidget(
-            self.scroll_area
-        )
+        fn_apply_scrollbar_style(self.scroll_area)
 
-        self.scroll_area.setMaximumHeight(1200)
-        self.scroll_area.setMinimumHeight(460)
+        self.scroll_area.setMinimumHeight(500)
 
-        self.group_layout.addSpacing(4)
+        root_layout.addWidget(self.scroll_area)
 
-        # Add button
-        self.btn_add = SecondaryButton(
-            "+ Add Filter"
-        )
+        root_layout.addSpacing(4)
 
-        self.group_layout.addWidget(
-            self.btn_add
-        )
+        # --------------------------
+        # Add Filter
+        # --------------------------
 
-        root_layout = QVBoxLayout(self)
+        self.btn_add = SecondaryButton("+ Add Filter +")
 
-        root_layout.addWidget(
-            self.group
-        )
-        
+        root_layout.addWidget(self.btn_add)
+
+        root_layout.addStretch()
+
         self._connect_signals()
 
     def _connect_signals(self):
@@ -335,4 +320,8 @@ class QuickAccessWidget(QWidget):
         for button in self.buttons:
 
             button.fn_enable(enabled)
-        
+    
+    def fn_refresh_theme(self):
+
+        fn_apply_scrollbar_style(self.scroll_area)
+            

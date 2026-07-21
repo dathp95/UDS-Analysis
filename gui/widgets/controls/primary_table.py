@@ -14,6 +14,9 @@ from gui.themes.styles.controls.table_style import (
     fn_table_style
 )
 
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 class PrimaryTable(QTableWidget):
 
@@ -50,6 +53,8 @@ class PrimaryTable(QTableWidget):
         header = self.horizontalHeader()
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.Interactive)
+
+        fn_apply_scrollbar_style(self)
 
         self.fn_refresh_theme()
 
@@ -134,9 +139,8 @@ class PrimaryTable(QTableWidget):
 
     def fn_refresh_theme(self):
 
-        self.setStyleSheet(
-            fn_table_style()
-        )
+        self.setStyleSheet(fn_table_style())
+        fn_apply_scrollbar_style(self)
 
         self._refresh_row_colors()
     

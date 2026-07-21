@@ -72,24 +72,6 @@
         "enabled": true
     },
     {
-        "name": "09. Finger print",
-        "filters": {
-            "ecu": "",
-            "request": "F1 0A"
-        },
-        "id": 9,
-        "enabled": true
-    },
-    {
-        "name": "10. CHECK BAS",
-        "filters": {
-            "ecu": "",
-            "request": "2E FD 00"
-        },
-        "id": 10,
-        "enabled": true
-    },
-    {
         "id": 11,
         "name": "11 BCM Learn Key",
         "enabled": true,
@@ -115,5 +97,95 @@
         },
         "id": 13,
         "enabled": true
+    },
+    {
+        "id": 14,
+        "name": "1",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 15,
+        "name": "2",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 16,
+        "name": "3",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 17,
+        "name": "4",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 18,
+        "name": "5",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 19,
+        "name": "6",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 20,
+        "name": "7",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 21,
+        "name": "8",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 22,
+        "name": "9",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
+    },
+    {
+        "id": 23,
+        "name": "10",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": ""
+        }
     }
 ]
