@@ -5,6 +5,7 @@ from gui.widgets.quick_access import QuickAccessWidget
 from gui.widgets.controls.theme_switch import ThemeSwitch
 
 
+
 class LeftPanel(QWidget):
     quick_filter_selected = Signal(dict)
 
@@ -15,6 +16,7 @@ class LeftPanel(QWidget):
 
         self.quick_access = QuickAccessWidget()
         self.theme_switch = ThemeSwitch()
+
 
         layout.addWidget(self.quick_access)
         layout.addStretch()

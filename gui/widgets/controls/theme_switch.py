@@ -3,11 +3,11 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
-    QCheckBox,
     QHBoxLayout
 )
 
 from gui.themes.theme import ThemeType
+from gui.widgets.controls.toggle_switch import ToggleSwitch
 
 
 class ThemeSwitch(QWidget):
@@ -36,11 +36,12 @@ class ThemeSwitch(QWidget):
 
     def _setup_ui(self):
 
-        self.lbl_light = QLabel("☀")
+        self.lbl_light = QLabel("☀")        
 
-        self.chk_dark = QCheckBox("Dark Mode")
+        self.switch_dark = ToggleSwitch()
 
         self.lbl_dark = QLabel("🌙")
+        self.lbl_text = QLabel("Dark Mode")
 
         layout = QHBoxLayout(self)
 
@@ -48,15 +49,19 @@ class ThemeSwitch(QWidget):
 
         layout.addWidget(self.lbl_light)
 
-        layout.addWidget(self.chk_dark)
+        layout.addWidget(self.switch_dark)
 
         layout.addWidget(self.lbl_dark)
+
+        layout.addSpacing(8)
+
+        layout.addWidget(self.lbl_text)
 
         layout.addStretch()
 
     def _connect_signals(self):
 
-        self.chk_dark.toggled.connect(
+        self.switch_dark.toggled.connect(
 
             self._on_theme_changed
 
@@ -92,7 +97,7 @@ class ThemeSwitch(QWidget):
 
     def fn_theme(self) -> ThemeType:
 
-        if self.chk_dark.isChecked():
+        if self.switch_dark.isChecked():
 
             return ThemeType.DARK
 
@@ -106,15 +111,15 @@ class ThemeSwitch(QWidget):
 
     ):
 
-        self.chk_dark.blockSignals(True)
+        self.switch_dark.blockSignals(True)
 
-        self.chk_dark.setChecked(
+        self.switch_dark.setChecked(
 
             theme == ThemeType.DARK
 
         )
 
-        self.chk_dark.blockSignals(False)
+        self.switch_dark.blockSignals(False)
 
     def fn_refresh_theme(self):
 
