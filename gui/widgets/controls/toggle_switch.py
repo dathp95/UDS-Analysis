@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
     QAbstractButton,
 )
 
+from gui.themes.theme_manager import ThemeManager
+
 
 class ToggleSwitch(QAbstractButton):
 
@@ -61,10 +63,16 @@ class ToggleSwitch(QAbstractButton):
         painter.setPen(Qt.NoPen)
 
         # Track
-        painter.setBrush(
-            QColor("#34C759")
+        colors = ThemeManager.fn_colors()
+
+        track_color = (
+            colors.SWITCH_ON
             if self.isChecked()
-            else QColor("#BDBDBD")
+            else colors.SWITCH_OFF
+        )
+
+        painter.setBrush(
+            QColor(track_color)
         )
 
         painter.drawRoundedRect(
@@ -75,7 +83,7 @@ class ToggleSwitch(QAbstractButton):
 
         # Thumb
         painter.setBrush(
-            QColor("white")
+            QColor(colors.SWITCH_THUMB)
         )
 
         painter.drawEllipse(

@@ -59,6 +59,10 @@ class ThemeColors:
     SCROLLBAR: str
     SCROLLBAR_HOVER: str
 
+    SWITCH_ON: str
+    SWITCH_OFF: str
+    SWITCH_THUMB: str
+
 LIGHT_COLORS = ThemeColors(
 
     PRIMARY="#0078D4",
@@ -105,6 +109,10 @@ LIGHT_COLORS = ThemeColors(
 
     SCROLLBAR="#BDBDBD",
     SCROLLBAR_HOVER="#8C8C8C",
+
+    SWITCH_ON="#34C759",
+    SWITCH_OFF="#C7C7CC",
+    SWITCH_THUMB="#FFFFFF",
 )
 
 DARK_COLORS = ThemeColors(
@@ -153,5 +161,9 @@ DARK_COLORS = ThemeColors(
 
     SCROLLBAR="#666666",
     SCROLLBAR_HOVER="#AAAAAA",
+
+    SWITCH_ON="#30D158",
+    SWITCH_OFF="#555555",
+    SWITCH_THUMB="#FFFFFF",
 
 )
