@@ -9,39 +9,111 @@
         }
     },
     {
-        "name": "02. MHU",
+        "name": "02. READ VIN ALL",
         "filters": {
-            "ecu": "MHU",
-            "request": "31 01 02 13 01"
+            "ecu": "",
+            "request": "22 F1 90"
         },
         "id": 2,
         "enabled": true
     },
     {
         "id": 3,
-        "name": "1",
+        "name": "03. Write VIN ALL",
         "enabled": true,
         "filters": {
             "ecu": "",
-            "request": ""
+            "request": "2E F1 90"
         }
     },
     {
         "id": 4,
-        "name": "2",
+        "name": "04. MHU Handshake",
         "enabled": true,
         "filters": {
             "ecu": "",
-            "request": ""
+            "request": "31 03 02 13"
         }
     },
     {
         "id": 5,
-        "name": "3",
+        "name": "05. ACM Pyro Fuse",
         "enabled": true,
         "filters": {
             "ecu": "",
-            "request": ""
+            "request": "FA 1B"
         }
+    },
+    {
+        "name": "06. CODING CDS",
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 08"
+        },
+        "id": 6,
+        "enabled": true
+    },
+    {
+        "name": "07. CODING VOD",
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 12"
+        },
+        "id": 7,
+        "enabled": true
+    },
+    {
+        "name": "08. FRS Number",
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 5C"
+        },
+        "id": 8,
+        "enabled": true
+    },
+    {
+        "name": "09. Finger print",
+        "filters": {
+            "ecu": "",
+            "request": "F1 0A"
+        },
+        "id": 9,
+        "enabled": true
+    },
+    {
+        "name": "10. CHECK BAS",
+        "filters": {
+            "ecu": "",
+            "request": "2E FD 00"
+        },
+        "id": 10,
+        "enabled": true
+    },
+    {
+        "id": 11,
+        "name": "11 BCM Learn Key",
+        "enabled": true,
+        "filters": {
+            "ecu": "BCM",
+            "request": "22 5C 03"
+        }
+    },
+    {
+        "name": "12. Check CCU",
+        "filters": {
+            "ecu": "",
+            "request": "31 01 3E 02"
+        },
+        "id": 12,
+        "enabled": true
+    },
+    {
+        "name": "13 VCU Learn Key",
+        "filters": {
+            "ecu": "",
+            "request": "2E C0 05 03"
+        },
+        "id": 13,
+        "enabled": true
     }
 ]

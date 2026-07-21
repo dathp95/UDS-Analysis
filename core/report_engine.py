@@ -214,7 +214,7 @@ def calculate_statistics(activities):
 
         status = activity["status"]
 
-        if status == "PASS":
+        if status == "OK":
 
             pass_count += 1
 

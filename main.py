@@ -11,7 +11,7 @@ from license.exceptions import LicenseError
 from license.manager import LicenseManager
 
 
-APP_NAME = "Analyze DIAG CODING"
+APP_NAME = "V-CODE"
 APP_VERSION = "v1.0.0"
 APP_AUTHOR = "AES EEIV by DAT TRAN"
 

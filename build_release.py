@@ -25,4 +25,3 @@ if readme.exists():
 for folder in ["output", "output/Reports", "output/Logs", "output/Temp", "output/Cache"]:
     (DIST / folder).mkdir(parents=True, exist_ok=True)
 
-print("Release package is ready.")

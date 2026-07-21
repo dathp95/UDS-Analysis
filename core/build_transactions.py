@@ -287,7 +287,7 @@ def determine_status(positive, negative_list):
 
     if positive is not None:
 
-        return "PASS"
+        return "OK"
 
     if len(negative_list) > 0:
 

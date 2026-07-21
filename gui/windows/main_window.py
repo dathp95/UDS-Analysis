@@ -26,6 +26,7 @@ from gui.widgets.filter_box import FilterBox
 from gui.widgets.path_selector import PathSelectorWidget
 from gui.widgets.result_table import ResultTable
 from gui.widgets.right_panel import RightPanel
+from gui.widgets.left_panel import LeftPanel
 
 from PySide6.QtGui import QIcon
 from gui.themes.icon_manager import IconManager
@@ -38,7 +39,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Window properties
-        self.setWindowTitle(" Analyze DIAG CODING v1.0.0 | AES EEIV by DAT TRAN")
+        self.setWindowTitle(" V-CODE v1.0.0 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )
@@ -59,7 +60,7 @@ class MainWindow(QMainWindow):
 
         # Initial UI state
         self.right_panel.action_panel.fn_set_startup_state()
-        self.right_panel.fn_disable_quick_access()
+        self.left_panel.fn_disable_quick_access()
         
         # # Apply theme
 
@@ -86,13 +87,13 @@ class MainWindow(QMainWindow):
 
         self.filter_box = FilterBox()
 
-    
+        self.left_panel = LeftPanel()
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
 
-
-        content_layout.addWidget(self.tbl_result, 4)
-        content_layout.addWidget(self.right_panel, 1)
+        content_layout.addWidget(self.left_panel,3)
+        content_layout.addWidget(self.tbl_result, 7)
+        content_layout.addWidget(self.right_panel, 2)
 
         main_layout.addWidget(self.log_selector)
         main_layout.addWidget(self.filter_box)
@@ -138,13 +139,13 @@ class MainWindow(QMainWindow):
             self.fn_clear_clicked
         )
         
-        self.right_panel.quick_filter_selected.connect(
+        self.left_panel.quick_filter_selected.connect(
 
             self.fn_quick_filter
 
         )
 
-        self.right_panel.theme_switch.theme_changed.connect(
+        self.left_panel.theme_switch.theme_changed.connect(
 
             self.fn_change_theme
 
@@ -200,7 +201,7 @@ class MainWindow(QMainWindow):
 
         self.right_panel.action_panel.fn_set_analyzed_state()
 
-        self.right_panel.fn_enable_quick_access()
+        self.left_panel.fn_enable_quick_access()
 
         
         
@@ -233,7 +234,7 @@ class MainWindow(QMainWindow):
         self.pipeline_result = None
         self.right_panel.action_panel.fn_set_empty_state()
 
-        self.right_panel.fn_disable_quick_access()
+        self.left_panel.fn_disable_quick_access()
     
     
     def fn_filter_transactions(self, keyword = None):
@@ -262,6 +263,7 @@ class MainWindow(QMainWindow):
         self.log_selector.fn_refresh_theme()
 
         self.right_panel.fn_refresh_theme()
+        self.left_panel.fn_refresh_theme()
 
         self.filter_box.fn_refresh_theme()
 

@@ -43,7 +43,7 @@ def _export_ecu_report(
 
     df.to_excel(
         writer,
-        sheet_name=report["ecu"],
+        sheet_name=_safe_sheet_name(report["ecu"]),
         index=False,
     )
 
@@ -120,3 +120,18 @@ def _export_all_ecus(
         sheet_name="ALL_ECUS",
         index=False,
     )
+
+
+def _safe_sheet_name(name: str) -> str:
+    r"""
+    Excel worksheet name:
+    - max 31 chars
+    - cannot contain : \ / ? * [ ]
+    """
+
+    invalid_chars = r'[]:*?/\\'
+
+    for ch in invalid_chars:
+        name = name.replace(ch, "_")
+
+    return name[:31]

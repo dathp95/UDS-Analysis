@@ -67,7 +67,7 @@ class QuickAccessWidget(QWidget):
 
         self.button_layout.setContentsMargins(8, 8, 8, 8)
 
-        self.button_layout.setSpacing(6)
+        self.button_layout.setSpacing(4)
 
         self.scroll_area.setWidget(
             self.scroll_widget
@@ -77,10 +77,10 @@ class QuickAccessWidget(QWidget):
             self.scroll_area
         )
 
-        self.scroll_area.setMaximumHeight(240)
-        self.scroll_area.setMinimumHeight(200)
+        self.scroll_area.setMaximumHeight(1200)
+        self.scroll_area.setMinimumHeight(460)
 
-        self.group_layout.addSpacing(10)
+        self.group_layout.addSpacing(4)
 
         # Add button
         self.btn_add = SecondaryButton(
