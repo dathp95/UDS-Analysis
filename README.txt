@@ -7,8 +7,8 @@ Requirements
 How to use
 ----------
 1. Giải nén toàn bộ file ZIP.
-2. Không di chuyển file EEIV Diagnostic.exe ra ngoài thư mục.
-3. Chạy EEIV Diagnostic.exe.
+2. Không di chuyển file V-CODE EEIV.exe ra ngoài thư mục.
+3. Chạy V-CODE EEIV .exe.
 4. License nằm trong thư mục license.
 5. Báo cáo được lưu trong thư mục output.
 

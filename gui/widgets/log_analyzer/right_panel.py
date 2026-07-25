@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QVBoxLayout
 )
-from gui.widgets.panels.action_panel import ActionPanel
+from gui.widgets.log_analyzer.action_panel import ActionPanel
 from gui.widgets.controls.theme_switch import ThemeSwitch
 
 class RightPanel(QWidget):

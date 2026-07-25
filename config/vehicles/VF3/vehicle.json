@@ -1,0 +1,13 @@
+{
+    "name": "VF3",
+    "manufacturer": "VinFast",
+    "version": "1.0.0",
+    "description": "VF3 Vehicle Package",
+    "ecus": [
+        "BCM",
+        "ACM",
+        "BMS",
+        "2IN1",
+        "MHU"
+    ]
+}

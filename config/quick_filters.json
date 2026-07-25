@@ -100,33 +100,6 @@
     },
     {
         "id": 14,
-        "name": "1",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 15,
-        "name": "2",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 16,
-        "name": "3",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 17,
         "name": "4",
         "enabled": true,
         "filters": {
@@ -135,53 +108,8 @@
         }
     },
     {
-        "id": 18,
+        "id": 15,
         "name": "5",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 19,
-        "name": "6",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 20,
-        "name": "7",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 21,
-        "name": "8",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 22,
-        "name": "9",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 23,
-        "name": "10",
         "enabled": true,
         "filters": {
             "ecu": "",

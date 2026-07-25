@@ -16,6 +16,9 @@ CACHE_DIR = OUTPUT_DIR / "Cache"
 
 
 CONFIG_DIR = PROJECT_ROOT / "config"
+
+VEHICLES_DIR = CONFIG_DIR / "vehicles"
+
 QUICK_FILTER_FILE = CONFIG_DIR / "quick_filters.json"
 
 if getattr(sys, "frozen", False):

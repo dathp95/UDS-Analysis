@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal
 
-from gui.widgets.quick_access import QuickAccessWidget
+from gui.widgets.log_analyzer.quick_access import QuickAccessWidget
 from gui.widgets.controls.theme_switch import ThemeSwitch
 
 
