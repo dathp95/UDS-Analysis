@@ -7,19 +7,23 @@ from gui.themes.styles.controls.combobox_style import (
 
 class PrimaryComboBox(QComboBox):
 
-    def __init__(self, parent=None):
-
+    def __init__(
+        self,
+        minimum_height: int = 36,
+        parent=None,
+    ):
         super().__init__(parent)
 
-        self._setup_ui()
+        self.setMinimumHeight(
+            minimum_height
+        )
+
 
     # ==========================================
     # Private
     # ==========================================
 
     def _setup_ui(self):
-
-        self.setMinimumHeight(36)
 
         self.fn_refresh_theme()
 
