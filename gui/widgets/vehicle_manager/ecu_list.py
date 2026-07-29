@@ -1,6 +1,15 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
+
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QHeaderView,
+    QSizePolicy,
+)
 
 from gui.widgets.controls.primary_table import PrimaryTable
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 
 class ECUList(PrimaryTable):
@@ -33,6 +42,46 @@ class ECUList(PrimaryTable):
 
         )
 
+        self.setMinimumWidth(220)
+
+        self.setSizePolicy(
+            QSizePolicy.Preferred,
+            QSizePolicy.Expanding,
+        )
+
+        self.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )
+
+        self.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+
+        self.setVerticalScrollMode(
+            QAbstractItemView.ScrollPerPixel
+        )
+
+        self.setHorizontalScrollMode(
+            QAbstractItemView.ScrollPerPixel
+        )
+
+        self.setShowGrid(False)
+
+        self.setAlternatingRowColors(False)
+
+        self.setWordWrap(False)
+
+        self.verticalHeader().setDefaultSectionSize(34)
+
+        header = self.horizontalHeader()
+
+        header.setSectionResizeMode(
+            0,
+            QHeaderView.Stretch,
+        )
+
+        fn_apply_scrollbar_style(self)
+
     def _on_selection_changed(self):
 
         items = self.selectedItems()
@@ -56,6 +105,8 @@ class ECUList(PrimaryTable):
         ecu_names: list[str],
     ):
 
+        self.setSortingEnabled(False)
+
         self.setRowCount(
 
             len(ecu_names)
@@ -78,3 +129,15 @@ class ECUList(PrimaryTable):
                 item,
 
             )
+
+        self.setSortingEnabled(True)
+
+        if ecu_names:
+
+            self.selectRow(0)
+
+    def fn_refresh_theme(self):
+
+        super().fn_refresh_theme()
+
+        fn_apply_scrollbar_style(self)
