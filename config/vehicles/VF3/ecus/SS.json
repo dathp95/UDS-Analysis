@@ -1,24 +1,14 @@
 {
-    "name": "2IN1",
-    "request_id": "6BD",
-    "response_id": "63D",
-    "functional_id": "",
-
+    "name": "SS",
+    "request_id": "690",
+    "response_id": "610",
     "aliases": [],
-
     "resources": {
-
         "dll": "",
-
         "dbc": "",
-
         "odx": "",
-
         "dtc": "",
-
         "request_library": ""
-
     },
-
     "quick_requests": []
 }

@@ -1,3 +1,5 @@
+from PySide6.QtCore import Qt
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -5,7 +7,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from config.paths import CONFIG_DIR
 from gui.controllers.analysis_controller import AnalysisController
 from gui.controllers.clipboard_controller import ClipboardController
 from gui.controllers.report_controller import ReportController
@@ -16,6 +17,8 @@ from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.path_selector import PathSelectorWidget
 from gui.widgets.log_analyzer.result_table import ResultTable
 from gui.widgets.log_analyzer.right_panel import RightPanel
+from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
+from services.vehicle_service import VehicleService
 
 
 class LogAnalyzerTab(QWidget):
@@ -25,6 +28,7 @@ class LogAnalyzerTab(QWidget):
 
         # Runtime data
         self.pipeline_result = None
+        self._current_vehicle = None
 
         # Controllers
         self._create_controllers()
@@ -38,16 +42,40 @@ class LogAnalyzerTab(QWidget):
         # Initial UI state
         self.right_panel.action_panel.fn_set_startup_state()
         self.left_panel.fn_disable_quick_access()
+        self._load_vehicles()
 
         self.fn_refresh_theme()
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
+
+        input_layout = QHBoxLayout()
         content_layout = QHBoxLayout()
+
+        main_layout.setSpacing(8)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(8)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(8)
+
+        self.vehicle_selector = VehicleSelectorWidget()
 
         self.log_selector = PathSelectorWidget(
             "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...",
             "Log Files (*.blf *.asc)",
+        )
+
+        input_label_height = max(
+            self.vehicle_selector.lbl_vehicle.sizeHint().height(),
+            self.log_selector.label.sizeHint().height(),
+        )
+
+        self.vehicle_selector.lbl_vehicle.setFixedHeight(
+            input_label_height
+        )
+
+        self.log_selector.label.setFixedHeight(
+            input_label_height
         )
 
         self.filter_box = FilterBox()
@@ -60,7 +88,19 @@ class LogAnalyzerTab(QWidget):
         content_layout.addWidget(self.tbl_result, 7)
         content_layout.addWidget(self.right_panel, 2)
 
-        main_layout.addWidget(self.log_selector)
+        input_layout.addWidget(
+            self.vehicle_selector,
+            2,
+            Qt.AlignTop,
+        )
+
+        input_layout.addWidget(
+            self.log_selector,
+            8,
+            Qt.AlignTop,
+        )
+
+        main_layout.addLayout(input_layout)
         main_layout.addWidget(self.filter_box)
         main_layout.addLayout(content_layout)
 
@@ -68,8 +108,13 @@ class LogAnalyzerTab(QWidget):
         self.analysis_controller = AnalysisController()
         self.export_controller = ReportController()
         self.clipboard_controller = ClipboardController()
+        self.vehicle_service = VehicleService()
 
     def _connect_signals(self):
+        self.vehicle_selector.vehicle_changed.connect(
+            self.fn_vehicle_changed
+        )
+
         self.log_selector.path_changed.connect(
             self.fn_log_file_changed
         )
@@ -102,23 +147,88 @@ class LogAnalyzerTab(QWidget):
             self.fn_change_theme
         )
 
+    def _load_vehicles(self):
+        self.fn_refresh_vehicles()
+
+    def fn_refresh_vehicles(
+        self,
+        selected_vehicle_name: str = "",
+    ) -> None:
+
+        vehicles = self.vehicle_service.list_vehicles()
+
+        if not selected_vehicle_name and self._current_vehicle is not None:
+
+            selected_vehicle_name = self._current_vehicle.name
+
+        if (
+            selected_vehicle_name
+            and selected_vehicle_name not in vehicles
+        ):
+
+            selected_vehicle_name = ""
+
+        if not selected_vehicle_name and vehicles:
+
+            selected_vehicle_name = vehicles[0]
+
+        self.vehicle_selector.fn_set_vehicles(
+            vehicles,
+            selected_vehicle=selected_vehicle_name,
+        )
+
+        if selected_vehicle_name:
+
+            self.fn_vehicle_changed(
+                selected_vehicle_name
+            )
+
+            return
+
+        self._current_vehicle = None
+
+        self._update_analyze_state()
+
+    def fn_vehicle_changed(
+        self,
+        vehicle_name: str,
+    ):
+
+        if not vehicle_name:
+            self._current_vehicle = None
+            self._update_analyze_state()
+            return
+
+        self._current_vehicle = self.vehicle_service.load_vehicle(
+            vehicle_name
+        )
+
+        self._update_analyze_state()
+
     def fn_log_file_changed(
         self,
         file_path: str,
     ):
-        self.right_panel.action_panel.fn_set_file_loaded_state()
+        self._update_analyze_state()
+
+    def _update_analyze_state(self):
+        if self._current_vehicle is not None and self.log_selector.path():
+            self.right_panel.action_panel.fn_set_file_loaded_state()
+            return
+
+        self.right_panel.action_panel.fn_set_startup_state()
 
     def fn_run_clicked(self):
         try:
             result = self.analysis_controller.fn_run(
                 log_file=self.log_selector.path(),
-                ecu_config=CONFIG_DIR / "ecu_config.xlsx",
+                vehicle=self._current_vehicle,
             )
 
         except ValueError as e:
             QMessageBox.warning(
                 self,
-                "No Log Selected",
+                "Analyze",
                 str(e),
             )
             return
@@ -161,6 +271,7 @@ class LogAnalyzerTab(QWidget):
         self.analysis_controller.pipeline_result = None
         self.right_panel.action_panel.fn_set_empty_state()
         self.left_panel.fn_disable_quick_access()
+        self._update_analyze_state()
 
     def fn_filter_transactions(self, keyword=None):
         self.tbl_result.fn_search(keyword)
@@ -183,6 +294,7 @@ class LogAnalyzerTab(QWidget):
         self.fn_refresh_theme()
 
     def fn_refresh_theme(self):
+        self.vehicle_selector.fn_refresh_theme()
         self.log_selector.fn_refresh_theme()
         self.right_panel.fn_refresh_theme()
         self.left_panel.fn_refresh_theme()

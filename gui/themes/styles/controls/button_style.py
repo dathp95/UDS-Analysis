@@ -92,6 +92,25 @@ def fn_secondary_button_style():
 
     colors = ThemeManager.fn_colors()
 
+    if ThemeManager.fn_is_dark():
+
+        palette = ButtonPalette(
+
+            background=colors.PRIMARY,
+
+            hover=colors.PRIMARY_HOVER,
+
+            pressed=colors.PRIMARY_PRESSED,
+
+            text=colors.TEXT_INVERT,
+
+            border=colors.BORDER
+        )
+
+        return _fn_base_button_style(
+            palette
+        )
+
     palette = ButtonPalette(
 
         background=colors.SECONDARY,

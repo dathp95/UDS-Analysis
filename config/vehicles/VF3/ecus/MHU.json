@@ -2,23 +2,13 @@
     "name": "MHU",
     "request_id": "684",
     "response_id": "604",
-    "functional_id": "",
-
     "aliases": [],
-
     "resources": {
-
         "dll": "",
-
         "dbc": "",
-
         "odx": "",
-
         "dtc": "",
-
         "request_library": ""
-
     },
-
     "quick_requests": []
 }

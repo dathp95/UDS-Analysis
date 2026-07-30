@@ -18,7 +18,6 @@ class ECU:
     name: str
     request_id: str = ""
     response_id: str = ""
-    functional_id: str = ""
 
     # Optional
     aliases: list[str] = field(default_factory=list)

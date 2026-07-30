@@ -136,6 +136,38 @@ class ECUList(PrimaryTable):
 
             self.selectRow(0)
 
+    def fn_current_ecu_name(self) -> str:
+
+        items = self.selectedItems()
+
+        if not items:
+
+            return ""
+
+        return items[0].text()
+
+    def fn_select_ecu(
+        self,
+        ecu_name: str,
+    ) -> None:
+
+        for row in range(self.rowCount()):
+
+            item = self.item(
+                row,
+                0,
+            )
+
+            if item is None:
+
+                continue
+
+            if item.text() == ecu_name:
+
+                self.selectRow(row)
+
+                return
+
     def fn_refresh_theme(self):
 
         super().fn_refresh_theme()

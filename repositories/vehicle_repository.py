@@ -1,10 +1,5 @@
-from pathlib import Path
-
-from config.paths import VEHICLES_DIR
-
 import json
-
-from pathlib import Path
+import shutil
 
 from config.paths import VEHICLES_DIR
 
@@ -23,6 +18,39 @@ class VehicleRepository:
     def __init__(self):
 
         self.root = VEHICLES_DIR
+
+    # ==========================================
+    # Paths
+    # ==========================================
+
+    def _vehicle_dir(
+        self,
+        vehicle_name: str,
+    ):
+
+        return self.root / vehicle_name
+
+    def _vehicle_file(
+        self,
+        vehicle_name: str,
+    ):
+
+        return self._vehicle_dir(vehicle_name) / "vehicle.json"
+
+    def _ecu_dir(
+        self,
+        vehicle_name: str,
+    ):
+
+        return self._vehicle_dir(vehicle_name) / "ecus"
+
+    def _ecu_file(
+        self,
+        vehicle_name: str,
+        ecu_name: str,
+    ):
+
+        return self._ecu_dir(vehicle_name) / f"{ecu_name}.json"
 
     def list_vehicles(self) -> list[str]:
         """
@@ -61,11 +89,7 @@ class VehicleRepository:
             Parsed vehicle configuration.
         """
 
-        vehicle_file = (
-            self.root
-            / vehicle_name
-            / "vehicle.json"
-        )
+        vehicle_file = self._vehicle_file(vehicle_name)
 
         if not vehicle_file.exists():
 
@@ -76,7 +100,7 @@ class VehicleRepository:
         with open(
             vehicle_file,
             "r",
-            encoding="utf-8",
+            encoding="utf-8-sig",
         ) as file:
 
             return json.load(file)
@@ -94,12 +118,7 @@ class VehicleRepository:
         dict
         """
 
-        ecu_file = (
-            self.root
-            / vehicle_name
-            / "ecus"
-            / f"{ecu_name}.json"
-        )
+        ecu_file = self._ecu_file(vehicle_name, ecu_name)
 
         if not ecu_file.exists():
 
@@ -110,7 +129,7 @@ class VehicleRepository:
         with open(
             ecu_file,
             "r",
-            encoding="utf-8",
+            encoding="utf-8-sig",
         ) as file:
 
             return json.load(file)
@@ -162,11 +181,6 @@ class VehicleRepository:
                 "",
             ),
 
-            functional_id=data.get(
-                "functional_id",
-                "",
-            ),
-
             aliases=data.get(
                 "aliases",
                 [],
@@ -182,6 +196,95 @@ class VehicleRepository:
                 [],
             ),
         )   
+
+    @staticmethod
+    def _ecu_to_json(ecu: ECU) -> dict:
+
+        return {
+            "name": ecu.name,
+            "request_id": ecu.request_id,
+            "response_id": ecu.response_id,
+            "aliases": ecu.aliases,
+            "resources": ecu.resources,
+            "quick_requests": ecu.quick_requests,
+        }
+
+    @staticmethod
+    def _vehicle_to_json(vehicle: Vehicle) -> dict:
+
+        return {
+            "name": vehicle.name,
+            "manufacturer": vehicle.manufacturer,
+            "version": vehicle.version,
+            "description": vehicle.description,
+            "ecus": [
+                ecu.name
+                for ecu in vehicle.ecus
+            ],
+        }
+
+    @staticmethod
+    def _write_json(
+        path,
+        data: dict,
+    ) -> None:
+
+        path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        with open(
+            path,
+            "w",
+            encoding="utf-8",
+        ) as file:
+
+            json.dump(
+                data,
+                file,
+                indent=4,
+                ensure_ascii=False,
+            )
+
+
+    def create_vehicle(
+        self,
+        vehicle: Vehicle,
+    ) -> None:
+
+        vehicle_dir = self._vehicle_dir(vehicle.name)
+
+        if vehicle_dir.exists():
+
+            raise FileExistsError(
+                f"Vehicle package already exists: {vehicle.name}"
+            )
+
+        self._write_json(
+            self._vehicle_file(vehicle.name),
+            self._vehicle_to_json(vehicle),
+        )
+
+        self._ecu_dir(vehicle.name).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+    def delete_vehicle(
+        self,
+        vehicle_name: str,
+    ) -> None:
+
+        vehicle_dir = self._vehicle_dir(vehicle_name)
+
+        if not vehicle_dir.exists():
+
+            raise FileNotFoundError(
+                f"Vehicle package not found: {vehicle_name}"
+            )
+
+        shutil.rmtree(vehicle_dir)
 
 
     def load(
@@ -229,3 +332,92 @@ class VehicleRepository:
             )
 
         return vehicle
+
+    def save_ecu(
+            self,
+            vehicle_name: str,
+            ecu: ECU,
+        ) -> None:
+
+        vehicle_data = self._load_vehicle_json(vehicle_name)
+
+        ecu_names = vehicle_data.get(
+            "ecus",
+            [],
+        )
+
+        if ecu.name not in ecu_names:
+
+            ecu_names.append(ecu.name)
+
+        vehicle_data["ecus"] = ecu_names
+
+        self._write_json(
+            self._vehicle_file(vehicle_name),
+            vehicle_data,
+        )
+
+        self._write_json(
+            self._ecu_file(vehicle_name, ecu.name),
+            self._ecu_to_json(ecu),
+        )
+
+    def add_ecu(
+        self,
+        vehicle_name: str,
+        ecu: ECU,
+    ) -> None:
+
+        vehicle_data = self._load_vehicle_json(vehicle_name)
+
+        ecu_names = vehicle_data.get(
+            "ecus",
+            [],
+        )
+
+        if ecu.name not in ecu_names:
+
+            ecu_names.append(ecu.name)
+
+        vehicle_data["ecus"] = ecu_names
+
+        self._write_json(
+            self._vehicle_file(vehicle_name),
+            vehicle_data,
+        )
+
+        self._write_json(
+            self._ecu_file(vehicle_name, ecu.name),
+            self._ecu_to_json(ecu),
+        )
+
+    def delete_ecu(
+        self,
+        vehicle_name: str,
+        ecu_name: str,
+    ) -> None:
+
+        vehicle_data = self._load_vehicle_json(vehicle_name)
+
+        vehicle_data["ecus"] = [
+            item
+            for item in vehicle_data.get(
+                "ecus",
+                [],
+            )
+            if item != ecu_name
+        ]
+
+        self._write_json(
+            self._vehicle_file(vehicle_name),
+            vehicle_data,
+        )
+
+        ecu_file = self._ecu_file(
+            vehicle_name,
+            ecu_name,
+        )
+
+        if ecu_file.exists():
+
+            ecu_file.unlink()

@@ -1,13 +1,23 @@
 {
     "name": "VF3",
-    "manufacturer": "VinFast",
+    "manufacturer": "",
     "version": "1.0.0",
-    "description": "VF3 Vehicle Package",
+    "description": "",
     "ecus": [
-        "BCM",
         "ACM",
+        "BCM",
+        "EPS",
+        "SS",
         "BMS",
-        "2IN1",
-        "MHU"
+        "VCU",
+        "DCDC",
+        "EDS",
+        "EAC",
+        "MHU",
+        "XGW",
+        "AVAS",
+        "ABS",
+        "CVCLW",
+        "ALL"
     ]
 }

@@ -39,6 +39,10 @@ class MainWindow(QMainWindow):
             "Vehicle Manager",
         )
 
+        self.vehicle_manager_tab.vehicle_data_changed.connect(
+            lambda _vehicle_name: self.log_analyzer_tab.fn_refresh_vehicles()
+        )
+
     def fn_refresh_theme(self):
         self.setStyleSheet(
             fn_window_style()

@@ -35,6 +35,12 @@ class FilterBox(QWidget):
 
         filter_box_layout = QHBoxLayout()
 
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(6)
+
+        filter_box_layout.setContentsMargins(0, 0, 0, 0)
+        filter_box_layout.setSpacing(8)
+
         # filter_box_layout.addWidget(self.label_title)
         filter_box_layout.addWidget(self.edit_filter)
 

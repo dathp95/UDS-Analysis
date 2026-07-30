@@ -69,13 +69,30 @@ class VehicleSelectorWidget(QWidget):
     def fn_set_vehicles(
         self,
         vehicles: list[str],
+        selected_vehicle: str = "",
     ):
+
+        self.cmb_vehicle.blockSignals(True)
 
         self.cmb_vehicle.clear()
 
         self.cmb_vehicle.addItems(
             vehicles
         )
+
+        if selected_vehicle:
+
+            index = self.cmb_vehicle.findText(
+                selected_vehicle
+            )
+
+            if index >= 0:
+
+                self.cmb_vehicle.setCurrentIndex(
+                    index
+                )
+
+        self.cmb_vehicle.blockSignals(False)
 
     def fn_vehicle(self) -> str:
 
@@ -86,9 +103,15 @@ class VehicleSelectorWidget(QWidget):
         vehicle: str,
     ):
 
-        self.cmb_vehicle.setCurrentText(
+        index = self.cmb_vehicle.findText(
             vehicle
         )
+
+        if index >= 0:
+
+            self.cmb_vehicle.setCurrentIndex(
+                index
+            )
 
     def fn_refresh_theme(self):
 

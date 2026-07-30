@@ -15,7 +15,7 @@ from core.build_transactions import (
 
 
 from core.ecu_mapping import (
-    load_ecu_mapping
+    load_vehicle_mapping
 )
 
 from core.uds_lookup import (
@@ -43,7 +43,7 @@ from core.report_export import export_workbook
 
 def run_pipeline(
         asc_file : str,
-        ecu_config: str,
+        vehicle,
         logger=None,
         progress_callback=None
 
@@ -55,9 +55,14 @@ def run_pipeline(
 
     
     if logger:
-        logger("Loading ECU Config...")
+        logger("Loading Vehicle Config...")
 
-    ecu_info, req_map, resp_map = load_ecu_mapping(ecu_config)
+    ecu_info, req_map, resp_map = load_vehicle_mapping(vehicle)
+
+    if not ecu_info:
+        raise ValueError(
+            "Selected vehicle does not have any ECU with request and response IDs."
+        )
 
     # ==========================================
     # Parse UDS

@@ -2,23 +2,13 @@
     "name": "BCM",
     "request_id": "681",
     "response_id": "601",
-    "functional_id": "",
-
     "aliases": [],
-
     "resources": {
-
         "dll": "",
-
         "dbc": "",
-
         "odx": "",
-
         "dtc": "",
-
         "request_library": ""
-
     },
-
     "quick_requests": []
 }

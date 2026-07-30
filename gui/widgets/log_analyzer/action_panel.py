@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QGroupBox,    
     QVBoxLayout,
+    QHBoxLayout,
     QPushButton
 )
 
@@ -31,16 +32,17 @@ class ActionPanel (QWidget):
         layout.setSpacing(10)
 
 
-        self.btn_run = PrimaryButton("RUN", width=160, height=50)                                      
+        self.btn_run = PrimaryButton("Analyze", width=160, height=50)                                      
         self.btn_export = PrimaryButton("EXPORT", width = 160)                                      
         self.btn_copy = PrimaryButton("COPY ASC DATA", width = 160)
         self.btn_clear = PrimaryButton("CLEAR TABLE", height = 50)
 
+        layout.addStretch()
         layout.addWidget(self.btn_run)
+        layout.addSpacing(12)
         layout.addWidget(self.btn_export)
         layout.addWidget(self.btn_copy)
         layout.addWidget(self.btn_clear)
-
         layout.addStretch()
 
         # main_layout = QVBoxLayout(self)

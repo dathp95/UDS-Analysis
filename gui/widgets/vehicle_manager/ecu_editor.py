@@ -49,8 +49,6 @@ class ECUEditorWidget(QWidget):
 
         self.txt_response = PrimaryLineEdit()
 
-        self.txt_functional = PrimaryLineEdit()
-
         layout.addRow(
             "Name",
             self.txt_name,
@@ -64,11 +62,6 @@ class ECUEditorWidget(QWidget):
         layout.addRow(
             "Response ID",
             self.txt_response,
-        )
-
-        layout.addRow(
-            "Functional ID",
-            self.txt_functional,
         )
 
         # ----------------------------------
@@ -156,10 +149,6 @@ class ECUEditorWidget(QWidget):
             ecu.response_id
         )
 
-        self.txt_functional.setText(
-            ecu.functional_id
-        )
-
         self.txt_dll.setText(
             ecu.resources.get("dll", "")
         )
@@ -194,8 +183,6 @@ class ECUEditorWidget(QWidget):
 
         ecu.response_id = self.txt_response.text()
 
-        ecu.functional_id = self.txt_functional.text()
-
         ecu.resources["dll"] = self.txt_dll.text()
 
         ecu.resources["odx"] = self.txt_odx.text()
@@ -217,8 +204,6 @@ class ECUEditorWidget(QWidget):
         self.txt_request.clear()
 
         self.txt_response.clear()
-
-        self.txt_functional.clear()
 
         self.txt_dll.clear()
 

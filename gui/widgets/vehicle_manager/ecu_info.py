@@ -45,8 +45,6 @@ class ECUInfoWidget(QWidget):
 
         self.txt_response = PrimaryLineEdit()
 
-        self.txt_functional = PrimaryLineEdit()
-
         layout.addRow(
             "Name",
             self.txt_name,
@@ -60,11 +58,6 @@ class ECUInfoWidget(QWidget):
         layout.addRow(
             "Response ID",
             self.txt_response,
-        )
-
-        layout.addRow(
-            "Functional ID",
-            self.txt_functional,
         )
 
     # ==========================================
@@ -88,10 +81,6 @@ class ECUInfoWidget(QWidget):
             ecu.response_id
         )
 
-        self.txt_functional.setText(
-            ecu.functional_id
-        )
-
     def fn_get_ecu(
         self,
         ecu: ECU,
@@ -103,8 +92,6 @@ class ECUInfoWidget(QWidget):
 
         ecu.response_id = self.txt_response.text()
 
-        ecu.functional_id = self.txt_functional.text()
-
         return ecu
 
     def fn_clear(self):
@@ -115,8 +102,6 @@ class ECUInfoWidget(QWidget):
 
         self.txt_response.clear()
 
-        self.txt_functional.clear()
-
     def fn_refresh_theme(self):
 
         self.txt_name.fn_refresh_theme()
@@ -124,5 +109,3 @@ class ECUInfoWidget(QWidget):
         self.txt_request.fn_refresh_theme()
 
         self.txt_response.fn_refresh_theme()
-
-        self.txt_functional.fn_refresh_theme()
