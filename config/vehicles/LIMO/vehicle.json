@@ -1,0 +1,28 @@
+{
+    "name": "LIMO",
+    "manufacturer": "",
+    "version": "1.0.0",
+    "description": "",
+    "ecus": [
+        "ACM",
+        "BCM",
+        "EPS",
+        "EKS",
+        "BMS",
+        "6IN1-3IN1",
+        "6IN1-MCU",
+        "EAC",
+        "IVI",
+        "CVC",
+        "AVAS",
+        "WCBS",
+        "CCU",
+        "EVCC",
+        "USS_FR",
+        "USS_RR",
+        "VDKCU",
+        "BPM",
+        "PTC",
+        "BAS"
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "name": "5IN1-PDU",
+    "request_id": "6BD",
+    "response_id": "63D",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

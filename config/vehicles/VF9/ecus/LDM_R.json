@@ -1,0 +1,14 @@
+{
+    "name": "LDM_R",
+    "request_id": "6CA",
+    "response_id": "64A",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

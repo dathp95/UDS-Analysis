@@ -1,0 +1,14 @@
+{
+    "name": "CPD",
+    "request_id": "6AF",
+    "response_id": "62F",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

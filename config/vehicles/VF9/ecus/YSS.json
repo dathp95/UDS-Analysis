@@ -1,0 +1,14 @@
+{
+    "name": "YSS",
+    "request_id": "68F",
+    "response_id": "60F",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

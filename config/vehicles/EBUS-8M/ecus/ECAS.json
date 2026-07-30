@@ -1,0 +1,14 @@
+{
+    "name": "ECAS",
+    "request_id": "6AA",
+    "response_id": "62A",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

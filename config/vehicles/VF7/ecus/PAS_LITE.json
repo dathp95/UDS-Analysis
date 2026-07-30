@@ -1,0 +1,14 @@
+{
+    "name": "PAS_LITE",
+    "request_id": "6B0",
+    "response_id": "630",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

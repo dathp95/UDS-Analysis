@@ -1,0 +1,14 @@
+{
+    "name": "HUD",
+    "request_id": "68D",
+    "response_id": "60D",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

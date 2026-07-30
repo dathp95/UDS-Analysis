@@ -1,0 +1,14 @@
+{
+    "name": "EAC",
+    "request_id": "6F5",
+    "response_id": "675",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

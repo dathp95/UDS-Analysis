@@ -1,0 +1,24 @@
+{
+    "name": "VF5NP",
+    "manufacturer": "",
+    "version": "1.0.0",
+    "description": "",
+    "ecus": [
+        "ACM",
+        "BCM",
+        "EPS",
+        "SS",
+        "BMS",
+        "3N1",
+        "EDS",
+        "MHU",
+        "SGC",
+        "AVAS",
+        "ESC",
+        "BPM",
+        "PTC",
+        "USS_F",
+        "USS_R",
+        "VDKCU"
+    ]
+}

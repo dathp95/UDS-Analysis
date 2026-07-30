@@ -1,0 +1,25 @@
+{
+    "name": "EBUS-8M",
+    "manufacturer": "",
+    "version": "1.0.0",
+    "description": "",
+    "ecus": [
+        "5IN1_DCAC-AIRPUMP",
+        "5IN1_DCAC-OILPUMP",
+        "5IN1-DCDC",
+        "5IN1-MCU",
+        "5IN1-PDU",
+        "BCM",
+        "BMS",
+        "EBS",
+        "ECAS",
+        "EHPS",
+        "VCU-EVCC",
+        "VCU",
+        "IPC",
+        "CCU",
+        "VCU-XGW",
+        "SMS",
+        "EDR"
+    ]
+}

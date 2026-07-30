@@ -1,0 +1,14 @@
+{
+    "name": "PTC",
+    "request_id": "6C6",
+    "response_id": "646",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

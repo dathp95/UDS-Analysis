@@ -1,5 +1,8 @@
 
 
+from core.build_transactions import get_final_response_payload
+
+
 def fn_build_table_rows(transactions):
 
 
@@ -8,7 +11,7 @@ def fn_build_table_rows(transactions):
     for tx in transactions:
 
         request = tx.get("request") or {}
-        response = tx.get("positive_response") or {}
+        response_payload = get_final_response_payload(tx)
 
         response_time = tx.get("response_time")
 
@@ -28,7 +31,7 @@ def fn_build_table_rows(transactions):
 
             "Request": request.get("payload", ""),
 
-            "Response": response.get("payload", ""),
+            "Response": response_payload,
 
             "RT (ms)": rt_ms,
 

@@ -1,0 +1,14 @@
+{
+    "name": "APM",
+    "request_id": "6C1",
+    "response_id": "641",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

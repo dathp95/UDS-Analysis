@@ -1,5 +1,7 @@
 import pandas as pd
 
+from core.build_transactions import get_final_response_payload
+
 
 def export_transactions_to_excel(
     transactions,
@@ -14,13 +16,7 @@ def export_transactions_to_excel(
             "request"
         ]["payload"]
 
-        positive_payload = ""
-
-        if tx["positive_response"]:
-
-            positive_payload = tx[
-                "positive_response"
-            ]["payload"]
+        response_payload = get_final_response_payload(tx)
 
         if request_payload == "22 F1 68":
 
@@ -37,7 +33,7 @@ def export_transactions_to_excel(
 
             print(
                 "POS:",
-                positive_payload
+                response_payload
             )
 
         rows.append({
@@ -55,8 +51,8 @@ def export_transactions_to_excel(
                 tx["negative_responses"]
             ),
 
-            "Positive Response":
-            positive_payload,
+            "Response":
+            response_payload,
 
             "Response Time (s)":
             tx["response_time"]

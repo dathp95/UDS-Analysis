@@ -1,0 +1,14 @@
+{
+    "name": "VCU-EVCC",
+    "request_id": "685",
+    "response_id": "605",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

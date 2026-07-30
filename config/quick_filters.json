@@ -97,23 +97,5 @@
         },
         "id": 13,
         "enabled": true
-    },
-    {
-        "id": 14,
-        "name": "4",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
-    },
-    {
-        "id": 15,
-        "name": "5",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": ""
-        }
     }
 ]

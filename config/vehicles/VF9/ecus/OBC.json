@@ -1,0 +1,14 @@
+{
+    "name": "OBC",
+    "request_id": "6BE",
+    "response_id": "63E",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

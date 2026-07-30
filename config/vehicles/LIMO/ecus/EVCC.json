@@ -1,0 +1,14 @@
+{
+    "name": "EVCC",
+    "request_id": "69F",
+    "response_id": "61F",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

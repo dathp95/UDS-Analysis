@@ -1,0 +1,14 @@
+{
+    "name": "5IN1_DCAC-OILPUMP",
+    "request_id": "6A4",
+    "response_id": "624",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}
