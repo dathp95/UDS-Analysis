@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 from gui.controllers.quick_access_controller import QuickAccessController
 from gui.dialogs.quick_filter_dialog import QuickFilterDialog
+from gui.dialogs.import_quick_filters_dialog import ImportQuickFiltersDialog
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
@@ -32,6 +33,7 @@ class QuickAccessWidget(QWidget):
 
         self.quick_filters = []
         self.buttons = []
+        self.selected_filter = None
 
 
         self.quick_access_controller = QuickAccessController()
@@ -68,7 +70,9 @@ class QuickAccessWidget(QWidget):
 
         fn_apply_scrollbar_style(self.scroll_area)
 
-        self.scroll_area.setMinimumHeight(500)
+        # Keep room for Import/Add actions and the theme switch below without
+        # forcing the left panel beyond the available window height.
+        self.scroll_area.setMinimumHeight(360)
 
         root_layout.addWidget(self.scroll_area)
 
@@ -82,6 +86,9 @@ class QuickAccessWidget(QWidget):
 
         root_layout.addWidget(self.btn_add)
 
+        self.btn_import = SecondaryButton("Import Filters")
+        root_layout.addWidget(self.btn_import)
+
         root_layout.addStretch()
 
         self._connect_signals()
@@ -91,6 +98,18 @@ class QuickAccessWidget(QWidget):
         self.btn_add.clicked.connect(
             self.fn_add_filter
         )
+        self.btn_import.clicked.connect(self.fn_import_filters)
+
+    def fn_import_filters(self):
+        dialog = ImportQuickFiltersDialog(self)
+        if not dialog.exec():
+            return
+        try:
+            self.quick_access_controller.fn_add_many(dialog.fn_filters())
+        except (ValueError, OSError) as error:
+            QMessageBox.warning(self, "Import Quick Access", str(error))
+            return
+        self.fn_reload()
 
     def fn_reload(self):
         """
@@ -202,6 +221,7 @@ class QuickAccessWidget(QWidget):
             filter_data: dict,
         ):
 
+        self.selected_filter = filter_data
         self.quick_filter_selected.emit(
 
             filter_data
@@ -224,31 +244,40 @@ class QuickAccessWidget(QWidget):
             "Edit"
         )
 
-        action_clone = menu.addAction(
-            "Clone"
-        )
+        action_clone = menu.addAction("Clone")
+        action_delete = menu.addAction("Delete")
 
-        action_delete = menu.addAction(
-            "Delete"
-        )
-
-        action = menu.exec(
-
-            button.mapToGlobal(pos)
-
-        )
+        action = menu.exec(button.mapToGlobal(pos))
 
         if action == action_edit:
-
             self._fn_edit_filter(quick_filter)
-
         elif action == action_clone:
-
             self._fn_clone_filter(quick_filter)
-
         elif action == action_delete:
-
             self._fn_delete_filter(quick_filter)
+
+    def fn_clone_selected(self):
+        if self.selected_filter is None:
+            return
+
+        existing_names = {
+            item.get("name", "")
+            for item in self.quick_access_controller.fn_load()
+        }
+        base_name = f"{self.selected_filter.get('name', 'Quick Filter')} (Copy)"
+        name = base_name
+        suffix = 2
+        while name in existing_names:
+            name = f"{base_name} {suffix}"
+            suffix += 1
+
+        cloned = deepcopy(self.selected_filter)
+        cloned["name"] = name
+        self.quick_access_controller.fn_insert_after(
+            self.selected_filter["id"],
+            cloned,
+        )
+        self.fn_reload()
     
     
     def _fn_delete_filter(
@@ -356,4 +385,6 @@ class QuickAccessWidget(QWidget):
     def fn_refresh_theme(self):
 
         fn_apply_scrollbar_style(self.scroll_area)
+        self.btn_add.fn_refresh_theme()
+        self.btn_import.fn_refresh_theme()
             

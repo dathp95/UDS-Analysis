@@ -16,6 +16,7 @@ from copy import deepcopy
 
 from gui.dialogs.import_ecu_dialog import ImportECUDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
+from gui.dialogs.shortcuts_dialog import ShortcutsDialog
 from gui.controllers.vehicle_controller import VehicleController
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import (
@@ -206,6 +207,11 @@ class VehicleManagerTab(QWidget):
 
         self.btn_import_ecus.setEnabled(False)
 
+        self.btn_shortcuts = SecondaryButton(
+            "Keyboard Shortcuts",
+            width=150,
+        )
+
         self.btn_import_display_names = SecondaryButton(
             "Import File Display Names",
             width=180,
@@ -295,6 +301,10 @@ class VehicleManagerTab(QWidget):
 
         action_layout.addWidget(
             self.btn_import_ecus
+        )
+
+        action_layout.addWidget(
+            self.btn_shortcuts
         )
 
         action_layout.addWidget(
@@ -412,6 +422,10 @@ class VehicleManagerTab(QWidget):
 
             self._on_import_ecus_clicked
 
+        )
+
+        self.btn_shortcuts.clicked.connect(
+            self._on_shortcuts_clicked
         )
 
         self.btn_import_display_names.clicked.connect(
@@ -824,6 +838,10 @@ class VehicleManagerTab(QWidget):
 
         self._notify_vehicle_data_changed()
 
+    def _on_shortcuts_clicked(self):
+        dialog = ShortcutsDialog(self)
+        dialog.exec()
+
     def _on_import_display_names_clicked(self):
 
         file_path, _ = QFileDialog.getOpenFileName(
@@ -1163,6 +1181,8 @@ class VehicleManagerTab(QWidget):
         self.btn_delete_ecu.fn_refresh_theme()
 
         self.btn_import_ecus.fn_refresh_theme()
+
+        self.btn_shortcuts.fn_refresh_theme()
 
         self.btn_import_display_names.fn_refresh_theme()
 

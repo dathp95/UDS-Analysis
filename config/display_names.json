@@ -810,6 +810,6 @@
         "display_name": "Reset Odo"
     },
     "22 F1 90": {
-        "display_name": "Write VIN"
+        "display_name": "READ VIN"
     }
 }

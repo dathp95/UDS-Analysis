@@ -1,0 +1,12 @@
+[
+    {"key": "Ctrl+O", "action": "open_log", "label": "Open Log"},
+    {"key": "Ctrl+E", "action": "export_report", "label": "Export Report"},
+    {"key": "Ctrl+F", "action": "search", "label": "Search"},
+    {"key": "Ctrl+L", "action": "clear", "label": "Clear"},
+    {"key": "Ctrl+R", "action": "analyze", "label": "Analyze Log"},
+    {"key": "Ctrl+N", "action": "add_quick_access", "label": "Add Quick Access"},
+    {"key": "Ctrl+G", "action": "vehicle_selector", "label": "Vehicle Selector"},
+    {"key": "Ctrl+B", "action": "toggle_theme", "label": "Switch Light/Dark Mode"},
+    {"key": "Ctrl+D", "action": "clone_quick_access", "label": "Clone Quick Access"},
+    {"key": "Ctrl+S", "action": "copy_asc", "label": "Copy ASC Data"}
+]

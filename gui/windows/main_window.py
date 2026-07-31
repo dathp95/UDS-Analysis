@@ -2,11 +2,14 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QTabWidget,
 )
+from PySide6.QtGui import QKeySequence, QShortcut
 
 from gui.tabs.log_analyzer_tab import LogAnalyzerTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
 from gui.themes.styles.containers.window_style import fn_window_style
+from config.paths import SHORTCUTS_FILE
+from shortcuts.shortcut_manager import load_shortcuts
 
 
 class MainWindow(QMainWindow):
@@ -21,7 +24,31 @@ class MainWindow(QMainWindow):
         self.resize(1200, 800)
 
         self.setup_ui()
+        self._setup_shortcuts()
         self.fn_refresh_theme()
+
+    def _setup_shortcuts(self):
+        actions = {
+            "open_log": lambda: self.log_analyzer_tab.log_selector.browse_file(),
+            "export_report": lambda: self.log_analyzer_tab.fn_export_clicked(),
+            "search": lambda: self.log_analyzer_tab.filter_box.set_focus(),
+            "clear": lambda: self.log_analyzer_tab.fn_clear_clicked(),
+            "analyze": lambda: self.log_analyzer_tab.fn_run_clicked(),
+            "add_quick_access": lambda: self.log_analyzer_tab.left_panel.quick_access.fn_add_filter(),
+            "vehicle_selector": lambda: self.log_analyzer_tab.vehicle_selector.cmb_vehicle.setFocus(),
+            "toggle_theme": lambda: self.log_analyzer_tab.left_panel.theme_switch.switch_dark.click(),
+            "copy_asc": lambda: self.log_analyzer_tab.fn_copy_clicked(),
+            "clone_quick_access": lambda: self.log_analyzer_tab.left_panel.quick_access.fn_clone_selected(),
+        }
+        self._shortcuts = []
+        for item in load_shortcuts(SHORTCUTS_FILE):
+            sequence = item.get("key")
+            action = actions.get(item.get("action"))
+            if not sequence or action is None:
+                continue
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.activated.connect(action)
+            self._shortcuts.append(shortcut)
 
     def setup_ui(self):
         self.tabs = QTabWidget()

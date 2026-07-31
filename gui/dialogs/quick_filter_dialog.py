@@ -3,11 +3,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QFormLayout,
+    QMessageBox,
 )
+from PySide6.QtCore import QEvent, Qt
 
 from gui.widgets.controls.primary_button import (
     PrimaryButton
 )
+from gui.widgets.controls.cancel_button import CancelButton
 
 from gui.widgets.controls.primary_label import (
     PrimaryLabel
@@ -113,18 +116,18 @@ class QuickFilterDialog(QDialog):
             width=100
         )
 
-        self.btn_cancel = PrimaryButton(
+        self.btn_cancel = CancelButton(
             "Cancel",
             width=100
         )
         
 
         self.button_layout.addWidget(
-            self.btn_save
+            self.btn_cancel
         )
 
         self.button_layout.addWidget(
-            self.btn_cancel
+            self.btn_save
         )
 
         self.main_layout.addLayout(
@@ -142,6 +145,8 @@ class QuickFilterDialog(QDialog):
         self.fields["response"].textEdited.connect(
             self._format_response
         )
+        for field in self.fields.values():
+            field.installEventFilter(self)
 
         self.btn_save.clicked.connect(
 
@@ -154,6 +159,34 @@ class QuickFilterDialog(QDialog):
             self.reject
 
         )
+
+    def _on_enter_pressed(self):
+        has_data = any(
+            field.text().strip()
+            for field in self.fields.values()
+        )
+        if not has_data:
+            QMessageBox.warning(
+                self,
+                "Quick Filter",
+                "Please enter quick access data before saving.",
+            )
+            return
+        self.accept()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self._on_enter_pressed()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def eventFilter(self, watched, event):
+        if watched in self.fields.values() and event.type() == QEvent.KeyPress:
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                self._on_enter_pressed()
+                return True
+        return super().eventFilter(watched, event)
 
     def _format_request(self, value):
         self._format_payload_field("request", value)

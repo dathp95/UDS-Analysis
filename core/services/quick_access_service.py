@@ -83,6 +83,32 @@ class QuickAccessService:
         self.fn_save(
             filters
         )
+
+    def fn_add_many(self, quick_filters):
+        filters = self.fn_load()
+        for quick_filter in quick_filters:
+            filters.append({
+                "id": self._fn_next_id(filters),
+                "name": quick_filter["name"],
+                "enabled": True,
+                "filters": quick_filter["filters"],
+            })
+        self.fn_save(filters)
+
+    def fn_insert_after(self, source_id, quick_filter):
+        filters = self.fn_load()
+        new_filter = {
+            "id": self._fn_next_id(filters),
+            "name": quick_filter["name"],
+            "enabled": True,
+            "filters": quick_filter["filters"],
+        }
+        for index, item in enumerate(filters):
+            if item.get("id") == source_id:
+                filters.insert(index + 1, new_filter)
+                self.fn_save(filters)
+                return new_filter
+        raise ValueError(f"Quick filter ID {source_id} not found.")
         
 
    
