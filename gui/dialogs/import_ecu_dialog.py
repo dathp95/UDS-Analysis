@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 )
 
 from gui.themes.theme_manager import ThemeManager
+from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 from models.ecu import ECU
@@ -79,7 +80,7 @@ class ImportECUDialog(QDialog):
 
         button_layout.addStretch()
 
-        self.btn_cancel = PrimaryButton(
+        self.btn_cancel = CancelButton(
             "Cancel",
             width=100,
         )

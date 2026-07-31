@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.utils.payload_format import format_payload_input
 
 
 
@@ -47,9 +48,17 @@ class FilterBox(QWidget):
         main_layout.addLayout(filter_box_layout)
 
     def _connect_signals(self):
-        self.edit_filter.textChanged.connect(
-            self.filter_changed.emit
-        )
+        self.edit_filter.textEdited.connect(self._format_payload)
+        self.edit_filter.textChanged.connect(self.filter_changed.emit)
+
+    def _format_payload(self, value):
+        formatted = format_payload_input(value)
+        if formatted != value:
+            cursor = self.edit_filter.cursorPosition()
+            self.edit_filter.blockSignals(True)
+            self.edit_filter.setText(formatted)
+            self.edit_filter.setCursorPosition(min(len(formatted), cursor + 1))
+            self.edit_filter.blockSignals(False)
         
 
     # ==========================

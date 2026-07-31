@@ -6,7 +6,7 @@ from core.uds_lookup import (
     MATCH_DID, 
     MATCH_SUB,
     MATCH_ROUTINE,
-    POSITIVE_RESPONSE_TIMEOUT,
+    get_positive_response_timeout,
     SERVICE_NAME_MAP,
     NRC_TABLE,
     get_match_rule,
@@ -137,8 +137,11 @@ def find_matching_positive_response(
     request,
     positive_responses,
     response_can_id,
-    timeout=POSITIVE_RESPONSE_TIMEOUT
+    timeout=None
 ):
+
+    if timeout is None:
+        timeout = get_positive_response_timeout()
 
     request_time = request["timestamp"]
 

@@ -1,0 +1,18 @@
+{
+    "schema_version": 2,
+    "nrc": {
+        "10": "General Reject",
+        "11": "Service Not Supported",
+        "12": "SubFunction Not Supported",
+        "13": "Incorrect Message Length",
+        "22": "Conditions Not Correct",
+        "31": "Request Out Of Range",
+        "33": "Security Access Denied",
+        "35": "Invalid Key",
+        "36": "Exceeded Number Of Attempts",
+        "37": "Required Time Delay Not Expired",
+        "72": "General Programming Failure",
+        "78": "Response Pending",
+        "7F": "Service Not Supported In Active Session"
+    }
+}

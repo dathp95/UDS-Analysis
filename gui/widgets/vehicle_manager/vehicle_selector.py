@@ -70,6 +70,7 @@ class VehicleSelectorWidget(QWidget):
         self,
         vehicles: list[str],
         selected_vehicle: str = "",
+        allow_empty_selection: bool = False,
     ):
 
         self.cmb_vehicle.blockSignals(True)
@@ -91,6 +92,10 @@ class VehicleSelectorWidget(QWidget):
                 self.cmb_vehicle.setCurrentIndex(
                     index
                 )
+
+        elif allow_empty_selection:
+
+            self.cmb_vehicle.setCurrentIndex(-1)
 
         self.cmb_vehicle.blockSignals(False)
 

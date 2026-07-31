@@ -19,7 +19,7 @@ from core.ecu_mapping import (
 )
 
 from core.uds_lookup import (
-    POSITIVE_RESPONSE_TIMEOUT
+    get_positive_response_timeout,
 )
 
 from core.report_engine import (
@@ -95,7 +95,7 @@ def run_pipeline(
 
         ecu_info,
 
-        timeout=POSITIVE_RESPONSE_TIMEOUT
+        timeout=get_positive_response_timeout()
 
     )
 

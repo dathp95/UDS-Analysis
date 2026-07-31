@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QDialog,
     QInputDialog,
+    QFileDialog,
     QMessageBox,
     QScrollArea,
     QWidget,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
 from copy import deepcopy
 
 from gui.dialogs.import_ecu_dialog import ImportECUDialog
+from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.controllers.vehicle_controller import VehicleController
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import (
@@ -23,6 +25,11 @@ from models.ecu import ECU
 from models.vehicle import Vehicle
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.secondary_button import SecondaryButton
+from core.config_loader import (
+    import_display_names,
+    import_display_name_rules,
+)
+from core.uds_lookup import reload_display_names
 
 from gui.widgets.vehicle_manager.vehicle_selector import (
     VehicleSelectorWidget,
@@ -199,6 +206,16 @@ class VehicleManagerTab(QWidget):
 
         self.btn_import_ecus.setEnabled(False)
 
+        self.btn_import_display_names = SecondaryButton(
+            "Import Display Names",
+            width=160,
+        )
+
+        self.btn_import_display_rules = SecondaryButton(
+            "Import Display Rules",
+            width=150,
+        )
+
         ecu_list_widget = QWidget()
 
         ecu_list_layout = QVBoxLayout(ecu_list_widget)
@@ -278,6 +295,14 @@ class VehicleManagerTab(QWidget):
 
         action_layout.addWidget(
             self.btn_import_ecus
+        )
+
+        action_layout.addWidget(
+            self.btn_import_display_rules
+        )
+
+        action_layout.addWidget(
+            self.btn_import_display_names
         )
 
         action_layout.addStretch()
@@ -389,6 +414,18 @@ class VehicleManagerTab(QWidget):
 
         )
 
+        self.btn_import_display_names.clicked.connect(
+
+            self._on_import_display_names_clicked
+
+        )
+
+        self.btn_import_display_rules.clicked.connect(
+
+            self._on_import_display_rules_clicked
+
+        )
+
         self.btn_save.clicked.connect(
 
             self._on_save_clicked
@@ -400,21 +437,11 @@ class VehicleManagerTab(QWidget):
         vehicles = self._controller.list_vehicles()
 
         self.vehicle_selector.fn_set_vehicles(
-            vehicles
+            vehicles,
+            allow_empty_selection=True,
         )
 
-        self.btn_delete_vehicle.setEnabled(
-            bool(vehicles)
-        )
-
-        if vehicles:
-
-            self._on_vehicle_changed(
-                vehicles[0]
-            )
-        else:
-
-            self._clear_vehicle_state()
+        self._clear_vehicle_state()
 
     def _on_vehicle_changed(
             self,
@@ -797,6 +824,67 @@ class VehicleManagerTab(QWidget):
 
         self._notify_vehicle_data_changed()
 
+    def _on_import_display_names_clicked(self):
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Display Names",
+            "",
+            "JSON Files (*.json)",
+        )
+
+        if not file_path:
+
+            return
+
+        try:
+
+            import_display_names(file_path)
+            reload_display_names()
+
+        except (FileNotFoundError, ValueError, OSError) as error:
+
+            QMessageBox.warning(
+                self,
+                "Import Display Names",
+                str(error),
+            )
+
+            return
+
+        self._show_auto_close_info(
+            "Import Display Names",
+            "Display names imported successfully.",
+        )
+
+    def _on_import_display_rules_clicked(self):
+
+        dialog = ImportDisplayNamesDialog(self)
+
+        if dialog.exec() != QDialog.Accepted:
+
+            return
+
+        try:
+
+            import_display_name_rules(dialog.fn_rules())
+            reload_display_names()
+
+        except (ValueError, OSError) as error:
+
+            QMessageBox.warning(
+                self,
+                "Import Display Name Rules",
+                str(error),
+            )
+
+            return
+
+        self._show_auto_close_info(
+            "Import Display Name Rules",
+            "Display-name rules imported successfully.",
+        )
+
     def _validate_import_ecus(
         self,
         ecus: list[ECU],
@@ -1075,3 +1163,7 @@ class VehicleManagerTab(QWidget):
         self.btn_delete_ecu.fn_refresh_theme()
 
         self.btn_import_ecus.fn_refresh_theme()
+
+        self.btn_import_display_names.fn_refresh_theme()
+
+        self.btn_import_display_rules.fn_refresh_theme()

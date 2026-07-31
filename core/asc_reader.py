@@ -204,8 +204,6 @@ def reassemble_isotp(messages):
 # TODO: Find Frame REQUEST to seperate:  03 22 F1 90 - 02 27 03 -02 10 03...
 # TODO: Loại bỏ TESTER PRESENT: 3E 80 - Check Service ID, KEEP 7F XX XX
 def extract_single_frame_requests(messages):
-    request_services = [0x10,0x11,0x14,0x19,0x22,0x27,0x28,0x2E,0x31,0x85]
-
     requests = []
 
     for msg in messages:
@@ -247,7 +245,7 @@ def extract_single_frame_requests(messages):
         if service_id == 0x3E:
             continue
 
-        if service_id not in request_services:
+        if not is_request_service(service_id):
             continue
 
         # ==================================

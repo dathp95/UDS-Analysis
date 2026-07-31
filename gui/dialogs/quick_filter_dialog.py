@@ -16,6 +16,7 @@ from gui.widgets.controls.primary_label import (
 from gui.widgets.controls.primary_lineedit import (
     PrimaryLineEdit
 )
+from gui.utils.payload_format import format_payload_input
 
 class QuickFilterDialog(QDialog):
 
@@ -90,8 +91,6 @@ class QuickFilterDialog(QDialog):
 
         )
 
-        
-
         # --------------------------------------
         # Buttons
         # --------------------------------------
@@ -128,6 +127,10 @@ class QuickFilterDialog(QDialog):
     
     def _connect_signals(self):
 
+        self.fields["request"].textEdited.connect(
+            self._format_request
+        )
+
         self.btn_save.clicked.connect(
 
             self.accept
@@ -139,6 +142,15 @@ class QuickFilterDialog(QDialog):
             self.reject
 
         )
+
+    def _format_request(self, value):
+        formatted = format_payload_input(value)
+        if formatted != value:
+            cursor = self.fields["request"].cursorPosition()
+            self.fields["request"].blockSignals(True)
+            self.fields["request"].setText(formatted)
+            self.fields["request"].setCursorPosition(min(len(formatted), cursor + 1))
+            self.fields["request"].blockSignals(False)
     
     
     def fn_get_data(self) -> dict:
@@ -151,7 +163,9 @@ class QuickFilterDialog(QDialog):
 
                 "ecu": self.fields["ecu"].text().strip().upper(),
 
-                "request": self.fields["request"].text().strip().upper()
+                "request": format_payload_input(
+                    self.fields["request"].text().strip()
+                )
 
             }
 
@@ -187,7 +201,9 @@ class QuickFilterDialog(QDialog):
 
         self.fields["request"].setText(
 
-            quick_filter["filters"]["request"]
+            format_payload_input(
+                quick_filter["filters"]["request"]
+            )
 
         )
 

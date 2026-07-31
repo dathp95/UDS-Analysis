@@ -1,4 +1,4 @@
-EEIV Diagnostic V1.0.0
+EEIV Diagnostic V1.0.2
 
 Requirements
 ------------

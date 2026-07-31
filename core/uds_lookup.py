@@ -1,78 +1,103 @@
+from config.paths import UDS_SERVICES_FILE, UDS_USER_FILE
 from core.config_loader import *
 
 
-UDS_CONFIG = load_uds_config()
-UDS_DISPLAY_NAMES = load_display_names()
+UDS_CONFIG = {}
+UDS_DISPLAY_NAMES = {}
 
-POSITIVE_RESPONSE_TIMEOUT = float(
+POSITIVE_RESPONSE_TIMEOUT = 10.0
+REQUEST_SERVICE_LIST = set()
+SERVICE_NAME_MAP = {}
+POSITIVE_SID_MAP = {}
+DID_NAME_MAP = {}
+NRC_NAME_MAP = {}
+ROUTINE_NAME_MAP = {}
+MATCH_RULE_MAP = {}
+DISPLAY_NAME_MAP = {}
 
-    UDS_CONFIG["timeout"]["positive_response"]
+POSITIVE_SERVICE_LIST = set()
+NRC_TABLE = {}
 
-)
 
-REQUEST_SERVICE_LIST = {
+def reload_uds_config(
+    services_path=None,
+    user_path=None,
+):
+    """Reload schema-v2 UDS services and user overrides in place."""
 
-    int(service, 16)
+    global UDS_CONFIG, POSITIVE_RESPONSE_TIMEOUT
 
-    for service in UDS_CONFIG["services"]
+    config = load_uds_config(
+        services_path=services_path or UDS_SERVICES_FILE,
+        user_path=user_path or UDS_USER_FILE,
+    )
+    UDS_CONFIG = config
+    POSITIVE_RESPONSE_TIMEOUT = float(
+        config["timeout"]["positive_response"]
+    )
 
-}
+    SERVICE_NAME_MAP.clear()
+    SERVICE_NAME_MAP.update(config["services"])
 
-SERVICE_NAME_MAP = UDS_CONFIG["services"]
-POSITIVE_SID_MAP = UDS_CONFIG["positive_sid"]
-DID_NAME_MAP = UDS_CONFIG["dids"]
-NRC_NAME_MAP = UDS_CONFIG["nrc"]
-ROUTINE_NAME_MAP = UDS_CONFIG.get("routine_ids",{})
-MATCH_RULE_MAP = UDS_CONFIG["match_rule"]
-DISPLAY_NAME_MAP = {
+    POSITIVE_SID_MAP.clear()
+    POSITIVE_SID_MAP.update(config["positive_sid"])
+
+    DID_NAME_MAP.clear()
+    DID_NAME_MAP.update(config.get("dids", {}))
+
+    NRC_NAME_MAP.clear()
+    NRC_NAME_MAP.update(config.get("nrc", {}))
+
+    ROUTINE_NAME_MAP.clear()
+    ROUTINE_NAME_MAP.update(config.get("routine_ids", {}))
+
+    MATCH_RULE_MAP.clear()
+    MATCH_RULE_MAP.update(config["match_rule"])
+
+    REQUEST_SERVICE_LIST.clear()
+    REQUEST_SERVICE_LIST.update(
+        int(service, 16)
+        for service in SERVICE_NAME_MAP
+    )
+
+    POSITIVE_SERVICE_LIST.clear()
+    POSITIVE_SERVICE_LIST.update(
+        int(sid, 16)
+        for sid in POSITIVE_SID_MAP.values()
+    )
+
+    NRC_TABLE.clear()
+    NRC_TABLE.update(
+        {int(code, 16): name for code, name in NRC_NAME_MAP.items()}
+    )
+
+
+reload_uds_config()
+
+
+def get_positive_response_timeout():
+    return POSITIVE_RESPONSE_TIMEOUT
+
+
+def reload_display_names():
+    """Reload display-name mappings after the configuration is imported."""
+
+    global UDS_DISPLAY_NAMES, DISPLAY_NAME_MAP
+
+    UDS_DISPLAY_NAMES = load_display_names()
+    DISPLAY_NAME_MAP = {
         key: value.get("display_name", key)
         for key, value in UDS_DISPLAY_NAMES.items()
     }
+
+
+reload_display_names()
 
 MATCH_DID = "did"
 MATCH_SUB = "sub"
 MATCH_ROUTINE = "routine"
 MATCH_NONE = "none"
 
-POSITIVE_SERVICE_LIST = {
-
-    0x50,
-    0x51,
-    0x54,
-    0x59,
-    0x62,
-    0x67,
-    0x68,
-    0x6E,
-    0x71,
-    0xC5
-
-}
-
-NRC_TABLE = {
-
-    0x10: "General Reject",
-
-    0x11: "Service Not Supported",
-
-    0x12: "SubFunction Not Supported",
-
-    0x13: "Incorrect Message Length",
-
-    0x22: "Conditions Not Correct",
-
-    0x31: "Request Out Of Range",
-
-    0x33: "Security Access Denied",
-
-    0x35: "Invalid Key",
-
-    0x36: "Exceeded Number Of Attempts",
-
-    0x37: "Required Time Delay Not Expired",
-
-    0x78: "Response Pending"
-    }
 # ==========================================
 # Service
 # ==========================================
@@ -364,7 +389,7 @@ def get_display_name(payload):
     bytes_list = payload.split()
 
     # Thử match từ dài đến ngắn
-    for length in (4, 3, 2, 1):
+    for length in range(min(len(bytes_list), 8), 0, -1):
 
         if len(bytes_list) >= length:
 

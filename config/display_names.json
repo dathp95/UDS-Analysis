@@ -37,7 +37,7 @@
     },
     "10 41": {
         "display_name": "Coding Diagnostic Session"
-    },    
+    },
     "11 01": {
         "display_name": "Hard Reset"
     },
@@ -55,12 +55,6 @@
     },
     "19 02 0B": {
         "display_name": "Read DTC Information - Report DTC Extended"
-    },
-
-
-    
-    "22 F1 90": {
-        "display_name": "Read VIN"
     },
     "2E F1 90": {
         "display_name": "WRITE VIN"
@@ -104,7 +98,7 @@
     "22 FA 1B": {
         "display_name": " Read ACM PyroFuse | Pyro fuse: 01 | No Prypro Fuse:00"
     },
-    "2E FA 1B ": {
+    "2E FA 1B": {
         "display_name": " Write ACM PyroFuse | Pyro fuse: 01 | No Prypro Fuse:00"
     },
     "22 FF 01": {
@@ -119,9 +113,7 @@
     "31 03 F1 15": {
         "display_name": "ABS-Slope calibration-Result of Slope calibration|01:finished|02:still running|03:stopped OR not start|04:routine stopped abnormal"
     },
-
-
-     "22 C0 00": {
+    "22 C0 00": {
         "display_name": "VCU-Immo Key-Check Lock in VCU|40: Locked |00: abort process"
     },
     "2E C0 01 03": {
@@ -136,11 +128,6 @@
     "2E C0 05 03": {
         "display_name": "VCU-Immo Key-Rewrite Secret Key (ISK) in VCU"
     },
-
-
-
-
-
     "22 FD 02": {
         "display_name": "BCM-KEYFOB-Check Key Fob Learning Status"
     },
@@ -183,100 +170,261 @@
     "31 03 02 07": {
         "display_name": "BCM-KeyFOB learn-Confirm the result of erasing Previous Key Fobs | 01:OK | 00:NOK"
     },
-
-
     "22 F1 02": {
-    "display_name": "ECU Calibration SW Part Number"
+        "display_name": "ECU Calibration SW Part Number"
     },
     "22 F1 03": {
         "display_name": "ECU Purchase Part Number"
     },
-       "22 F1 04": { "display_name": "ECU Application SW Part Number" },
-    "22 F1 05": { "display_name": "ECU Basic SW Part Number" },
-    "22 F1 06": { "display_name": "ECU HMI SW Data Part Number" },
-    "22 F1 41": { "display_name": "VEH MF ECU HW Part Number rev Level" },
-    "22 F1 42": { "display_name": "VEH MF ECU Calibration Part Number rev Level" },
-    "22 F1 43": { "display_name": "VEH MF ECU Purchase Part Number rev Level" },
-    "22 F1 44": { "display_name": "VEH MF ECU Application SW Part Number rev Level" },
-    "22 F1 45": { "display_name": "VEH MF ECU Basic SW Part Number rev Level" },
-    "22 F1 46": { "display_name": "VEH MF ECU HMI SW Part Number rev Level" },
-    "22 F1 48": { "display_name": "VEH MF ECU SW Part Number rev Level" },
-    "22 F1 91": { "display_name": "VEH MF ECU HW Number Data Identifier" },
-    "22 F1 88": { "display_name": "VEH MF ECU SW Number Data Identifier" },
-    "22 F1 86": { "display_name": "Active Diagnostic Session Data Identifier" },
-    "22 F1 8B": { "display_name": "ECU Manufacturing Date" },
-    "22 F1 07": { "display_name": "Programming Fingerprint" },
-    "22 F1 31": { "display_name": "Read Programming Fingerprint1" },
-    "22 F1 32": { "display_name": "Read Programming Fingerprint2" },
-    "22 F1 33": { "display_name": "Read Programming Fingerprint3" },
-    "22 F1 34": { "display_name": "Read Programming Fingerprint4" },
-    "22 F1 35": { "display_name": "Read Programming Fingerprint5" },
-    "22 F1 1A": { "display_name": "ECU PT CAN DBC File Version" },
-    "22 F1 1B": { "display_name": "ECU TC CAN DBC File Version" },
-    "22 F1 0F": { "display_name": "Service Date" },
-    "22 FD 01": { "display_name": "Supplier Specific Part Number Data Identifier" },
-    "22 F1 92": { "display_name": "System Supplier ECU Hardware Number" },
-    "22 F1 95": { "display_name": "System Supplier ECU SW Number" },
-    "22 F1 10": { "display_name": "ECU Name Data Identifier" },
-    "22 F1 8C": { "display_name": "ECU Serial Number" },
-    "22 F1 0C": { "display_name": "ECU Body CAN DBC File Version" },
-    "22 F1 0E": { "display_name": "INFOT CAN DBC File Version" },
-    "22 F1 25": { "display_name": "ADAS CAN ECU DBC File" },
-    "22 F1 8F": { "display_name": "Regulation SW ID Number" },
-    "22 F1 26": { "display_name": "Diagnostic CAN DBC File" },
-    "22 F1 27": { "display_name": "FA CAN DBC File" },
-    "22 F8 00": { "display_name": "Vehicle Iden num #2" },
-    "22 F8 01": { "display_name": "Vehicle Iden num #" },
-    "22 F8 02": { "display_name": "Vehicle Iden num #1" },
-    "22 F1 28": { "display_name": "ECU FLEXRAY FIBEX File Version" },
-    "22 F1 0D": { "display_name": "ECU LIN1 LDF File" },
-    "22 F1 1C": { "display_name": "ECU LIN2 LDF File Version" },
-    "22 F1 29": { "display_name": "ECU LIN3 LDF File Version" },
-    "22 F1 01": { "display_name": "Boot Loader Version Number" },
-    "22 01 6C": { "display_name": "HV Status and Charging Status" },
-    "22 D0 5B": { "display_name": "SW Status Check" },
-    "22 D0 6B": { "display_name": "Signed SW Consistency Check" },
-    "22 01 79": { "display_name": "Check ECU Control of HV" },
-    "22 02 22": { "display_name": "Valid Application" },
-    "22 08 03": { "display_name": "Vehicle Iden num 5 (VIN5)" },
-    "22 08 04": { "display_name": "Diagnostic Specification Number Applied" },
-    "22 08 05": { "display_name": "Flash Specification Number Applied" },
-    "22 08 06": { "display_name": "AUTOSAR Version Number Applied" },
-    "22 08 07": { "display_name": "ODX Template Version Applied" },
-    "22 08 08": { "display_name": "EOL Template Version Applied" },
-    "22 08 09": { "display_name": "AS Template Version Applied" },
-    "22 20 70": { "display_name": "Transport Mode" },
-    "22 48 84": { "display_name": "Internal Fault Data" },
-    "22 D0 20": { "display_name": "Internal Fail Code" },
-    "22 DD 01": { "display_name": "Cabin Temperature" },
-    "22 DD 02": { "display_name": "Outside Temperature" },
-    "22 DD 03": { "display_name": "ECU Temperature" },
-    "22 DD 04": { "display_name": "ECU Voltage" },
-    "22 DD 05": { "display_name": "Motor RPM" },
-    "22 DD 07": { "display_name": "GPS Time" },
-    "22 DD 09": { "display_name": "Vehicle Speed" },
-    "22 EF 00": { "display_name": "VOD Validation States for a Category 2 ECU" },
-    "22 EF 02": { "display_name": "Last Stored VOD Category 2 ECU" },
-    "22 EF 03": { "display_name": "Last Stored VOD Category 2 ECU Backup" },
-    "22 EF 04": { "display_name": "ECU Validation States for a Category 1 ECU" },
-    "22 EF 05": { "display_name": "Compare Category 2 Master and Backup ECU Checksum" },
-    "22 F1 09": { "display_name": "HUD FONT Data Block Part Number" },
-    "22 F1 20": { "display_name": "Global Time" },
-    "22 F1 21": { "display_name": "Odometer" },
-    "22 F1 22": { "display_name": "Vehicle Supply Voltage" },
-    "22 F1 23": { "display_name": "Ignition Status" },
-    "22 F1 3A": { "display_name": "ECU LIN4 LDF File Version" },
-    "22 F1 3B": { "display_name": "ECU LIN5 LDF File Version" },
-    "22 F1 49": { "display_name": "HUD FONT Data Block Part Number rev Level" },
-    "22 01 6D": { "display_name": "VOD Validation Flag for Category 1 and 2 ECUs" },
-    "22 D1 00": { "display_name": "KEY SW Number" },
-    "22 5C 00": { "display_name": "IMMO_SK_BCM" },
-    "22 D1 02": { "display_name": "Read Switch Input of BCM" },
-    "22 D1 03": { "display_name": "Read Output State of BCM" },
-    "22 D1 04": { "display_name": "Door Lock Type" },
-
-
-
+    "22 F1 04": {
+        "display_name": "ECU Application SW Part Number"
+    },
+    "22 F1 05": {
+        "display_name": "ECU Basic SW Part Number"
+    },
+    "22 F1 06": {
+        "display_name": "ECU HMI SW Data Part Number"
+    },
+    "22 F1 41": {
+        "display_name": "VEH MF ECU HW Part Number rev Level"
+    },
+    "22 F1 42": {
+        "display_name": "VEH MF ECU Calibration Part Number rev Level"
+    },
+    "22 F1 43": {
+        "display_name": "VEH MF ECU Purchase Part Number rev Level"
+    },
+    "22 F1 44": {
+        "display_name": "VEH MF ECU Application SW Part Number rev Level"
+    },
+    "22 F1 45": {
+        "display_name": "VEH MF ECU Basic SW Part Number rev Level"
+    },
+    "22 F1 46": {
+        "display_name": "VEH MF ECU HMI SW Part Number rev Level"
+    },
+    "22 F1 48": {
+        "display_name": "VEH MF ECU SW Part Number rev Level"
+    },
+    "22 F1 91": {
+        "display_name": "VEH MF ECU HW Number Data Identifier"
+    },
+    "22 F1 88": {
+        "display_name": "VEH MF ECU SW Number Data Identifier"
+    },
+    "22 F1 86": {
+        "display_name": "Active Diagnostic Session Data Identifier"
+    },
+    "22 F1 8B": {
+        "display_name": "ECU Manufacturing Date"
+    },
+    "22 F1 07": {
+        "display_name": "Programming Fingerprint"
+    },
+    "22 F1 31": {
+        "display_name": "Read Programming Fingerprint1"
+    },
+    "22 F1 32": {
+        "display_name": "Read Programming Fingerprint2"
+    },
+    "22 F1 33": {
+        "display_name": "Read Programming Fingerprint3"
+    },
+    "22 F1 34": {
+        "display_name": "Read Programming Fingerprint4"
+    },
+    "22 F1 35": {
+        "display_name": "Read Programming Fingerprint5"
+    },
+    "22 F1 1A": {
+        "display_name": "ECU PT CAN DBC File Version"
+    },
+    "22 F1 1B": {
+        "display_name": "ECU TC CAN DBC File Version"
+    },
+    "22 F1 0F": {
+        "display_name": "Service Date"
+    },
+    "22 FD 01": {
+        "display_name": "Supplier Specific Part Number Data Identifier"
+    },
+    "22 F1 92": {
+        "display_name": "System Supplier ECU Hardware Number"
+    },
+    "22 F1 95": {
+        "display_name": "System Supplier ECU SW Number"
+    },
+    "22 F1 10": {
+        "display_name": "ECU Name Data Identifier"
+    },
+    "22 F1 8C": {
+        "display_name": "ECU Serial Number"
+    },
+    "22 F1 0C": {
+        "display_name": "ECU Body CAN DBC File Version"
+    },
+    "22 F1 0E": {
+        "display_name": "INFOT CAN DBC File Version"
+    },
+    "22 F1 25": {
+        "display_name": "ADAS CAN ECU DBC File"
+    },
+    "22 F1 8F": {
+        "display_name": "Regulation SW ID Number"
+    },
+    "22 F1 26": {
+        "display_name": "Diagnostic CAN DBC File"
+    },
+    "22 F1 27": {
+        "display_name": "FA CAN DBC File"
+    },
+    "22 F8 00": {
+        "display_name": "Vehicle Iden num #2"
+    },
+    "22 F8 01": {
+        "display_name": "Vehicle Iden num #"
+    },
+    "22 F8 02": {
+        "display_name": "Vehicle Iden num #1"
+    },
+    "22 F1 28": {
+        "display_name": "ECU FLEXRAY FIBEX File Version"
+    },
+    "22 F1 0D": {
+        "display_name": "ECU LIN1 LDF File"
+    },
+    "22 F1 1C": {
+        "display_name": "ECU LIN2 LDF File Version"
+    },
+    "22 F1 29": {
+        "display_name": "ECU LIN3 LDF File Version"
+    },
+    "22 F1 01": {
+        "display_name": "Boot Loader Version Number"
+    },
+    "22 01 6C": {
+        "display_name": "HV Status and Charging Status"
+    },
+    "22 D0 5B": {
+        "display_name": "SW Status Check"
+    },
+    "22 D0 6B": {
+        "display_name": "Signed SW Consistency Check"
+    },
+    "22 01 79": {
+        "display_name": "Check ECU Control of HV"
+    },
+    "22 02 22": {
+        "display_name": "Valid Application"
+    },
+    "22 08 03": {
+        "display_name": "Vehicle Iden num 5 (VIN5)"
+    },
+    "22 08 04": {
+        "display_name": "Diagnostic Specification Number Applied"
+    },
+    "22 08 05": {
+        "display_name": "Flash Specification Number Applied"
+    },
+    "22 08 06": {
+        "display_name": "AUTOSAR Version Number Applied"
+    },
+    "22 08 07": {
+        "display_name": "ODX Template Version Applied"
+    },
+    "22 08 08": {
+        "display_name": "EOL Template Version Applied"
+    },
+    "22 08 09": {
+        "display_name": "AS Template Version Applied"
+    },
+    "22 20 70": {
+        "display_name": "Transport Mode"
+    },
+    "22 48 84": {
+        "display_name": "Internal Fault Data"
+    },
+    "22 D0 20": {
+        "display_name": "Internal Fail Code"
+    },
+    "22 DD 01": {
+        "display_name": "Cabin Temperature"
+    },
+    "22 DD 02": {
+        "display_name": "Outside Temperature"
+    },
+    "22 DD 03": {
+        "display_name": "ECU Temperature"
+    },
+    "22 DD 04": {
+        "display_name": "ECU Voltage"
+    },
+    "22 DD 05": {
+        "display_name": "Motor RPM"
+    },
+    "22 DD 07": {
+        "display_name": "GPS Time"
+    },
+    "22 DD 09": {
+        "display_name": "Vehicle Speed"
+    },
+    "22 EF 00": {
+        "display_name": "VOD Validation States for a Category 2 ECU"
+    },
+    "22 EF 02": {
+        "display_name": "Last Stored VOD Category 2 ECU"
+    },
+    "22 EF 03": {
+        "display_name": "Last Stored VOD Category 2 ECU Backup"
+    },
+    "22 EF 04": {
+        "display_name": "ECU Validation States for a Category 1 ECU"
+    },
+    "22 EF 05": {
+        "display_name": "Compare Category 2 Master and Backup ECU Checksum"
+    },
+    "22 F1 09": {
+        "display_name": "HUD FONT Data Block Part Number"
+    },
+    "22 F1 20": {
+        "display_name": "Global Time"
+    },
+    "22 F1 21": {
+        "display_name": "Odometer"
+    },
+    "22 F1 22": {
+        "display_name": "Vehicle Supply Voltage"
+    },
+    "22 F1 23": {
+        "display_name": "Ignition Status"
+    },
+    "22 F1 3A": {
+        "display_name": "ECU LIN4 LDF File Version"
+    },
+    "22 F1 3B": {
+        "display_name": "ECU LIN5 LDF File Version"
+    },
+    "22 F1 49": {
+        "display_name": "HUD FONT Data Block Part Number rev Level"
+    },
+    "22 01 6D": {
+        "display_name": "VOD Validation Flag for Category 1 and 2 ECUs"
+    },
+    "22 D1 00": {
+        "display_name": "KEY SW Number"
+    },
+    "22 5C 00": {
+        "display_name": "IMMO_SK_BCM"
+    },
+    "22 D1 02": {
+        "display_name": "Read Switch Input of BCM"
+    },
+    "22 D1 03": {
+        "display_name": "Read Output State of BCM"
+    },
+    "22 D1 04": {
+        "display_name": "Door Lock Type"
+    },
     "22 F1 70": {
         "display_name": "Telematics provisioning fingerfprint"
     },
@@ -388,16 +536,16 @@
     "22 F1 6D": {
         "display_name": "LTE Firmware Info"
     },
-   "22 F1 51": {
+    "22 F1 51": {
         "display_name": "TBOX SIM type"
-    }, 
+    },
     "31 01 02 13 00": {
         "display_name": "MHU-Handshake-Start Key-learning with supported clients"
     },
     "31 03 02 13": {
         "display_name": "MHU-Handshake-Get result of Key-learning with supported client"
     },
-    "31 01 02 19 ": {
+    "31 01 02 19": {
         "display_name": "MHU-Activation-HereMap-Start activation HERE MAP"
     },
     "31 03 02 19": {
@@ -460,8 +608,8 @@
     "31 01 02 08": {
         "display_name": "Generate device connected identity | 8 bytes random vector"
     },
-    "31 01 02 00 ": {
-        "display_name": "Check CDS Coding State- 00: Coding Valid  "
+    "31 01 02 00": {
+        "display_name": "Check CDS Coding State- 00: Coding Valid"
     },
     "31 01 02 01": {
         "display_name": " Check VOD Coding State |01: VOD valid "
@@ -469,8 +617,8 @@
     "31 01 02 0C": {
         "display_name": " Check Ecall Mic | VF3-No| 00: OK, 01:NOK "
     },
-    "31 01 02 0E ": {
-        "display_name": "Verify connectivity - 00=to internet only|01=to vinfast cloud|02=provision finalized  "
+    "31 01 02 0E": {
+        "display_name": "Verify connectivity - 00=to internet only|01=to vinfast cloud|02=provision finalized"
     },
     "31 01 02 12 00": {
         "display_name": " Clear provision data standard "
@@ -484,7 +632,6 @@
     "31 01 02 16": {
         "display_name": " Clear TBOX provision data advance | 00=to internet only|01=to vinfast cloud|02=provision finalized "
     },
-    
     "31 01 02 03": {
         "display_name": "Check Programming Preconditions  | Driver Presence: 0=OK, 1=Not Ready | Vehicle Speed: 0=OK, 2=Moving | Programming Voltage: 0=OK, 4=Out of Range"
     },
@@ -572,23 +719,14 @@
     "31 01 03 1E": {
         "display_name": "Get Last Connection Status"
     },
-   
-    "31 01 02 0E": {
-        "display_name": "Verify connectivity - 00=to internet only|01=to vinfast cloud|02=provision finalized"
-    },
-   
     "31 01 02 09": {
         "display_name": "Verify Vehicle Information"
     },
     "31 01 02 0B": {
         "display_name": "Realize Public Data"
     },
-    
     "31 01 02 0D": {
         "display_name": "Check eCall Led"
-    },
-    "31 01 02 00": {
-        "display_name": "Check CDS Coding State- 00: Coding Valid"
     },
     "31 02 02 0A": {
         "display_name": "Stop Auto Calibration Function"
@@ -670,6 +808,8 @@
     },
     "31 01 03 0F": {
         "display_name": "Reset Odo"
+    },
+    "22 F1 90": {
+        "display_name": "Write VIN"
     }
 }
-    

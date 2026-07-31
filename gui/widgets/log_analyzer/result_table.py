@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_table import PrimaryTable
+from gui.utils.payload_format import format_payload_input
 
 class ResultTable(PrimaryTable):
     def __init__(self):
@@ -123,9 +124,8 @@ class ResultTable(PrimaryTable):
         # Normalize user input
         # ------------------------------------------
 
-        keyword = " ".join(
-            keyword.strip().split()
-        ).lower()
+        keyword = format_payload_input(keyword.strip())
+        keyword = " ".join(keyword.split()).lower()
 
         # Empty keyword -> show all rows
         if not keyword:
@@ -218,7 +218,9 @@ class ResultTable(PrimaryTable):
 
         ecu = filters.get("ecu", "").strip().upper()
 
-        request = filters.get("request","").strip().upper()
+        request = format_payload_input(
+            filters.get("request", "").strip()
+        )
 
         ecu_col = self._fn_column_index("ECU")
 

@@ -1,0 +1,83 @@
+{
+    "schema_version": 2,
+    "timeout": {
+        "positive_response": 10.0
+    },
+    "services": {
+        "10": {
+            "name": "DIAG Session",
+            "positive_sid": "50",
+            "match": "sub"
+        },
+        "11": {
+            "name": "ECUReset",
+            "positive_sid": "51",
+            "match": "none"
+        },
+        "14": {
+            "name": "CLEAR DIAG",
+            "positive_sid": "54",
+            "match": "none"
+        },
+        "19": {
+            "name": "READ DTC",
+            "positive_sid": "59",
+            "match": "sub"
+        },
+        "22": {
+            "name": "READ ECU",
+            "positive_sid": "62",
+            "match": "did"
+        },
+        "27": {
+            "name": "Security",
+            "positive_sid": "67",
+            "match": "sub"
+        },
+        "28": {
+            "name": "CommunicationControl",
+            "positive_sid": "68",
+            "match": "sub"
+        },
+        "2E": {
+            "name": "WRITE ECU",
+            "positive_sid": "6E",
+            "match": "did"
+        },
+        "2F": {
+            "name": "IOControl",
+            "positive_sid": "6F",
+            "match": "sub"
+        },
+        "31": {
+            "name": "Routine",
+            "positive_sid": "71",
+            "match": "routine"
+        },
+        "34": {
+            "name": "Request Download",
+            "positive_sid": "74",
+            "match": "none"
+        },
+        "36": {
+            "name": "Transfer Data",
+            "positive_sid": "76",
+            "match": "none"
+        },
+        "37": {
+            "name": "Request Transfer Exit",
+            "positive_sid": "77",
+            "match": "none"
+        },
+        "3E": {
+            "name": "Tester Present",
+            "positive_sid": "7E",
+            "match": "sub"
+        },
+        "85": {
+            "name": "ControlDTCSetting",
+            "positive_sid": "C5",
+            "match": "sub"
+        }
+    }
+}

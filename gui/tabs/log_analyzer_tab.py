@@ -19,6 +19,7 @@ from gui.widgets.log_analyzer.result_table import ResultTable
 from gui.widgets.log_analyzer.right_panel import RightPanel
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
 from services.vehicle_service import VehicleService
+from core.log_validation import has_multiple_pt_bo_info_markers
 
 
 class LogAnalyzerTab(QWidget):
@@ -168,13 +169,10 @@ class LogAnalyzerTab(QWidget):
 
             selected_vehicle_name = ""
 
-        if not selected_vehicle_name and vehicles:
-
-            selected_vehicle_name = vehicles[0]
-
         self.vehicle_selector.fn_set_vehicles(
             vehicles,
             selected_vehicle=selected_vehicle_name,
+            allow_empty_selection=True,
         )
 
         if selected_vehicle_name:
@@ -209,10 +207,25 @@ class LogAnalyzerTab(QWidget):
         self,
         file_path: str,
     ):
+
+        if (
+            file_path
+            and has_multiple_pt_bo_info_markers(file_path)
+        ):
+
+            self.log_selector.set_path("")
+
+            QMessageBox.warning(
+                self,
+                "Log File Not Supported",
+                "The selected log contains multiple PT BO INFO markers. "
+                "Please select another diagnostic log.",
+            )
+
         self._update_analyze_state()
 
     def _update_analyze_state(self):
-        if self._current_vehicle is not None and self.log_selector.path():
+        if self.log_selector.path():
             self.right_panel.action_panel.fn_set_file_loaded_state()
             return
 

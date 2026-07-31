@@ -53,4 +53,42 @@ def fn_combobox_style() -> str:
         width: 24px;
 
     }}
+
+    QComboBox QAbstractItemView {{
+
+        background-color: {colors.WINDOW};
+
+        color: {colors.TEXT};
+
+        border: 1px solid {colors.BORDER};
+
+        selection-background-color: {colors.TABLE_SELECTION};
+
+        selection-color: {colors.TEXT};
+
+        outline: 0;
+
+    }}
+
+    QComboBox QAbstractItemView::item {{
+
+        min-height: 28px;
+
+        padding: 6px 8px;
+
+        background-color: {colors.WINDOW};
+
+    }}
+
+    QComboBox QAbstractItemView::item:hover {{
+
+        background-color: {colors.TABLE_HOVER};
+
+    }}
+
+    QComboBox QAbstractItemView::item:selected {{
+
+        background-color: {colors.TABLE_SELECTION};
+
+    }}
     """

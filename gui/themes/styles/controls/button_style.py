@@ -128,6 +128,23 @@ def fn_secondary_button_style():
         palette
     )
 
+
+def fn_cancel_button_style():
+
+    colors = ThemeManager.fn_colors()
+
+    palette = ButtonPalette(
+        background=colors.SECONDARY,
+        hover=colors.SECONDARY_HOVER,
+        pressed=colors.SECONDARY_PRESSED,
+        text=colors.TEXT if ThemeManager.fn_is_dark() else colors.SECONDARY_TEXT,
+        border=colors.BORDER,
+    )
+
+    return _fn_base_button_style(
+        palette
+    )
+
 def fn_quick_access_button_style():
 
     colors = ThemeManager.fn_colors()
