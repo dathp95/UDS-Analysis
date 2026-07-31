@@ -1,101 +1,32 @@
 [
     {
         "id": 1,
-        "name": "01. Key learn BCM",
+        "name": "Write VIN",
         "enabled": true,
         "filters": {
-            "ecu": "BCM",
-            "request": "31 01 02 07"
+            "ecu": "",
+            "request": "22 F1 90",
+            "response": "62 F1 90"
         }
     },
     {
-        "name": "02. READ VIN ALL",
+        "name": "01.Write VIN MHU",
         "filters": {
-            "ecu": "",
-            "request": "22 F1 90"
+            "ecu": "MHU",
+            "request": "22 F1 90",
+            "response": "62 F1 90 52 4C 4E 56 42 4C 39 4B 58 53 54 37 39 30 30 31 30"
         },
         "id": 2,
         "enabled": true
     },
     {
+        "name": "ABS-ECU Purchase Part Number",
+        "filters": {
+            "ecu": "ABS",
+            "request": "22 F1 03",
+            "response": "62 F1 03 43 48 53 69 34 00 21 41 41"
+        },
         "id": 3,
-        "name": "03. Write VIN ALL",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": "2E F1 90"
-        }
-    },
-    {
-        "id": 4,
-        "name": "04. MHU Handshake",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": "31 03 02 13"
-        }
-    },
-    {
-        "id": 5,
-        "name": "05. ACM Pyro Fuse",
-        "enabled": true,
-        "filters": {
-            "ecu": "",
-            "request": "FA 1B"
-        }
-    },
-    {
-        "name": "06. CODING CDS",
-        "filters": {
-            "ecu": "",
-            "request": "2E F1 08"
-        },
-        "id": 6,
-        "enabled": true
-    },
-    {
-        "name": "07. CODING VOD",
-        "filters": {
-            "ecu": "",
-            "request": "2E F1 12"
-        },
-        "id": 7,
-        "enabled": true
-    },
-    {
-        "name": "08. FRS Number",
-        "filters": {
-            "ecu": "",
-            "request": "2E F1 5C"
-        },
-        "id": 8,
-        "enabled": true
-    },
-    {
-        "id": 11,
-        "name": "11 BCM Learn Key",
-        "enabled": true,
-        "filters": {
-            "ecu": "BCM",
-            "request": "22 5C 03"
-        }
-    },
-    {
-        "name": "12. Check CCU",
-        "filters": {
-            "ecu": "",
-            "request": "31 01 3E 02"
-        },
-        "id": 12,
-        "enabled": true
-    },
-    {
-        "name": "13 VCU Learn Key",
-        "filters": {
-            "ecu": "",
-            "request": "2E C0 05 03"
-        },
-        "id": 13,
         "enabled": true
     }
 ]

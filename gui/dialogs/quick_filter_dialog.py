@@ -28,7 +28,7 @@ class QuickFilterDialog(QDialog):
             "Quick Filter"
         )
 
-        self.resize(420, 200)
+        self.resize(420, 250)
 
         self.quick_filter = quick_filter
 
@@ -63,7 +63,11 @@ class QuickFilterDialog(QDialog):
 
             "request": PrimaryLineEdit(
                 "XX XX .. .."
-            ),            
+            ),
+
+            "response": PrimaryLineEdit(
+                "XX XX .. .."
+            ),
 
         }
 
@@ -89,6 +93,11 @@ class QuickFilterDialog(QDialog):
 
             self.fields["request"]
 
+        )
+
+        self.form_layout.addRow(
+            PrimaryLabel("Response"),
+            self.fields["response"]
         )
 
         # --------------------------------------
@@ -130,6 +139,9 @@ class QuickFilterDialog(QDialog):
         self.fields["request"].textEdited.connect(
             self._format_request
         )
+        self.fields["response"].textEdited.connect(
+            self._format_response
+        )
 
         self.btn_save.clicked.connect(
 
@@ -144,13 +156,20 @@ class QuickFilterDialog(QDialog):
         )
 
     def _format_request(self, value):
+        self._format_payload_field("request", value)
+
+    def _format_response(self, value):
+        self._format_payload_field("response", value)
+
+    def _format_payload_field(self, field_name, value):
         formatted = format_payload_input(value)
         if formatted != value:
-            cursor = self.fields["request"].cursorPosition()
-            self.fields["request"].blockSignals(True)
-            self.fields["request"].setText(formatted)
-            self.fields["request"].setCursorPosition(min(len(formatted), cursor + 1))
-            self.fields["request"].blockSignals(False)
+            field = self.fields[field_name]
+            cursor = field.cursorPosition()
+            field.blockSignals(True)
+            field.setText(formatted)
+            field.setCursorPosition(min(len(formatted), cursor + 1))
+            field.blockSignals(False)
     
     
     def fn_get_data(self) -> dict:
@@ -165,7 +184,11 @@ class QuickFilterDialog(QDialog):
 
                 "request": format_payload_input(
                     self.fields["request"].text().strip()
-                )
+                ),
+
+                "response": format_payload_input(
+                    self.fields["response"].text().strip()
+                ),
 
             }
 
@@ -205,6 +228,12 @@ class QuickFilterDialog(QDialog):
                 quick_filter["filters"]["request"]
             )
 
+        )
+
+        self.fields["response"].setText(
+            format_payload_input(
+                quick_filter.get("filters", {}).get("response", "")
+            )
         )
 
     def _fn_load_data(self) -> None:

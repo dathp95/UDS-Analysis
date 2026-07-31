@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     
 )
+from PySide6.QtGui import QColor
 
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_table import PrimaryTable
@@ -124,6 +125,9 @@ class ResultTable(PrimaryTable):
         # Normalize user input
         # ------------------------------------------
 
+        # Global search replaces Quick Filter highlighting.
+        self._refresh_row_colors()
+
         keyword = format_payload_input(keyword.strip())
         keyword = " ".join(keyword.split()).lower()
 
@@ -221,10 +225,18 @@ class ResultTable(PrimaryTable):
         request = format_payload_input(
             filters.get("request", "").strip()
         )
+        response = format_payload_input(
+            filters.get("response", "").strip()
+        )
 
         ecu_col = self._fn_column_index("ECU")
 
         request_col = self._fn_column_index("Request")
+        response_col = self._fn_column_index("Response")
+
+        colors = ThemeManager.fn_colors()
+
+        self._refresh_row_colors()
 
         for row in range(self.rowCount()):
 
@@ -268,7 +280,35 @@ class ResultTable(PrimaryTable):
                         item.text().strip().split()
                     ).upper()
 
-                matched &= request in cell
+                matched &= cell == request
+
+            if response:
+                item = self.item(row, response_col)
+                cell = "" if item is None else " ".join(
+                    item.text().strip().split()
+                ).upper()
+                if not request:
+                    matched &= cell == response
+
+                if request:
+                    if cell == response:
+                        background = colors.SUCCESS
+                    elif not cell:
+                        background = colors.DANGER
+                    else:
+                        background = colors.WARNING
+                else:
+                    background = None
+
+                for column in range(self.columnCount()):
+                    cell_item = self.item(row, column)
+                    if cell_item is not None:
+                        if background is None:
+                            cell_item.setBackground(QColor(
+                                colors.TABLE_ROW if row % 2 == 0 else colors.TABLE_ROW_ALT
+                            ))
+                        else:
+                            cell_item.setBackground(QColor(background))
 
             self.setRowHidden(
 

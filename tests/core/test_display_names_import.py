@@ -35,6 +35,22 @@ class DisplayNamesImportTests(unittest.TestCase):
         self.assertEqual(result["22 F1 90"]["display_name"], "Read VIN")
         self.assertEqual(json.loads(destination.read_text(encoding="utf-8")), result)
 
+    def test_import_merges_into_existing_mapping(self):
+        source = self._write_json({"22 F1 90": {"display_name": "Read VIN"}})
+        destination = self._write_json(
+            {"22 F1 20": {"display_name": "Global Time"}}
+        )
+
+        result = import_display_names(source, destination)
+
+        self.assertEqual(
+            result,
+            {
+                "22 F1 20": {"display_name": "Global Time"},
+                "22 F1 90": {"display_name": "Read VIN"},
+            },
+        )
+
     def test_rejects_invalid_mapping_without_overwriting_destination(self):
         source = self._write_json({"22 F1 90": "Read VIN"})
         destination = self._temp_path()

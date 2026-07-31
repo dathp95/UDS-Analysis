@@ -207,13 +207,13 @@ class VehicleManagerTab(QWidget):
         self.btn_import_ecus.setEnabled(False)
 
         self.btn_import_display_names = SecondaryButton(
-            "Import Display Names",
-            width=160,
+            "Import File Display Names",
+            width=180,
         )
 
         self.btn_import_display_rules = SecondaryButton(
-            "Import Display Rules",
-            width=150,
+            "Import Rules Display Names",
+            width=180,
         )
 
         ecu_list_widget = QWidget()

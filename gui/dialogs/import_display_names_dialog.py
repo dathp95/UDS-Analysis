@@ -17,7 +17,7 @@ class ImportDisplayNamesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Import Display Name Rules")
+        self.setWindowTitle("Import Display Name")
         self.resize(620, 460)
 
         self._setup_ui()
@@ -67,7 +67,7 @@ class ImportDisplayNamesDialog(QDialog):
         try:
             self.fn_rules()
         except ValueError as error:
-            QMessageBox.warning(self, "Import Display Name Rules", str(error))
+            QMessageBox.warning(self, "Import Display Name", str(error))
             return
 
         self.accept()

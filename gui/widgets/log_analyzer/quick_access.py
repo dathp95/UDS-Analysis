@@ -1,4 +1,6 @@
 
+from copy import deepcopy
+
 from PySide6.QtCore import Qt, Signal
 
 from PySide6.QtWidgets import (
@@ -222,6 +224,10 @@ class QuickAccessWidget(QWidget):
             "Edit"
         )
 
+        action_clone = menu.addAction(
+            "Clone"
+        )
+
         action_delete = menu.addAction(
             "Delete"
         )
@@ -235,6 +241,10 @@ class QuickAccessWidget(QWidget):
         if action == action_edit:
 
             self._fn_edit_filter(quick_filter)
+
+        elif action == action_clone:
+
+            self._fn_clone_filter(quick_filter)
 
         elif action == action_delete:
 
@@ -272,6 +282,28 @@ class QuickAccessWidget(QWidget):
             )
 
             self.fn_reload()
+
+    def _fn_clone_filter(self, quick_filter: dict):
+        """Create an independent copy of a quick filter."""
+
+        existing_names = {
+            item.get("name", "")
+            for item in self.quick_access_controller.fn_load()
+        }
+        base_name = f"{quick_filter.get('name', 'Quick Filter')} (Copy)"
+        name = base_name
+        suffix = 2
+        while name in existing_names:
+            name = f"{base_name} {suffix}"
+            suffix += 1
+
+        cloned = deepcopy(quick_filter)
+        cloned.pop("id", None)
+        cloned.pop("enabled", None)
+        cloned["name"] = name
+
+        self.quick_access_controller.fn_add(cloned)
+        self.fn_reload()
 
     def _fn_edit_filter(
             self,

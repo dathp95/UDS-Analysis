@@ -137,9 +137,20 @@ def import_display_names(
 
     _validate_display_names(data)
 
-    _write_display_names(data, destination_path)
+    if destination_path.exists() and destination_path.stat().st_size > 0:
+        current = load_display_names(destination_path)
+        if current:
+            _validate_display_names(current)
+    else:
+        current = {}
 
-    return data
+    merged = {
+        **current,
+        **data,
+    }
+    _write_display_names(merged, destination_path)
+
+    return merged
 
 
 def import_display_name_rules(
