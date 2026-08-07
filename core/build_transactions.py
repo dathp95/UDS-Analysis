@@ -1,11 +1,11 @@
 import bisect
 
-from collections import defaultdict
 # from core.asc_reader import *
 from core.uds_lookup import (
     MATCH_DID, 
     MATCH_SUB,
     MATCH_ROUTINE,
+    MATCH_NONE,
     get_positive_response_timeout,
     SERVICE_NAME_MAP,
     NRC_TABLE,
@@ -58,19 +58,16 @@ from core.uds_lookup import (
 
 #============================
 
-def get_match_key(payload):
+def get_match_key(payload, rule_sid=None):
 
     bytes_list = payload.split()
 
     if not bytes_list:
         return None
 
-    sid = int(
-        bytes_list[0],
-        16
-    )
+    sid = int(bytes_list[0], 16)
 
-    rule = get_match_rule(sid)
+    rule = get_match_rule(rule_sid if rule_sid is not None else sid)
 
     # ==================================
     # DID-based Services
@@ -110,6 +107,57 @@ def get_match_key(payload):
 
     return None
 
+
+def _message_key(message):
+    return (
+        message["timestamp"],
+        message["can_id"],
+        message["payload"],
+    )
+
+
+def _payload_sid(payload):
+    if not payload:
+        return None
+
+    try:
+        return int(payload.split()[0], 16)
+    except (IndexError, ValueError):
+        return None
+
+
+def _response_matches_request(request_payload, response_payload, request_sid):
+    rule = get_match_rule(request_sid)
+
+    if rule == MATCH_NONE:
+        return True
+
+    request_key = get_match_key(request_payload, request_sid)
+    response_key = get_match_key(response_payload, request_sid)
+
+    return (
+        request_key is not None
+        and response_key is not None
+        and request_key == response_key
+    )
+
+
+def _negative_response_matches_request(request, negative_response, response_can_id):
+    if negative_response["can_id"] != response_can_id:
+        return False
+
+    request_sid = _payload_sid(request["payload"])
+    info = parse_negative_response(negative_response["payload"])
+
+    return info is not None and info["request_sid"] == request_sid
+
+
+def _next_request_time(requests, start_index, request_can_id):
+    for request in requests[start_index:]:
+        if request["can_id"] == request_can_id:
+            return request["timestamp"]
+
+    return None
 """
     find_matching_positive_response() sẽ chỉ còn 4 bước:
 
@@ -137,122 +185,61 @@ def find_matching_positive_response(
     request,
     positive_responses,
     response_can_id,
-    timeout=None
+    timeout=None,
+    used_response_keys=None,
+    search_end_time=None,
 ):
 
     if timeout is None:
         timeout = get_positive_response_timeout()
 
+    if used_response_keys is None:
+        used_response_keys = set()
+
     request_time = request["timestamp"]
-
     request_payload = request["payload"]
+    request_sid = _payload_sid(request_payload)
 
-    if not request_payload:
+    if request_sid is None:
         return None
 
-    # =========================
-    # Expected SID
-
-    request_sid = int(
-
-        request_payload.split()[0],
-
-        16
-
-    )
-
-    expected_sid = get_expected_positive_sid(
-        request_sid
-    )
+    expected_sid = get_expected_positive_sid(request_sid)
 
     if expected_sid is None:
         return None
 
-    # =========================
-    # Match Key
-
-    request_key = get_match_key(
-        request_payload
-    )
-
-    # =========================
-    # Binary Search
-
     timestamps = [
-
         response["timestamp"]
-
         for response in positive_responses
-
     ]
 
-    start = bisect.bisect_left(
-
-        timestamps,
-
-        request_time
-
-    )
-
-    # =========================
-    # Search
+    start = bisect.bisect_left(timestamps, request_time)
 
     for response in positive_responses[start:]:
+        if _message_key(response) in used_response_keys:
+            continue
 
-        if (
+        if response["can_id"] != response_can_id:
+            continue
 
-            response["timestamp"]
+        if response["timestamp"] - request_time > timeout:
+            break
 
-            - request_time
-
-        ) > timeout:
-
+        if search_end_time is not None and response["timestamp"] > search_end_time:
             break
 
         response_payload = response["payload"]
+        response_sid = _payload_sid(response_payload)
 
-        if not response_payload:
+        if response_sid != expected_sid:
             continue
 
-        # SID
-
-        if int(
-
-            response_payload.split()[0],
-
-            16
-
-        ) != expected_sid:
-
-            continue
-
-        # Match Key
-
-        response_key = get_match_key(
-            response_payload
-        )
-
-        if (
-
-            request_key is not None
-
-            and
-
-            response_key is not None
-
-            and
-
-            request_key != response_key
-
-        ):
-
+        if not _response_matches_request(request_payload, response_payload, request_sid):
             continue
 
         return response
 
     return None
-  
-
 
 # TODO: OK => Matching ECU - Request CAN ID - Response CAN ID - Positive SID - DID (22 F1 xx)
 # TODO: NOK => NRC - Timestamp Window - Multi Request Queue
@@ -528,33 +515,35 @@ def find_matching_negative_response(
     return None
 
 def find_negative_responses_between(
-
-    request_time,
-
-    positive_time,
-
+    request,
+    end_time,
     negative_responses,
-
-    response_can_id
-
+    response_can_id,
+    used_response_keys=None,
 ):
 
+    if used_response_keys is None:
+        used_response_keys = set()
+
+    request_time = request["timestamp"]
     results = []
 
     for nrc in negative_responses:
+        if _message_key(nrc) in used_response_keys:
+            continue
 
-        # Response trước Request
         if nrc["timestamp"] < request_time:
             continue
 
-        # Đã vượt Positive Response
-        if nrc["timestamp"] > positive_time:
+        if nrc["timestamp"] > end_time:
             break
+
+        if not _negative_response_matches_request(request, nrc, response_can_id):
+            continue
 
         results.append(nrc)
 
     return results
-
 
 # TODO: positive_responses
 # Input
@@ -790,10 +779,11 @@ def build_transactions_v4(
 
     negative_index = build_negative_response_index(negative_responses)
 
-    for request in requests:
+    used_positive_keys = set()
 
-        # =========================
-        # ECU Mapping
+    used_negative_keys = set()
+
+    for request_index, request in enumerate(requests):
 
         ecu = get_transaction_ecu(
 
@@ -801,39 +791,36 @@ def build_transactions_v4(
 
                 ecu_info
 
-            )        
+            )
 
         if ecu is None:
             continue
 
         response_can_id = ecu["response_can_id"]
 
-        # =========================
-        # Positive Response
-
-        responses = positive_index.get(response_can_id,[])
-               
-               
-        positive_response = (
-
-            find_matching_positive_response(
-
-                request,
-
-                responses,
-
-                response_can_id,
-
-                timeout
-
-            )
-
+        next_request_time = _next_request_time(
+            requests,
+            request_index + 1,
+            request["can_id"],
         )
 
-        # =========================
-        # Negative Responses
+        search_end_time = request["timestamp"] + timeout
 
-        responses = negative_index.get(
+        if next_request_time is not None:
+            search_end_time = min(search_end_time, next_request_time)
+
+        positive_candidates = positive_index.get(response_can_id, [])
+
+        positive_response = find_matching_positive_response(
+            request,
+            positive_candidates,
+            response_can_id,
+            timeout,
+            used_positive_keys,
+            search_end_time,
+        )
+
+        negative_candidates = negative_index.get(
             response_can_id,
             []
         )
@@ -841,45 +828,33 @@ def build_transactions_v4(
         end_time = (
             positive_response["timestamp"]
             if positive_response
-            else request["timestamp"] + timeout
+            else search_end_time
         )
 
         negative_list = find_negative_responses_between(
-            request["timestamp"],
+            request,
             end_time,
-            responses,
-            response_can_id
+            negative_candidates,
+            response_can_id,
+            used_negative_keys,
         )
 
-        # =========================
-        # Create Transaction
+        if positive_response is not None:
+            used_positive_keys.add(_message_key(positive_response))
 
-        transaction = (
+        for negative_response in negative_list:
+            used_negative_keys.add(_message_key(negative_response))
 
-            create_transaction(
-
-                ecu,
-
-                request,
-
-                positive_response,
-
-                negative_list
-
-            )
-
+        transaction = create_transaction(
+            ecu,
+            request,
+            positive_response,
+            negative_list
         )
 
-        transactions.append(
-
-            transaction
-
-        )
+        transactions.append(transaction)
 
     return transactions
-
-
-
 
 def print_transaction(tx):
 

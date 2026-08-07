@@ -95,6 +95,14 @@ class QuickAccessService:
             })
         self.fn_save(filters)
 
+    def fn_export_filters(self):
+        filters = self.fn_load()
+
+        return "\n".join(
+            self._fn_format_filter(item)
+            for item in filters
+        )
+
     def fn_insert_after(self, source_id, quick_filter):
         filters = self.fn_load()
         new_filter = {
@@ -180,3 +188,16 @@ class QuickAccessService:
             for item in filters
 
         ) + 1
+
+    @staticmethod
+    def _fn_format_filter(quick_filter):
+        filters = quick_filter.get("filters", {})
+
+        return "|".join(
+            (
+                quick_filter.get("name", ""),
+                filters.get("ecu", ""),
+                filters.get("request", ""),
+                filters.get("response", ""),
+            )
+        )

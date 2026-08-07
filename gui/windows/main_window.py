@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle(" V-CODE v1.0.1 | AES EEIV by DAT TRAN")
+        self.setWindowTitle(" V-CODE v1.0.2 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )
@@ -47,8 +47,16 @@ class MainWindow(QMainWindow):
             if not sequence or action is None:
                 continue
             shortcut = QShortcut(QKeySequence(sequence), self)
-            shortcut.activated.connect(action)
+            shortcut.activated.connect(
+                lambda action=action: self._run_log_analyzer_shortcut(action)
+            )
             self._shortcuts.append(shortcut)
+
+    def _run_log_analyzer_shortcut(self, action):
+        if self.tabs.currentWidget() != self.log_analyzer_tab:
+            return
+
+        action()
 
     def setup_ui(self):
         self.tabs = QTabWidget()
@@ -82,3 +90,4 @@ class MainWindow(QMainWindow):
             "fn_refresh_theme",
         ):
             self.vehicle_manager_tab.fn_refresh_theme()
+

@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from gui.controllers.quick_access_controller import QuickAccessController
 from gui.dialogs.quick_filter_dialog import QuickFilterDialog
 from gui.dialogs.import_quick_filters_dialog import ImportQuickFiltersDialog
+from gui.dialogs.export_quick_filters_dialog import ExportQuickFiltersDialog
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
@@ -89,6 +90,9 @@ class QuickAccessWidget(QWidget):
         self.btn_import = SecondaryButton("Import Filters")
         root_layout.addWidget(self.btn_import)
 
+        self.btn_export = SecondaryButton("Export Filters")
+        root_layout.addWidget(self.btn_export)
+
         root_layout.addStretch()
 
         self._connect_signals()
@@ -99,6 +103,7 @@ class QuickAccessWidget(QWidget):
             self.fn_add_filter
         )
         self.btn_import.clicked.connect(self.fn_import_filters)
+        self.btn_export.clicked.connect(self.fn_export_filters)
 
     def fn_import_filters(self):
         dialog = ImportQuickFiltersDialog(self)
@@ -110,6 +115,14 @@ class QuickAccessWidget(QWidget):
             QMessageBox.warning(self, "Import Quick Access", str(error))
             return
         self.fn_reload()
+
+
+    def fn_export_filters(self):
+        dialog = ExportQuickFiltersDialog(
+            self.quick_access_controller.fn_export_filters(),
+            self,
+        )
+        dialog.exec()
 
     def fn_reload(self):
         """
@@ -387,4 +400,4 @@ class QuickAccessWidget(QWidget):
         fn_apply_scrollbar_style(self.scroll_area)
         self.btn_add.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
-            
+        self.btn_export.fn_refresh_theme()

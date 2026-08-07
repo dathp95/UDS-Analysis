@@ -51,15 +51,26 @@ class VehicleController:
             vehicle_name
         )
 
+    def export_vehicle_ecu_list(
+        self,
+        vehicle_name: str,
+    ) -> str:
+
+        return self._service.export_vehicle_ecu_list(
+            vehicle_name
+        )
+
     def save_ecu(
         self,
         vehicle_name: str,
         ecu: ECU,
+        existing_ecu_name: str = "",
     ) -> None:
 
         self._service.save_ecu(
             vehicle_name,
             ecu,
+            existing_ecu_name=existing_ecu_name,
         )
 
     def add_ecu(

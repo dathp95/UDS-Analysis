@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from copy import deepcopy
 
 from gui.dialogs.import_ecu_dialog import ImportECUDialog
+from gui.dialogs.export_vehicle_dialog import ExportVehicleDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.dialogs.shortcuts_dialog import ShortcutsDialog
 from gui.controllers.vehicle_controller import VehicleController
@@ -108,6 +109,13 @@ class VehicleManagerTab(QWidget):
 
         self.btn_delete_vehicle.setEnabled(False)
 
+        self.btn_export_vehicle = SecondaryButton(
+            "Export Vehicle",
+            width=130,
+        )
+
+        self.btn_export_vehicle.setEnabled(False)
+
         vehicle_widget = QWidget()
 
         vehicle_layout = QHBoxLayout(vehicle_widget)
@@ -146,6 +154,10 @@ class VehicleManagerTab(QWidget):
 
         vehicle_button_layout.addWidget(
             self.btn_delete_vehicle
+        )
+
+        vehicle_button_layout.addWidget(
+            self.btn_export_vehicle
         )
 
         vehicle_button_layout.addStretch()
@@ -400,6 +412,12 @@ class VehicleManagerTab(QWidget):
 
         )
 
+        self.btn_export_vehicle.clicked.connect(
+
+            self._on_export_vehicle_clicked
+
+        )
+
         self.ecu_list.ecu_selected.connect(
 
             self._on_ecu_selected
@@ -478,6 +496,8 @@ class VehicleManagerTab(QWidget):
 
         self.btn_delete_vehicle.setEnabled(True)
 
+        self.btn_export_vehicle.setEnabled(True)
+
         self.btn_import_ecus.setEnabled(True)
 
         ecu_names = [
@@ -531,6 +551,8 @@ class VehicleManagerTab(QWidget):
         self.btn_import_ecus.setEnabled(False)
 
         self.btn_delete_vehicle.setEnabled(False)
+
+        self.btn_export_vehicle.setEnabled(False)
 
         self.btn_save.setEnabled(False)
 
@@ -650,6 +672,37 @@ class VehicleManagerTab(QWidget):
 
         self._notify_vehicle_data_changed()
 
+
+
+    def _on_export_vehicle_clicked(self):
+
+        if not self._current_vehicle_name:
+
+            return
+
+        try:
+
+            ecu_text = self._controller.export_vehicle_ecu_list(
+                self._current_vehicle_name
+            )
+
+        except (FileNotFoundError, ValueError) as error:
+
+            QMessageBox.warning(
+                self,
+                "Export Vehicle",
+                str(error),
+            )
+
+            return
+
+        dialog = ExportVehicleDialog(
+            self._current_vehicle_name,
+            ecu_text,
+            self,
+        )
+
+        dialog.exec()
 
     def _on_ecu_selected(
             self,
@@ -1084,6 +1137,7 @@ class VehicleManagerTab(QWidget):
             self._controller.save_ecu(
                 self._current_vehicle_name,
                 draft_ecu,
+                existing_ecu_name=old_ecu_name,
             )
 
             if draft_ecu.name != old_ecu_name:
@@ -1175,6 +1229,8 @@ class VehicleManagerTab(QWidget):
         self.btn_create_vehicle.fn_refresh_theme()
 
         self.btn_delete_vehicle.fn_refresh_theme()
+
+        self.btn_export_vehicle.fn_refresh_theme()
 
         self.btn_add_ecu.fn_refresh_theme()
 

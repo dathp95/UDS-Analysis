@@ -62,10 +62,39 @@ class VehicleService:
             vehicle_name
         )
 
+    def export_vehicle_ecu_list(
+        self,
+        vehicle_name: str,
+    ) -> str:
+
+        vehicle_name = vehicle_name.strip()
+
+        if not vehicle_name:
+
+            raise ValueError(
+                "Vehicle name cannot be empty."
+            )
+
+        vehicle = self._repository.load(
+            vehicle_name
+        )
+
+        return "\n".join(
+            "|".join(
+                (
+                    ecu.name,
+                    ecu.request_id,
+                    ecu.response_id,
+                )
+            )
+            for ecu in vehicle.ecus
+        )
+
     def save_ecu(
         self,
         vehicle_name: str,
         ecu: ECU,
+        existing_ecu_name: str = "",
     ) -> None:
 
         vehicle = self._repository.load(vehicle_name)
@@ -73,7 +102,7 @@ class VehicleService:
         self._validate_ecu(
             vehicle=vehicle,
             ecu=ecu,
-            allow_same_name=True,
+            existing_ecu_name=existing_ecu_name or ecu.name,
         )
 
         self._repository.save_ecu(
@@ -92,7 +121,7 @@ class VehicleService:
         self._validate_ecu(
             vehicle=vehicle,
             ecu=ecu,
-            allow_same_name=False,
+            existing_ecu_name="",
         )
 
         self._repository.add_ecu(
@@ -148,7 +177,7 @@ class VehicleService:
         self,
         vehicle: Vehicle,
         ecu: ECU,
-        allow_same_name: bool,
+        existing_ecu_name: str = "",
     ) -> None:
 
         ecu.name = ecu.name.strip()
@@ -159,20 +188,21 @@ class VehicleService:
                 "ECU name cannot be empty."
             )
 
+        existing_ecu_name = existing_ecu_name.strip().lower()
+
         for existing in vehicle.ecus:
 
-            if (
-                existing.name.lower() == ecu.name.lower()
-                and not allow_same_name
-            ):
+            existing_name = existing.name.lower()
+
+            if existing_name == existing_ecu_name:
+
+                continue
+
+            if existing_name == ecu.name.lower():
 
                 raise ValueError(
                     f"ECU '{ecu.name}' already exists."
                 )
-
-            if existing.name.lower() == ecu.name.lower():
-
-                continue
 
             self._validate_duplicate_id(
                 field_name="Request ID",

@@ -1,24 +1,23 @@
 {
-    "name": "VF5NP",
+    "name": "VF3 FL",
     "manufacturer": "",
     "version": "1.0.0",
     "description": "",
     "ecus": [
+        "ACM",
         "BCM",
         "EPS",
         "SS",
         "BMS",
-        "3N1",
+        "VCU",
+        "DCDC",
         "EDS",
+        "EAC",
         "MHU",
-        "SGC",
+        "XGW",
         "AVAS",
-        "ESC",
-        "BPM",
-        "PTC",
-        "USS_F",
-        "USS_R",
-        "VDKCU",
-        "ACM,ACU"
+        "ABS",
+        "CVCLW",
+        "ALL"
     ]
 }

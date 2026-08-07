@@ -4,15 +4,18 @@
         "10": "General Reject",
         "11": "Service Not Supported",
         "12": "SubFunction Not Supported",
-        "13": "Incorrect Message Length",
+        "13": "Incorrect Message Length Or Invalid Format",
         "22": "Conditions Not Correct",
+        "24": "Request Sequence Error",
         "31": "Request Out Of Range",
         "33": "Security Access Denied",
         "35": "Invalid Key",
         "36": "Exceeded Number Of Attempts",
         "37": "Required Time Delay Not Expired",
         "72": "General Programming Failure",
+        "73": "Wrong Block Sequence Counter",
         "78": "Response Pending",
+        "7E": "SubFunction Not Supported In Active Session",
         "7F": "Service Not Supported In Active Session"
-    }
+        }
 }

@@ -12,9 +12,12 @@ from PySide6.QtWidgets import QApplication
 from gui.tabs.log_analyzer_tab import LogAnalyzerTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.dialogs.import_ecu_dialog import ImportECUDialog
+from gui.dialogs.export_vehicle_dialog import ExportVehicleDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
+from models.ecu import ECU
+from models.vehicle import Vehicle
 
 
 class VehicleSelectorWidgetTests(unittest.TestCase):
@@ -78,6 +81,115 @@ class VehicleSelectorWidgetTests(unittest.TestCase):
         self.assertIsNone(tab._current_vehicle)
         self.assertFalse(tab.btn_add_ecu.isEnabled())
         self.assertFalse(tab.btn_import_ecus.isEnabled())
+        self.assertFalse(tab.btn_export_vehicle.isEnabled())
+
+    def test_vehicle_manager_enables_export_after_vehicle_selection(self):
+        tab = VehicleManagerTab()
+        self.addCleanup(tab.deleteLater)
+        vehicle = Vehicle(
+            name="VF3",
+            ecus=[
+                ECU(
+                    name="BCM",
+                    request_id="681",
+                    response_id="601",
+                )
+            ],
+        )
+
+        with patch.object(
+            tab._controller,
+            "load_vehicle",
+            return_value=vehicle,
+        ):
+            tab._on_vehicle_changed("VF3")
+
+        self.assertTrue(tab.btn_export_vehicle.isEnabled())
+
+    def test_vehicle_manager_exports_selected_vehicle_ecu_list(self):
+        tab = VehicleManagerTab()
+        self.addCleanup(tab.deleteLater)
+        tab._current_vehicle_name = "VF3"
+
+        with patch.object(
+            tab._controller,
+            "export_vehicle_ecu_list",
+            return_value="BCM|681|601",
+        ) as export_list, patch(
+            "gui.tabs.vehicle_manager_tab.ExportVehicleDialog"
+        ) as dialog:
+            tab._on_export_vehicle_clicked()
+
+        export_list.assert_called_once_with("VF3")
+        dialog.assert_called_once_with(
+            "VF3",
+            "BCM|681|601",
+            tab,
+        )
+        dialog.return_value.exec.assert_called_once_with()
+
+    def test_vehicle_manager_save_renamed_ecu_uses_original_name(self):
+        tab = VehicleManagerTab()
+        self.addCleanup(tab.deleteLater)
+        original_ecu = ECU(
+            name="BCM",
+            request_id="681",
+            response_id="601",
+        )
+        tab._current_vehicle_name = "VF3"
+        tab._current_vehicle = Vehicle(
+            name="VF3",
+            ecus=[original_ecu],
+        )
+        tab._current_ecu = original_ecu
+        tab.ecu_info.fn_set_ecu(original_ecu)
+        tab.ecu_info.txt_name.setText("BCM_NEW")
+
+        with patch.object(
+            tab._controller,
+            "save_ecu",
+        ) as save_ecu, patch.object(
+            tab._controller,
+            "delete_ecu",
+        ) as delete_ecu, patch.object(
+            tab,
+            "_reload_current_vehicle",
+        ) as reload_vehicle, patch.object(
+            tab,
+            "_show_auto_close_info",
+        ), patch.object(
+            tab,
+            "_notify_vehicle_data_changed",
+        ):
+            tab._on_save_clicked()
+
+        saved_ecu = save_ecu.call_args.args[1]
+        self.assertEqual(saved_ecu.name, "BCM_NEW")
+        save_ecu.assert_called_once_with(
+            "VF3",
+            saved_ecu,
+            existing_ecu_name="BCM",
+        )
+        delete_ecu.assert_called_once_with(
+            "VF3",
+            "BCM",
+        )
+        reload_vehicle.assert_called_once_with(
+            selected_ecu_name="BCM_NEW"
+        )
+
+    def test_export_vehicle_dialog_uses_import_ecu_list_format(self):
+        dialog = ExportVehicleDialog(
+            "VF3",
+            "BCM|681|601\nACM|688|608",
+        )
+        self.addCleanup(dialog.deleteLater)
+
+        self.assertEqual(
+            dialog.fn_export_text(),
+            "BCM|681|601\nACM|688|608",
+        )
+        self.assertTrue(dialog.txt_ecus.isReadOnly())
 
     def test_display_names_import_uses_selected_json_file(self):
         tab = VehicleManagerTab()

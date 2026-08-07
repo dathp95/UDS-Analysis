@@ -30,6 +30,9 @@ class QuickAccessController:
     def fn_add_many(self, quick_filters):
         return self.quick_access_service.fn_add_many(quick_filters)
 
+    def fn_export_filters(self):
+        return self.quick_access_service.fn_export_filters()
+
     def fn_insert_after(self, source_id, quick_filter):
         return self.quick_access_service.fn_insert_after(source_id, quick_filter)
 

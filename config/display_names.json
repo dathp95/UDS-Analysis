@@ -811,5 +811,1088 @@
     },
     "22 F1 90": {
         "display_name": "READ VIN"
+    },
+    "3E 80": {
+        "display_name": "Tester Status"
+    },
+    "22 01 22": {
+        "display_name": "Limp Home Max Vehicle Speed Limit"
+    },
+    "22 01 43": {
+        "display_name": "Status of Target Gear Request by Gear Shifter"
+    },
+    "22 01 44": {
+        "display_name": "Status of Actual Gear"
+    },
+    "22 01 46": {
+        "display_name": "HV-Battery State of Charge"
+    },
+    "22 01 47": {
+        "display_name": "HV-Battery DC-Current"
+    },
+    "22 01 48": {
+        "display_name": "AC Charge SOCK temp"
+    },
+    "22 01 49": {
+        "display_name": "DC charge SOCK temp1"
+    },
+    "22 01 50": {
+        "display_name": "DC charge SOCK temp2"
+    },
+    "22 01 51": {
+        "display_name": "EVCC Lock sts"
+    },
+    "22 01 5F": {
+        "display_name": "ACU Crash status"
+    },
+    "22 01 78": {
+        "display_name": "Immobilizer status"
+    },
+    "22 07 64": {
+        "display_name": "PBC SW Version Number"
+    },
+    "22 07 67": {
+        "display_name": "Actuation Status"
+    },
+    "22 07 6D": {
+        "display_name": "Brake Temperature Left"
+    },
+    "22 07 6E": {
+        "display_name": "Brake Temperature Right"
+    },
+    "22 07 6F": {
+        "display_name": "Actuation Counter Left"
+    },
+    "22 07 70": {
+        "display_name": "Actuation Counter Right"
+    },
+    "22 07 71": {
+        "display_name": "Achieved Clamp Force Left"
+    },
+    "22 07 72": {
+        "display_name": "Achieved Clamp Force Right"
+    },
+    "22 07 73": {
+        "display_name": "Actuator State Left"
+    },
+    "22 07 74": {
+        "display_name": "Actuator State Right"
+    },
+    "22 07 76": {
+        "display_name": "Pedal stroke sensor position"
+    },
+    "22 0C 11": {
+        "display_name": "Overwrite activation for Wait Response Limit"
+    },
+    "22 10 00": {
+        "display_name": "Voltage of DCLink Positive Cross to Pack Negative"
+    },
+    "22 10 01": {
+        "display_name": "Voltage of Negative diagnostic"
+    },
+    "22 10 02": {
+        "display_name": "Total Sum of All Cell Voltage"
+    },
+    "22 10 03": {
+        "display_name": "Cell voltage Maximum"
+    },
+    "22 10 04": {
+        "display_name": "Cell Voltage Minimum"
+    },
+    "22 10 05": {
+        "display_name": "Position of Maximal Voltage Cell"
+    },
+    "22 10 06": {
+        "display_name": "Position of Minimal Voltage Cell"
+    },
+    "22 10 07": {
+        "display_name": "Module Temperature Maximum"
+    },
+    "22 10 08": {
+        "display_name": "Module Temperature Minimum"
+    },
+    "22 10 09": {
+        "display_name": "Sample Position of Maximal Temperature Module"
+    },
+    "22 10 0A": {
+        "display_name": "Sample Position of Minimal Temperature Module"
+    },
+    "22 10 0B": {
+        "display_name": "Module Temperature Average"
+    },
+    "22 10 0C": {
+        "display_name": "Bus Current"
+    },
+    "22 10 0D": {
+        "display_name": "Precharge Contactor Status"
+    },
+    "22 10 0E": {
+        "display_name": "Main Negative Contactor Status"
+    },
+    "22 10 0F": {
+        "display_name": "Main Positive Contactor Status"
+    },
+    "22 10 10": {
+        "display_name": "Precharge Contactor Control Command"
+    },
+    "22 10 11": {
+        "display_name": "Main Negative Contactor Control Command"
+    },
+    "22 10 12": {
+        "display_name": "Main Positive Contactor Control Command"
+    },
+    "22 10 13": {
+        "display_name": "HV Power Up/down Command from CVC"
+    },
+    "22 10 14": {
+        "display_name": "BMS State"
+    },
+    "22 10 15": {
+        "display_name": "EVCC ChgGun state"
+    },
+    "22 10 16": {
+        "display_name": "Pack Charge Current Limit"
+    },
+    "22 10 17": {
+        "display_name": "Pack Charge Voltage Limit"
+    },
+    "22 10 18": {
+        "display_name": "KL15 signal status"
+    },
+    "22 10 19": {
+        "display_name": "Overall Insulation Resistance"
+    },
+    "22 10 1A": {
+        "display_name": "Positive Insulation Resistance"
+    },
+    "22 10 1B": {
+        "display_name": "Negative Insulation Resistance"
+    },
+    "22 10 1C": {
+        "display_name": "BMS Last Sleep Duration Time"
+    },
+    "22 10 1D": {
+        "display_name": "Pack Loop inlet Temperature"
+    },
+    "22 10 1E": {
+        "display_name": "Pack Loop Outlet Temperature"
+    },
+    "22 10 1F": {
+        "display_name": "Crash Signal From CAN"
+    },
+    "22 10 20": {
+        "display_name": "Crash Hardwire Signal"
+    },
+    "22 10 21": {
+        "display_name": "Max cell SOC"
+    },
+    "22 10 22": {
+        "display_name": "Min cell SOC"
+    },
+    "22 10 23": {
+        "display_name": "Pack SOC"
+    },
+    "22 10 24": {
+        "display_name": "Pack SOH"
+    },
+    "22 10 25": {
+        "display_name": "Pack SOCE"
+    },
+    "22 10 26": {
+        "display_name": "Main Positive Contactor Switch Counter1"
+    },
+    "22 10 27": {
+        "display_name": "Main Negative Contactor Switch Counter1"
+    },
+    "22 10 28": {
+        "display_name": "PreCharge Contactor Switch Counter1"
+    },
+    "22 10 2A": {
+        "display_name": "All Cell Balance Status"
+    },
+    "22 10 2B": {
+        "display_name": "Pack Barcode"
+    },
+    "22 10 2C": {
+        "display_name": "All Cell Voltage"
+    },
+    "22 10 2D": {
+        "display_name": "All Module Temperature"
+    },
+    "22 10 2E": {
+        "display_name": "Cell Voltage Validity"
+    },
+    "22 10 2F": {
+        "display_name": "Main Contactor Power Supply Voltage"
+    },
+    "22 10 30": {
+        "display_name": "Cell Balance HW Error"
+    },
+    "22 10 31": {
+        "display_name": "Cell Balance Request"
+    },
+    "22 10 33": {
+        "display_name": "Thermal runaway conditions"
+    },
+    "22 10 34": {
+        "display_name": "Battery pack accumulated charge Ah"
+    },
+    "22 10 35": {
+        "display_name": "Battery pack accumulated discharg Ah"
+    },
+    "22 10 44": {
+        "display_name": "Pre charge Contactor Switch Counter"
+    },
+    "22 10 68": {
+        "display_name": "Date of manufacture pack"
+    },
+    "22 10 69": {
+        "display_name": "Serial number of the pack"
+    },
+    "22 10 70": {
+        "display_name": "QR code of pack"
+    },
+    "22 10 71": {
+        "display_name": "Shunt Init Risistance *R(20℃)"
+    },
+    "22 10 72": {
+        "display_name": "Shunt Coefficient A(T^3)"
+    },
+    "22 10 73": {
+        "display_name": "Shunt Coefficient B(T^2)"
+    },
+    "22 10 74": {
+        "display_name": "Shunt Coefficient C(T)"
+    },
+    "22 10 75": {
+        "display_name": "Shunt Coefficient D"
+    },
+    "22 10 76": {
+        "display_name": "Pack Voltage"
+    },
+    "22 10 77": {
+        "display_name": "Voltage_HVIL_In"
+    },
+    "22 10 78": {
+        "display_name": "Voltage_HVIL_Out"
+    },
+    "22 10 79": {
+        "display_name": "Instantaneous discharge power"
+    },
+    "22 10 7A": {
+        "display_name": "Continuous discharge power"
+    },
+    "22 10 7B": {
+        "display_name": "Instantaneous feedback power"
+    },
+    "22 10 7C": {
+        "display_name": "Continuous feedback power"
+    },
+    "22 10 7D": {
+        "display_name": "BMS Error Level"
+    },
+    "22 10 7E": {
+        "display_name": "Shunt current from channel 1"
+    },
+    "22 10 7F": {
+        "display_name": "Shunt current from channel 2"
+    },
+    "22 10 80": {
+        "display_name": "Shunt temp from channel 1"
+    },
+    "22 10 81": {
+        "display_name": "Shunt temp from channel 2"
+    },
+    "22 10 82": {
+        "display_name": "Smoke sensor information"
+    },
+    "22 10 83": {
+        "display_name": "Array of module voltages"
+    },
+    "22 10 84": {
+        "display_name": "PCB temperature"
+    },
+    "22 10 85": {
+        "display_name": "BDU temperature"
+    },
+    "22 10 86": {
+        "display_name": "Crash signal PWM ratio"
+    },
+    "22 10 87": {
+        "display_name": "SOC parameter"
+    },
+    "22 10 94": {
+        "display_name": "Software release time"
+    },
+    "22 10 95": {
+        "display_name": "KL30C Drop counter"
+    },
+    "22 1A 01": {
+        "display_name": "Airbag Control Module working mode Data Identifier"
+    },
+    "22 1A 0A": {
+        "display_name": "ECU Key-on timer(working time in current power-on cycle)"
+    },
+    "22 1A 24": {
+        "display_name": "Power on counter Data Identifier"
+    },
+    "22 30 07": {
+        "display_name": "System Speed and status Information"
+    },
+    "22 30 27": {
+        "display_name": "EBCM Inertial Sensor Trim Information"
+    },
+    "22 30 30": {
+        "display_name": "FillingInStatusDataIdentifier"
+    },
+    "22 C0 01": {
+        "display_name": "SecOC authentication Config"
+    },
+    "22 C0 02": {
+        "display_name": "Start Verification Time Config"
+    },
+    "22 C0 03": {
+        "display_name": "Synchronization Period Time Config"
+    },
+    "22 C0 04": {
+        "display_name": "Resend Time Config"
+    },
+    "22 C0 05": {
+        "display_name": "Transition Time Config"
+    },
+    "22 C0 06": {
+        "display_name": "Read and write the current trip counter Config"
+    },
+    "22 C0 07": {
+        "display_name": "Read the current reset counter"
+    },
+    "22 C0 08": {
+        "display_name": "number of consecutive fails"
+    },
+    "22 C0 10": {
+        "display_name": "LockStatus"
+    },
+    "22 C0 11": {
+        "display_name": "IMMO_SK_CVC"
+    },
+    "22 C0 15": {
+        "display_name": "Immo Key Re-Writing"
+    },
+    "22 C1 01": {
+        "display_name": "Enable/Disable SecureCAN authentication"
+    },
+    "22 C1 02": {
+        "display_name": "Overwrite value for interval between authentication requests"
+    },
+    "22 C1 03": {
+        "display_name": "Overwrite activation for Transmit Timeout Limit"
+    },
+    "22 C1 04": {
+        "display_name": "Overwrite value for Transmit Timeout Limit"
+    },
+    "22 C1 05": {
+        "display_name": "Overwrite activation for Transmit Wait for Seed Timeout Limit"
+    },
+    "22 C1 06": {
+        "display_name": "Overwrite value for Transmit Wait for Seed Timeout Limit"
+    },
+    "22 C1 07": {
+        "display_name": "Overwrite activation for Transmit Wait for Key Timeout Limit"
+    },
+    "22 C1 08": {
+        "display_name": "Overwrite value for Transmit Wait for Key Timeout Limit"
+    },
+    "22 C1 09": {
+        "display_name": "Overwrite activation for Receive Timeout Limit"
+    },
+    "22 C1 10": {
+        "display_name": "Overwrite value for Receive Timeout Limit"
+    },
+    "22 C1 11": {
+        "display_name": "Overwrite activation for Wait Response Limit"
+    },
+    "22 C1 12": {
+        "display_name": "Overwrite value for Wait Response Limit"
+    },
+    "22 C1 13": {
+        "display_name": "Overwrite activation for Receive Access Fail Limit"
+    },
+    "22 C1 14": {
+        "display_name": "Overwrite value for Receive Access Fail Limit"
+    },
+    "22 C1 15": {
+        "display_name": "Overwrite activation for Transmit Authentication Fail Limit"
+    },
+    "22 C1 16": {
+        "display_name": "Overwrite value for Transmit Authentication Fail Limit"
+    },
+    "22 CB 17": {
+        "display_name": "Secure Can activation of authentication with HUD"
+    },
+    "22 CB 18": {
+        "display_name": "Secure Can activation of authentication with ETG"
+    },
+    "22 CB 19": {
+        "display_name": "Secure Can activation of authentication with FCAM"
+    },
+    "22 CB 1A": {
+        "display_name": "Secure Can activation of authentication with PAS"
+    },
+    "22 CB 1B": {
+        "display_name": "Secure Can activation of authentication with BCM"
+    },
+    "22 CB 1C": {
+        "display_name": "Secure Can activation of authentication with VCU"
+    },
+    "22 D0 00": {
+        "display_name": "EVCC MAC"
+    },
+    "22 D0 01": {
+        "display_name": "EVCC Charge Mode"
+    },
+    "22 D0 02": {
+        "display_name": "EVCC CP Duty"
+    },
+    "22 D0 03": {
+        "display_name": "EVCC CP Voltage"
+    },
+    "22 D0 04": {
+        "display_name": "EVCC PP resistance"
+    },
+    "22 D0 05": {
+        "display_name": "EVCC DC ChargeProcess"
+    },
+    "22 D0 06": {
+        "display_name": "EVCC AC ChargeSts"
+    },
+    "22 D0 07": {
+        "display_name": "EVCC Run Code"
+    },
+    "22 DB 11": {
+        "display_name": "Check to see which Flash Memory Bank is currently Active"
+    },
+    "22 DD E0": {
+        "display_name": "Functional active status"
+    },
+    "22 DD EE": {
+        "display_name": "Functional fault status"
+    },
+    "22 DD F0": {
+        "display_name": "EPB status"
+    },
+    "22 E0 00": {
+        "display_name": "Signed Software Consistency Check LOG"
+    },
+    "22 E0 01": {
+        "display_name": "Secure Boot state安全启动状态"
+    },
+    "22 F0 FF": {
+        "display_name": "Check to see if ECU is currently in Bootloader or Application"
+    },
+    "22 F1 15": {
+        "display_name": "Coding SOTA String"
+    },
+    "22 F1 17": {
+        "display_name": "Remote configuration data"
+    },
+    "22 F1 1D": {
+        "display_name": "ECU Chassis backup CAN dbc file version"
+    },
+    "22 F1 2A": {
+        "display_name": "SGC internal SPI version"
+    },
+    "22 F1 5B": {
+        "display_name": "SW Version Commit ID"
+    },
+    "22 F1 81": {
+        "display_name": "MHU Factory mode status"
+    },
+    "22 F1 8A": {
+        "display_name": "System Supplier Identifier Data"
+    },
+    "22 F1 9A": {
+        "display_name": "ESIM Public APN"
+    },
+    "22 F1 9B": {
+        "display_name": "ESIM Private APN"
+    },
+    "22 F1 9D": {
+        "display_name": "LTE Firmware Info"
+    },
+    "22 F1 A0": {
+        "display_name": "IPS Boot Version"
+    },
+    "22 F1 A1": {
+        "display_name": "IPS Application Version"
+    },
+    "22 F1 A4": {
+        "display_name": "CDD Snapshot Data Read V phase Current"
+    },
+    "22 F1 A5": {
+        "display_name": "CDD Snapshot Data Read W phase Current"
+    },
+    "22 F1 A6": {
+        "display_name": "CDD Snapshot Data Read UDC Value"
+    },
+    "22 F1 A7": {
+        "display_name": "CDD Snapshot Data Read Arctan Value"
+    },
+    "22 F1 A8": {
+        "display_name": "Reset Manager History 0"
+    },
+    "22 F1 A9": {
+        "display_name": "Reset Manager History 1"
+    },
+    "22 F1 AA": {
+        "display_name": "Reset Manager History 2"
+    },
+    "22 F1 AB": {
+        "display_name": "Reset Manager History 3"
+    },
+    "22 F1 AC": {
+        "display_name": "Reset Manager History 4"
+    },
+    "22 F1 AD": {
+        "display_name": "Reset Manager History 5"
+    },
+    "22 F1 AE": {
+        "display_name": "Reset Manager History 6"
+    },
+    "22 F1 AF": {
+        "display_name": "Reset Manager History 7"
+    },
+    "22 F1 B0": {
+        "display_name": "Reset Manager History 8"
+    },
+    "22 F1 B1": {
+        "display_name": "Reset Manager History 9"
+    },
+    "22 F1 B2": {
+        "display_name": "Product Trace Information"
+    },
+    "22 F2 B2": {
+        "display_name": "XGW SW Version"
+    },
+    "22 F2 B3": {
+        "display_name": "VCU SW Version"
+    },
+    "22 F2 B4": {
+        "display_name": "EVCC SW Version"
+    },
+    "22 FA 03": {
+        "display_name": "EDR Identifier"
+    },
+    "22 FA 04": {
+        "display_name": "EDR Identifier"
+    },
+    "22 FA 05": {
+        "display_name": "EDR Identifier"
+    },
+    "22 FD 04": {
+        "display_name": "Stator temperature"
+    },
+    "22 FD 05": {
+        "display_name": "Phase current amplitude"
+    },
+    "22 FD 08": {
+        "display_name": "Firmware CRC Code"
+    },
+    "22 FD 0B": {
+        "display_name": "NFC Door SW Version"
+    },
+    "22 FD 0E": {
+        "display_name": "DKCU NBU SW Version"
+    },
+    "22 FD 11": {
+        "display_name": "bootSofwareNumberSupplierReference"
+    },
+    "22 FD 16": {
+        "display_name": "NFC-Door voltage"
+    },
+    "22 FD 18": {
+        "display_name": "DKCU BLE MAC"
+    },
+    "22 FD 19": {
+        "display_name": "DKCU BLE NAME"
+    },
+    "22 FD 25": {
+        "display_name": "NFC-Door HW Part Number"
+    },
+    "22 FD 2C": {
+        "display_name": "NFC-Door Serial Number DataIdentifier"
+    },
+    "22 FD 31": {
+        "display_name": "NFC-Door Manufacturing Date"
+    },
+    "22 FD 35": {
+        "display_name": "NFC-Door Work Mode"
+    },
+    "22 FD 45": {
+        "display_name": "NFC Door Boot Loader Version number"
+    },
+    "22 FD 55": {
+        "display_name": "NFC-Door SW Part Number"
+    },
+    "22 FD 65": {
+        "display_name": "NFC-Door Purchase Part Number"
+    },
+    "22 FD 75": {
+        "display_name": "NFC_Door HW Part Number Revision Level"
+    },
+    "22 FD 85": {
+        "display_name": "NFC_Door SW Part Number Revision Level"
+    },
+    "22 FD 95": {
+        "display_name": "NFC_Door Purchase Part Number Revision Level"
+    },
+    "22 FE 01": {
+        "display_name": "SAS Sensor Status"
+    },
+    "22 FE 02": {
+        "display_name": "EPS Advanced Status"
+    },
+    "22 FE 03": {
+        "display_name": "EPS LKA Status"
+    },
+    "2E 01 22": {
+        "display_name": "Limp Home Max Vehicle Speed Limit"
+    },
+    "2E 0C 11": {
+        "display_name": "Overwrite activation for Wait Response Limit"
+    },
+    "2E 10 23": {
+        "display_name": "Pack SOC"
+    },
+    "2E 10 24": {
+        "display_name": "Pack SOH"
+    },
+    "2E 10 25": {
+        "display_name": "Pack SOCE"
+    },
+    "2E 10 26": {
+        "display_name": "Main Positive Contactor Switch Counter1"
+    },
+    "2E 10 27": {
+        "display_name": "Main Negative Contactor Switch Counter1"
+    },
+    "2E 10 28": {
+        "display_name": "PreCharge Contactor Switch Counter1"
+    },
+    "2E 10 2B": {
+        "display_name": "Pack Barcode"
+    },
+    "2E 10 34": {
+        "display_name": "Battery pack accumulated charge Ah"
+    },
+    "2E 10 35": {
+        "display_name": "Battery pack accumulated discharg Ah"
+    },
+    "2E 10 44": {
+        "display_name": "Pre charge Contactor Switch Counter"
+    },
+    "2E 10 68": {
+        "display_name": "Date of manufacture pack"
+    },
+    "2E 10 69": {
+        "display_name": "Serial number of the pack"
+    },
+    "2E 10 70": {
+        "display_name": "QR code of pack"
+    },
+    "2E 10 71": {
+        "display_name": "Shunt Init Risistance *R(20℃)"
+    },
+    "2E 10 72": {
+        "display_name": "Shunt Coefficient A(T^3)"
+    },
+    "2E 10 73": {
+        "display_name": "Shunt Coefficient B(T^2)"
+    },
+    "2E 10 74": {
+        "display_name": "Shunt Coefficient C(T)"
+    },
+    "2E 10 75": {
+        "display_name": "Shunt Coefficient D"
+    },
+    "2E 10 95": {
+        "display_name": "KL30C Drop counter"
+    },
+    "2E 1A 01": {
+        "display_name": "Airbag Control Module working mode Data Identifier"
+    },
+    "2E 30 30": {
+        "display_name": "FillingInStatusDataIdentifier"
+    },
+    "2E C0 01": {
+        "display_name": "SecOC authentication Config"
+    },
+    "2E C0 02": {
+        "display_name": "Start Verification Time Config"
+    },
+    "2E C0 03": {
+        "display_name": "Synchronization Period Time Config"
+    },
+    "2E C0 04": {
+        "display_name": "Resend Time Config"
+    },
+    "2E C0 05": {
+        "display_name": "Transition Time Config"
+    },
+    "2E C0 06": {
+        "display_name": "Read and write the current trip counter Config"
+    },
+    "2E C0 07": {
+        "display_name": "Read the current reset counter"
+    },
+    "2E C0 08": {
+        "display_name": "number of consecutive fails"
+    },
+    "2E C0 10": {
+        "display_name": "LockStatus"
+    },
+    "2E C0 11": {
+        "display_name": "IMMO_SK_CVC"
+    },
+    "2E C0 15": {
+        "display_name": "Immo Key Re-Writing"
+    },
+    "2E C1 01": {
+        "display_name": "Enable/Disable SecureCAN authentication"
+    },
+    "2E C1 02": {
+        "display_name": "Overwrite value for interval between authentication requests"
+    },
+    "2E C1 03": {
+        "display_name": "Overwrite activation for Transmit Timeout Limit"
+    },
+    "2E C1 04": {
+        "display_name": "Overwrite value for Transmit Timeout Limit"
+    },
+    "2E C1 05": {
+        "display_name": "Overwrite activation for Transmit Wait for Seed Timeout Limit"
+    },
+    "2E C1 06": {
+        "display_name": "Overwrite value for Transmit Wait for Seed Timeout Limit"
+    },
+    "2E C1 07": {
+        "display_name": "Overwrite activation for Transmit Wait for Key Timeout Limit"
+    },
+    "2E C1 08": {
+        "display_name": "Overwrite value for Transmit Wait for Key Timeout Limit"
+    },
+    "2E C1 09": {
+        "display_name": "Overwrite activation for Receive Timeout Limit"
+    },
+    "2E C1 10": {
+        "display_name": "Overwrite value for Receive Timeout Limit"
+    },
+    "2E C1 11": {
+        "display_name": "Overwrite activation for Wait Response Limit"
+    },
+    "2E C1 12": {
+        "display_name": "Overwrite value for Wait Response Limit"
+    },
+    "2E C1 13": {
+        "display_name": "Overwrite activation for Receive Access Fail Limit"
+    },
+    "2E C1 14": {
+        "display_name": "Overwrite value for Receive Access Fail Limit"
+    },
+    "2E C1 15": {
+        "display_name": "Overwrite activation for Transmit Authentication Fail Limit"
+    },
+    "2E C1 16": {
+        "display_name": "Overwrite value for Transmit Authentication Fail Limit"
+    },
+    "2E CB 17": {
+        "display_name": "Secure Can activation of authentication with HUD"
+    },
+    "2E CB 18": {
+        "display_name": "Secure Can activation of authentication with ETG"
+    },
+    "2E CB 19": {
+        "display_name": "Secure Can activation of authentication with FCAM"
+    },
+    "2E CB 1A": {
+        "display_name": "Secure Can activation of authentication with PAS"
+    },
+    "2E CB 1B": {
+        "display_name": "Secure Can activation of authentication with BCM"
+    },
+    "2E CB 1C": {
+        "display_name": "Secure Can activation of authentication with VCU"
+    },
+    "2E D0 00": {
+        "display_name": "EVCC MAC"
+    },
+    "2E F1 03": {
+        "display_name": "ECU Purchase Part Number"
+    },
+    "2E F1 07": {
+        "display_name": "Programming Fingerprint"
+    },
+    "2E F1 0F": {
+        "display_name": "Service Date"
+    },
+    "2E F1 15": {
+        "display_name": "Coding SOTA String"
+    },
+    "2E F1 41": {
+        "display_name": "Vehicle Manufacturer ECU Hardware Part Number Revision Level"
+    },
+    "2E F1 43": {
+        "display_name": "Vehicle Manufacturer ECU Purchase Part Number Revision Level"
+    },
+    "2E F1 51": {
+        "display_name": "TBOX SIM type"
+    },
+    "2E F1 53": {
+        "display_name": "Calibration TripInfo"
+    },
+    "2E F1 5F": {
+        "display_name": "MHU LTE connection switch"
+    },
+    "2E F1 60": {
+        "display_name": "HV ON during FOTA permission"
+    },
+    "2E F1 8C": {
+        "display_name": "ECU Serial Number DataIdentifier"
+    },
+    "2E F1 91": {
+        "display_name": "Vehicle Manufacturer ECU Hardware Number Data Identifier"
+    },
+    "2E F1 9A": {
+        "display_name": "ESIM Public APN"
+    },
+    "2E F1 9B": {
+        "display_name": "ESIM Private APN"
+    },
+    "31 01 01 00": {
+        "display_name": "Angle Calibration"
+    },
+    "31 01 02 25": {
+        "display_name": "Validate of signed software PUBLIC key"
+    },
+    "31 01 02 26": {
+        "display_name": "Replace/Changing of signed software PUBLIC key"
+    },
+    "31 01 02 27": {
+        "display_name": "Validate of Secure CAN Communication key"
+    },
+    "31 01 02 28": {
+        "display_name": "Replace/Changing Secure CAN Communication Key"
+    },
+    "31 01 02 29": {
+        "display_name": "Validate of Vehicle Software Update PUBLIC key"
+    },
+    "31 01 02 30": {
+        "display_name": "Replace/Changing of Vehicle Software Update PUBLIC key"
+    },
+    "31 01 02 33": {
+        "display_name": "Replace/ Changing Secure Diagnostics Keys at Bootloader"
+    },
+    "31 01 02 35": {
+        "display_name": "Replace/ Changing Lifecycle at Bootloader"
+    },
+    "31 01 02 37": {
+        "display_name": "Validate of SecOC key"
+    },
+    "31 01 02 38": {
+        "display_name": "Replace/Changing SecOC Key"
+    },
+    "31 01 02 43": {
+        "display_name": "Erase the bonded data"
+    },
+    "31 01 03 28": {
+        "display_name": "Request MHU android Factory mode"
+    },
+    "31 01 03 29": {
+        "display_name": "Check SPI Communication"
+    },
+    "31 01 03 30": {
+        "display_name": "Check UART Communication"
+    },
+    "31 01 03 32": {
+        "display_name": "Switch USB type A or C"
+    },
+    "31 01 04 24": {
+        "display_name": "Validate credential by challenge"
+    },
+    "31 01 04 25": {
+        "display_name": "Validate data encryption key by challenge"
+    },
+    "31 01 04 26": {
+        "display_name": "Verify repogramming keyset"
+    },
+    "31 01 04 27": {
+        "display_name": "Confirm credential"
+    },
+    "31 01 04 2E": {
+        "display_name": "Verify connectivity"
+    },
+    "31 01 04 35": {
+        "display_name": "Get TBOX challenge code"
+    },
+    "31 01 04 36": {
+        "display_name": "Clear TBOX provision data advance"
+    },
+    "31 01 04 38": {
+        "display_name": "Get TBOX challenge code 2"
+    },
+    "31 01 11 00": {
+        "display_name": "Left Park Brake Actuator Release 左卡钳释放"
+    },
+    "31 01 11 01": {
+        "display_name": "Right Park Brake Actuator Release 右卡钳释放"
+    },
+    "31 01 11 02": {
+        "display_name": "Release Electric Park Brake 两侧卡钳释放"
+    },
+    "31 01 11 03": {
+        "display_name": "Apply Left Park Brake Actuator 左卡钳夹紧"
+    },
+    "31 01 11 04": {
+        "display_name": "Apply Right Park Brake Actuator 右卡钳夹紧"
+    },
+    "31 01 11 05": {
+        "display_name": "Apply Electrical Parking Brake 两侧卡钳夹紧"
+    },
+    "31 01 11 06": {
+        "display_name": "AssemblyCheck 装配检查"
+    },
+    "31 01 11 07": {
+        "display_name": "EnterMaintenance Mode 进入维修模式"
+    },
+    "31 01 11 08": {
+        "display_name": "ExitMaintenance Mode 退出维修模式"
+    },
+    "31 01 11 17": {
+        "display_name": "Disable ESC function 禁止ESC功能"
+    },
+    "31 01 11 18": {
+        "display_name": "Disable TCS function 禁止TCS功能"
+    },
+    "31 01 21 00": {
+        "display_name": "ISOMeaurementRequest"
+    },
+    "31 01 21 01": {
+        "display_name": "ManuallySOCCorrectionByOCV"
+    },
+    "31 01 21 02": {
+        "display_name": "CellBanlancingControlRequest"
+    },
+    "31 01 22 31": {
+        "display_name": "ActivatePrechargeContactorInService"
+    },
+    "31 01 22 32": {
+        "display_name": "ActivateNegativeContactorInService"
+    },
+    "31 01 22 33": {
+        "display_name": "ActivatePositiveContactorInService"
+    },
+    "31 01 22 35": {
+        "display_name": "ResetErrorLevel7"
+    },
+    "31 01 F1 00": {
+        "display_name": "Evac and Fill"
+    },
+    "31 01 F1 10": {
+        "display_name": "iTPMS Reset"
+    },
+    "31 01 F2 00": {
+        "display_name": "Repair Bleed"
+    },
+    "31 01 F3 00": {
+        "display_name": "DVT"
+    },
+    "31 01 FF 02": {
+        "display_name": "performRollback"
+    },
+    "31 02 01 00": {
+        "display_name": "Angle Calibration"
+    },
+    "31 02 02 04": {
+        "display_name": "UpdateIPSFirmware"
+    },
+    "31 02 02 25": {
+        "display_name": "Validate of signed software PUBLIC key"
+    },
+    "31 02 02 26": {
+        "display_name": "Replace/Changing of signed software PUBLIC key"
+    },
+    "31 02 02 27": {
+        "display_name": "Validate of Secure CAN Communication key"
+    },
+    "31 02 02 28": {
+        "display_name": "Replace/Changing Secure CAN Communication Key"
+    },
+    "31 02 02 29": {
+        "display_name": "Validate of Vehicle Software Update PUBLIC key"
+    },
+    "31 02 02 30": {
+        "display_name": "Replace/Changing of Vehicle Software Update PUBLIC key"
+    },
+    "31 02 02 33": {
+        "display_name": "Replace/ Changing Secure Diagnostics Keys at Bootloader"
+    },
+    "31 02 02 35": {
+        "display_name": "Replace/ Changing Lifecycle at Bootloader"
+    },
+    "31 02 F1 00": {
+        "display_name": "Evac and Fill"
+    },
+    "31 02 F2 00": {
+        "display_name": "Repair Bleed"
+    },
+    "31 02 F3 00": {
+        "display_name": "DVT"
+    },
+    "31 02 FF 02": {
+        "display_name": "performRollback"
+    },
+    "31 03 01 00": {
+        "display_name": "Angle Calibration"
+    },
+    "31 03 02 04": {
+        "display_name": "UpdateIPSFirmware"
+    },
+    "31 03 02 25": {
+        "display_name": "Validate of signed software PUBLIC key"
+    },
+    "31 03 02 26": {
+        "display_name": "Replace/Changing of signed software PUBLIC key"
+    },
+    "31 03 02 27": {
+        "display_name": "Validate of Secure CAN Communication key"
+    },
+    "31 03 02 28": {
+        "display_name": "Replace/Changing Secure CAN Communication Key"
+    },
+    "31 03 02 29": {
+        "display_name": "Validate of Vehicle Software Update PUBLIC key"
+    },
+    "31 03 02 30": {
+        "display_name": "Replace/Changing of Vehicle Software Update PUBLIC key"
+    },
+    "31 03 02 33": {
+        "display_name": "Replace/ Changing Secure Diagnostics Keys at Bootloader"
+    },
+    "31 03 02 35": {
+        "display_name": "Replace/ Changing Lifecycle at Bootloader"
+    },
+    "31 03 F1 00": {
+        "display_name": "Evac and Fill"
+    },
+    "31 03 F1 10": {
+        "display_name": "iTPMS Reset"
+    },
+    "31 03 F2 00": {
+        "display_name": "Repair Bleed"
+    },
+    "31 03 F3 00": {
+        "display_name": "DVT"
+    },
+    "31 03 FF 02": {
+        "display_name": "performRollback"
     }
 }

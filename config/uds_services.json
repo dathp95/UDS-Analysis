@@ -12,7 +12,7 @@
         "11": {
             "name": "ECUReset",
             "positive_sid": "51",
-            "match": "none"
+            "match": "sub"
         },
         "14": {
             "name": "CLEAR DIAG",
@@ -47,7 +47,7 @@
         "2F": {
             "name": "IOControl",
             "positive_sid": "6F",
-            "match": "sub"
+            "match": "did"
         },
         "31": {
             "name": "Routine",
