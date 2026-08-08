@@ -10,6 +10,7 @@ from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
+from core.config_loader import validate_display_name_rules
 
 
 class ImportDisplayNamesDialog(QDialog):
@@ -65,7 +66,9 @@ class ImportDisplayNamesDialog(QDialog):
 
     def _on_import_clicked(self):
         try:
-            self.fn_rules()
+            validate_display_name_rules(
+                self.fn_rules()
+            )
         except ValueError as error:
             QMessageBox.warning(self, "Import Display Name", str(error))
             return

@@ -167,6 +167,28 @@ def import_display_name_rules(
     else:
         current = {}
 
+    normalized_current = _parse_display_name_rules(
+        rules_text,
+        current,
+    )
+
+    _write_display_names(normalized_current, destination_path)
+    return normalized_current
+
+
+def validate_display_name_rules(rules_text):
+    """Validate display-name rules without writing configuration."""
+
+    _parse_display_name_rules(
+        rules_text,
+        {},
+    )
+
+
+def _parse_display_name_rules(
+    rules_text,
+    current,
+):
     if len(rules_text.encode("utf-8")) > MAX_DISPLAY_NAMES_FILE_SIZE:
         raise ValueError("Display-name rules are too large (maximum is 10 MB).")
 
@@ -211,7 +233,6 @@ def import_display_name_rules(
     if rule_count == 0:
         raise ValueError("Please enter at least one display-name rule.")
 
-    _write_display_names(normalized_current, destination_path)
     return normalized_current
 
 

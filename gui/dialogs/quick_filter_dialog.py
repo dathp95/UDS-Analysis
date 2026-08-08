@@ -19,7 +19,9 @@ from gui.widgets.controls.primary_label import (
 from gui.widgets.controls.primary_lineedit import (
     PrimaryLineEdit
 )
+from gui.utils.payload_format import delete_payload_character_at_cursor
 from gui.utils.payload_format import format_payload_input
+from gui.utils.payload_format import format_payload_input_with_cursor
 
 class QuickFilterDialog(QDialog):
 
@@ -183,6 +185,22 @@ class QuickFilterDialog(QDialog):
 
     def eventFilter(self, watched, event):
         if watched in self.fields.values() and event.type() == QEvent.KeyPress:
+            if (
+                    watched in (self.fields["request"], self.fields["response"])
+                    and event.key() == Qt.Key_Delete
+                    and not watched.hasSelectedText()
+                ):
+                formatted, cursor = delete_payload_character_at_cursor(
+                    watched.text(),
+                    watched.cursorPosition(),
+                )
+                if formatted != watched.text():
+                    watched.blockSignals(True)
+                    watched.setText(formatted)
+                    watched.setCursorPosition(cursor)
+                    watched.blockSignals(False)
+                    return True
+
             if event.key() in (Qt.Key_Return, Qt.Key_Enter):
                 self._on_enter_pressed()
                 return True
@@ -195,13 +213,15 @@ class QuickFilterDialog(QDialog):
         self._format_payload_field("response", value)
 
     def _format_payload_field(self, field_name, value):
-        formatted = format_payload_input(value)
+        field = self.fields[field_name]
+        formatted, cursor = format_payload_input_with_cursor(
+            value,
+            field.cursorPosition(),
+        )
         if formatted != value:
-            field = self.fields[field_name]
-            cursor = field.cursorPosition()
             field.blockSignals(True)
             field.setText(formatted)
-            field.setCursorPosition(min(len(formatted), cursor + 1))
+            field.setCursorPosition(cursor)
             field.blockSignals(False)
     
     
@@ -277,6 +297,3 @@ class QuickFilterDialog(QDialog):
         self.fn_set_data(
             self.quick_filter
         )
-
-        
-    

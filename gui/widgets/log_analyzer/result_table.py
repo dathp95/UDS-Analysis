@@ -318,6 +318,9 @@ class ResultTable(PrimaryTable):
 
             )
     
+        self.clearSelection()
+        self.setCurrentCell(-1, -1)
+    
     def fn_refresh_theme(self):
 
         super().fn_refresh_theme()

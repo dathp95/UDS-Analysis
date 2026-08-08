@@ -246,6 +246,23 @@ class VehicleSelectorWidgetTests(unittest.TestCase):
         self.assertIsInstance(ecu_dialog.btn_cancel, CancelButton)
         self.assertIsInstance(display_dialog.btn_cancel, CancelButton)
 
+    def test_display_rules_dialog_keeps_input_after_invalid_import(self):
+        dialog = ImportDisplayNamesDialog()
+        self.addCleanup(dialog.deleteLater)
+        dialog.txt_rules.setPlainText("22 F1 GG|Broken")
+
+        with patch(
+            "gui.dialogs.import_display_names_dialog.QMessageBox.warning"
+        ) as warning:
+            dialog._on_import_clicked()
+
+        warning.assert_called_once()
+        self.assertEqual(dialog.result(), 0)
+        self.assertEqual(
+            dialog.txt_rules.toPlainText(),
+            "22 F1 GG|Broken",
+        )
+
 
 class LogAnalyzerTabTests(unittest.TestCase):
 

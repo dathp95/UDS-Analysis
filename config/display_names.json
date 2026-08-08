@@ -1,12 +1,12 @@
 {
     "10 01": {
-        "display_name": "End Diagnostic Session"
+        "display_name": "End Diagnostic"
     },
     "10 02": {
         "display_name": "Programming Session"
     },
     "10 03": {
-        "display_name": "Start Diagnostic Session"
+        "display_name": "Start Diagnostic"
     },
     "27 01": {
         "display_name": "Perform Security Access -Request Seed Level 1"

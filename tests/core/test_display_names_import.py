@@ -8,6 +8,7 @@ from core.config_loader import (
     MAX_DISPLAY_NAMES_FILE_SIZE,
     import_display_names,
     import_display_name_rules,
+    validate_display_name_rules,
 )
 from core import uds_lookup
 
@@ -139,6 +140,18 @@ class DisplayNamesImportTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             import_display_name_rules("22 F1 GG | Broken", destination)
+
+        self.assertEqual(
+            json.loads(destination.read_text(encoding="utf-8")),
+            {"22 F1 20": {"display_name": "Keep"}},
+        )
+
+    def test_validate_display_name_rules_does_not_write_destination(self):
+        destination = self._write_json(
+            {"22 F1 20": {"display_name": "Keep"}}
+        )
+
+        validate_display_name_rules("22 F1 22|Vehicle Voltage")
 
         self.assertEqual(
             json.loads(destination.read_text(encoding="utf-8")),

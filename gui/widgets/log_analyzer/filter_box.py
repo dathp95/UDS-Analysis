@@ -1,17 +1,15 @@
-
 from PySide6.QtWidgets import (
     QWidget,
-    QLineEdit,
     QLabel,
     QVBoxLayout,
     QHBoxLayout
 )
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
-from gui.utils.payload_format import format_payload_input
-
+from gui.utils.payload_format import delete_payload_character_at_cursor
+from gui.utils.payload_format import format_payload_input_with_cursor
 
 
 class FilterBox(QWidget):
@@ -30,6 +28,7 @@ class FilterBox(QWidget):
 
         self._setup_ui()
         self._connect_signals()
+        self.edit_filter.installEventFilter(self)
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -52,13 +51,36 @@ class FilterBox(QWidget):
         self.edit_filter.textChanged.connect(self.filter_changed.emit)
 
     def _format_payload(self, value):
-        formatted = format_payload_input(value)
+        formatted, cursor = format_payload_input_with_cursor(
+            value,
+            self.edit_filter.cursorPosition(),
+        )
         if formatted != value:
-            cursor = self.edit_filter.cursorPosition()
             self.edit_filter.blockSignals(True)
             self.edit_filter.setText(formatted)
-            self.edit_filter.setCursorPosition(min(len(formatted), cursor + 1))
+            self.edit_filter.setCursorPosition(cursor)
             self.edit_filter.blockSignals(False)
+
+    def eventFilter(self, watched, event):
+        if (
+                watched is self.edit_filter
+                and event.type() == QEvent.KeyPress
+                and event.key() == Qt.Key_Delete
+                and not self.edit_filter.hasSelectedText()
+            ):
+            formatted, cursor = delete_payload_character_at_cursor(
+                self.edit_filter.text(),
+                self.edit_filter.cursorPosition(),
+            )
+            if formatted != self.edit_filter.text():
+                self.edit_filter.blockSignals(True)
+                self.edit_filter.setText(formatted)
+                self.edit_filter.setCursorPosition(cursor)
+                self.edit_filter.blockSignals(False)
+                self.filter_changed.emit(formatted)
+                return True
+
+        return super().eventFilter(watched, event)
         
 
     # ==========================
@@ -88,6 +110,3 @@ class FilterBox(QWidget):
     def fn_refresh_theme(self):
 
         self.edit_filter.fn_refresh_theme()
-            
-        
-    
