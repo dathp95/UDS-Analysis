@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 
+from gui.tabs.coding_value_tab import CodingValueTab
 from gui.tabs.log_analyzer_tab import LogAnalyzerTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
@@ -63,11 +64,16 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
 
         self.log_analyzer_tab = LogAnalyzerTab()
+        self.coding_value_tab = CodingValueTab()
         self.vehicle_manager_tab = VehicleManagerTab()
 
         self.tabs.addTab(
             self.log_analyzer_tab,
             "Log Analyzer",
+        )
+        self.tabs.addTab(
+            self.coding_value_tab,
+            "Coding value",
         )
         self.tabs.addTab(
             self.vehicle_manager_tab,
@@ -85,9 +91,10 @@ class MainWindow(QMainWindow):
 
         self.log_analyzer_tab.fn_refresh_theme()
 
+        self.coding_value_tab.fn_refresh_theme()
+
         if hasattr(
             self.vehicle_manager_tab,
             "fn_refresh_theme",
         ):
             self.vehicle_manager_tab.fn_refresh_theme()
-
