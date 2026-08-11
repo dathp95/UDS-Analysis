@@ -22,6 +22,12 @@ class CodingValueTabTests(unittest.TestCase):
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
+    def test_file_path_starts_empty(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        self.assertEqual(panel.file_path.text(), "")
+
     def test_import_coding_excel_renders_table_with_decoded_combobox(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1016,12 +1022,4 @@ class CodingValueTabTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-
-
-
-
-
-
 

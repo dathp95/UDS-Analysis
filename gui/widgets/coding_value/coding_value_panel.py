@@ -29,7 +29,6 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 
 DEFAULT_CODING_DIR = Path("config/Coding")
-DEFAULT_CODING_FILE = DEFAULT_CODING_DIR / "MHU CDS Coding.xlsx"
 
 
 class CodingValuePanel(QGroupBox):
@@ -58,9 +57,6 @@ class CodingValuePanel(QGroupBox):
 
         self.file_path = PrimaryLineEdit(
             placeholder="Select coding Excel file"
-        )
-        self.file_path.setText(
-            str(DEFAULT_CODING_FILE)
         )
         self.btn_browse = PrimaryButton(
             "Browse",
@@ -702,5 +698,4 @@ class CodingValuePanel(QGroupBox):
         fn_apply_scrollbar_style(
             self.txt_working_log
         )
-
 
