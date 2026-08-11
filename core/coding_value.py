@@ -24,7 +24,7 @@ class CodingValueRow:
 
 
 _OPTION_PATTERN = re.compile(
-    r"(?P<raw>0x[0-9A-Fa-f]+)\s*=\s*(?P<label>[^\n\r]+)"
+    r"(?P<raw>0x[0-9A-Fa-f]+)\s*[=:]\s*(?P<label>[^\n\r]+)"
 )
 
 
@@ -73,11 +73,9 @@ def _load_parameter_table_rows(
     if header_index is None:
         return []
 
-    headers = {
-        _normalize_header(value): index
-        for index, value in enumerate(sheet_values[header_index])
-        if value is not None
-    }
+    headers = _parameter_table_headers(
+        sheet_values[header_index]
+    )
     parameter_col = headers.get("parameter")
     byte_col = headers.get("bytepos") or headers.get("byteposfrom0")
     bit_col = headers.get("bitpos")
@@ -179,6 +177,37 @@ def _build_row(
         decoded_options=options,
     )
 
+
+def _parameter_table_headers(header_row: list[Any]) -> dict[str, int]:
+    if _has_required_dollar_headers(header_row):
+        return {
+            _normalize_header(str(value).strip().lstrip("$")): index
+            for index, value in enumerate(header_row)
+            if isinstance(value, str) and value.strip().startswith("$")
+        }
+
+    return {
+        _normalize_header(value): index
+        for index, value in enumerate(header_row)
+        if value is not None
+    }
+
+
+def _has_required_dollar_headers(header_row: list[Any]) -> bool:
+    dollar_headers = {
+        _normalize_header(str(value).strip().lstrip("$"))
+        for value in header_row
+        if isinstance(value, str) and value.strip().startswith("$")
+    }
+    return (
+        "parameter" in dollar_headers
+        and (
+            "bytepos" in dollar_headers
+            or "byteposfrom0" in dollar_headers
+        )
+        and "bitpos" in dollar_headers
+        and "bitlength" in dollar_headers
+    )
 
 def _find_parameter_header_row(sheet_values: list[list[Any]]) -> int | None:
     for index, row in enumerate(sheet_values):

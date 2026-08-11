@@ -1,4 +1,4 @@
-import os
+﻿import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -657,6 +657,59 @@ class CodingValueTabTests(unittest.TestCase):
             self.assertEqual(exported_sheet.cell(row=2, column=5).value, "03")
             self.assertEqual(exported_sheet.cell(row=2, column=6).value, "VF3")
             self.assertEqual(exported_sheet.cell(row=2, column=9).value, "MATCH")
+    def test_export_button_highlights_no_match_rows_with_warning_fill(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            13,
+            0,
+            8,
+            "0x03=VF3\n0x09=VF7NP",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            coding_path = Path(tmpdir) / "coding.xlsx"
+            report_root = Path(tmpdir) / "report"
+            workbook.save(coding_path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(coding_path))
+            panel.txt_coding_value.setPlainText(
+                "62 F1 08 00 37 4A 39 39 39 37 34 31 26 03"
+            )
+            panel.import_coding_value()
+            panel.encode_coding_payload()
+            panel.table.cellWidget(0, 5).setCurrentIndex(
+                panel.table.cellWidget(0, 5).findText("VF7NP")
+            )
+            panel.check_coding_value()
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.REPORT_DIR",
+                report_root,
+            ), patch(
+                "gui.widgets.coding_value.coding_value_panel.QMessageBox.information"
+            ) as information:
+                panel.btn_export.click()
+
+            exported_path = Path(information.call_args.args[2].split("\n\n")[1])
+            exported = load_workbook(exported_path)
+            exported_sheet = exported["Coding value_62 F1 08"]
+            warning = ThemeManager.fn_colors().WARNING.replace("#", "").upper()
+
+            self.assertEqual(exported_sheet.cell(row=2, column=9).value, "No-M")
+            for cell in exported_sheet[2]:
+                self.assertEqual(cell.fill.fill_type, "solid")
+                self.assertTrue(cell.fill.fgColor.rgb.upper().endswith(warning))
     def test_table_clear_button_clears_table_and_working_log(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -963,6 +1016,7 @@ class CodingValueTabTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

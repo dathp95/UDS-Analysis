@@ -68,5 +68,15 @@
             "request": "22 F1 08",
             "response": ""
         }
+    },
+    {
+        "id": 10,
+        "name": "MHU 22 f1 12",
+        "enabled": true,
+        "filters": {
+            "ecu": "MHU",
+            "request": "22 F1 12",
+            "response": ""
+        }
     }
 ]

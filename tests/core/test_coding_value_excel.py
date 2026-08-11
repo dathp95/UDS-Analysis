@@ -85,6 +85,48 @@ class CodingValueExcelTests(unittest.TestCase):
         self.assertEqual(rows[0].raw_value, "0xFF")
         self.assertEqual(rows[0].decoded_value, "Invalid")
 
+    def test_prefers_dollar_prefixed_parameter_table_columns(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "$Parameter",
+            "$BytePos (from 0)",
+            "$BitPos",
+            "$BitLength",
+            "$MethodType",
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            3,
+            0,
+            8,
+            "0xFF=Invalid",
+            "Wrong Parameter",
+            0,
+            0,
+            8,
+            "0x62=Wrong",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            rows = load_coding_value_rows(
+                path,
+                "62 F1 12 FF",
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].parameter, "Vehicle Name")
+        self.assertEqual(rows[0].byte_pos, "3")
+        self.assertEqual(rows[0].raw_value, "0xFF")
+        self.assertEqual(rows[0].decoded_value, "Invalid")
     def test_method_type_multiline_values_become_individual_options(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -136,6 +178,47 @@ class CodingValueExcelTests(unittest.TestCase):
             ],
         )
 
+    def test_method_type_accepts_colon_separator(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "$Parameter",
+            "$BytePos (from 0)",
+            "$BitPos",
+            "$BitLength",
+            "$MethodType",
+        ])
+        sheet.append([
+            "Body Color",
+            14,
+            0,
+            8,
+            "0x0: Unsupported (NA)\n"
+            "0x1: Brahminy White\n"
+            "0x2: De Sat Silver\n"
+            "0x3: Neptune Grey",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            rows = load_coding_value_rows(
+                path,
+                "00 " * 14 + "02",
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].decoded_value, "De Sat Silver")
+        self.assertEqual(
+            [option.label for option in rows[0].decoded_options],
+            [
+                "Unsupported (NA)",
+                "Brahminy White",
+                "De Sat Silver",
+                "Neptune Grey",
+            ],
+        )
     def test_bit_length_text_is_parsed_for_bit_field_decode(self):
         workbook = Workbook()
         sheet = workbook.active

@@ -1,9 +1,10 @@
-from datetime import datetime
+﻿from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from openpyxl import Workbook
+from openpyxl.styles import PatternFill
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from config.paths import REPORT_DIR
 from core.coding_value import load_coding_value_rows
+from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
@@ -387,18 +389,45 @@ class CodingValuePanel(QGroupBox):
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = self._coding_export_sheet_name()
-        sheet.append(self._coding_table_headers())
+        headers = self._coding_table_headers()
+        sheet.append(headers)
+        result_index = self._coding_result_column_index(headers)
         for row_index in range(self.table.rowCount()):
             if self.table.isRowHidden(row_index):
                 continue
 
-            sheet.append(
-                self._coding_table_row_values(row_index)
-            )
+            values = self._coding_table_row_values(row_index)
+            sheet.append(values)
+            if self._is_no_match_export_row(values, result_index):
+                self._apply_no_match_export_fill(sheet[sheet.max_row])
 
         workbook.save(output_file)
         return output_file
 
+    @staticmethod
+    def _coding_result_column_index(headers):
+        try:
+            return headers.index("Result")
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _is_no_match_export_row(values, result_index):
+        return (
+            result_index is not None
+            and result_index < len(values)
+            and values[result_index] == "No-M"
+        )
+
+    @staticmethod
+    def _apply_no_match_export_fill(row_cells):
+        warning = ThemeManager.fn_colors().WARNING.replace("#", "")
+        fill = PatternFill(
+            fill_type="solid",
+            fgColor=warning,
+        )
+        for cell in row_cells:
+            cell.fill = fill
     def _coding_export_sheet_name(self):
         return self._safe_excel_sheet_name(
             f"Coding value_{self._coding_export_identifier()}"
@@ -673,4 +702,5 @@ class CodingValuePanel(QGroupBox):
         fn_apply_scrollbar_style(
             self.txt_working_log
         )
+
 
