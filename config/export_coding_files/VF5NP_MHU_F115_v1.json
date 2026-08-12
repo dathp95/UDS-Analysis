@@ -1,0 +1,574 @@
+{
+    "source_file": "VF5NP_MHU_F115_v1.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF5NP_MHU_F115_v1.xlsx",
+    "rows": [
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Vivi Voice Assitance",
+            "byte_pos": "10",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Web Browser",
+            "byte_pos": "10",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Weather",
+            "byte_pos": "11",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Radio",
+            "byte_pos": "11",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Remote Control",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Android Auto & CarPlay (AACP)",
+            "byte_pos": "12",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "FOTA",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "SOTA",
+            "byte_pos": "13",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Camp Mode",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Auto AC",
+            "byte_pos": "14",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Air Ionizer",
+            "byte_pos": "15",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Sync AC",
+            "byte_pos": "15",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: AutoTilt",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: Foldstate",
+            "byte_pos": "16",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: AutoFold",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: Adjustment",
+            "byte_pos": "17",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Rear parking assist",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Surround View Monitoring",
+            "byte_pos": "18",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "RVC (Rear View Camera)",
+            "byte_pos": "19",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Basic Cruise Control & Speed limiter (L0)",
+            "byte_pos": "19",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "AC Charge Scheduling",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Autohold",
+            "byte_pos": "20",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "ESC",
+            "byte_pos": "21",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Phone as a Key ( NFC & BLE)",
+            "byte_pos": "21",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "Speed Limit",
+            "byte_pos": "22",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Invalid"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Disable"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Enable"
+                }
+            ]
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "128",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        }
+    ]
+}

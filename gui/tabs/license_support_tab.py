@@ -31,7 +31,7 @@ class LicenseSupportTab(QWidget):
         self.title_label.setAlignment(Qt.AlignLeft)
 
         self.description_label = QLabel(
-            "If this tool is useful for your work, you can support its continued development."
+            "☕ Enjoying the tool? Buy me a coffee!"
         )
         self.description_label.setWordWrap(True)
 

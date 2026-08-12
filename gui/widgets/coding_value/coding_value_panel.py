@@ -378,6 +378,7 @@ class CodingValuePanel(QGroupBox):
         self._set_coding_rows(
             load_coding_value_rows_from_json(json_path)
         )
+        self.file_path.clear()
 
     def filter_parameter_table(self):
         self.table.filter_by_parameter(

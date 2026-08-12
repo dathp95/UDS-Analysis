@@ -1,0 +1,1860 @@
+{
+    "source_file": "VF5NP_SGC_F108.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF5NP_SGC_F108.xlsx",
+    "rows": [
+        {
+            "parameter": "Format Byte",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "16",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "5",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Model Year",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Vehicle Name",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VF3"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "VFe34"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "VF5NP"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "VF6NP"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "VF7NP"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "VF8NP"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "VF9NP"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Minio Green"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Herio Green"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Nerio Green"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Limo Green"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Lac Hong 900"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "VF Limo"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Xpress Max"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Xpress Truck"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Spress Store"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "Xpress Tour"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle Variant",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Comfort"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Premium"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Earth"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Wind"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Sky"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "HerioGreen"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Market",
+            "byte_pos": "15",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "NA"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Vietnam"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "ASEAN"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "USA"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Europe"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "ASIA"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "The Gulf Cooperation Council countries"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Israel"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "United_Kingdom"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Australia"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Thailand"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Singapore"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Indonesia"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Malaysia"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Lao"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Cambodia"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "India"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "Commonwealth of Independent States_CIS"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "Middle East"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "Africa"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Sale area",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VN"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "US"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Europe"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Canada"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Germany"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "France"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Netherland"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Australia"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Thailand"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Singapore"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Israel"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Malaysia"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Indonesia"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Lao"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Cambodia"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "Phillipines"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "Myanmar"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "Nepal"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "Turkey"
+                },
+                {
+                    "raw_value": "0x15",
+                    "label": "Lebanon"
+                },
+                {
+                    "raw_value": "0x16",
+                    "label": "Nigeria"
+                },
+                {
+                    "raw_value": "0x17",
+                    "label": "India"
+                },
+                {
+                    "raw_value": "0x18",
+                    "label": "Mexico"
+                },
+                {
+                    "raw_value": "0x19",
+                    "label": "Asia"
+                },
+                {
+                    "raw_value": "0x21",
+                    "label": "Middle East"
+                },
+                {
+                    "raw_value": "0x22",
+                    "label": "Italy"
+                },
+                {
+                    "raw_value": "0x23",
+                    "label": "Spain"
+                },
+                {
+                    "raw_value": "0x24",
+                    "label": "Belgium"
+                },
+                {
+                    "raw_value": "0x25",
+                    "label": "Austria"
+                },
+                {
+                    "raw_value": "0x26",
+                    "label": "Poland"
+                },
+                {
+                    "raw_value": "0x27",
+                    "label": "Sweden"
+                },
+                {
+                    "raw_value": "0x28",
+                    "label": "Switzerland"
+                },
+                {
+                    "raw_value": "0x29",
+                    "label": "Romania"
+                },
+                {
+                    "raw_value": "0x2A",
+                    "label": "Greece"
+                },
+                {
+                    "raw_value": "0x2B",
+                    "label": "Mongolia"
+                },
+                {
+                    "raw_value": "0x2C",
+                    "label": "Hong kong"
+                },
+                {
+                    "raw_value": "0x2D",
+                    "label": "Bhutan"
+                },
+                {
+                    "raw_value": "0x2E",
+                    "label": "Sri Lanka"
+                },
+                {
+                    "raw_value": "0x2F",
+                    "label": "Pakistan"
+                },
+                {
+                    "raw_value": "0x30",
+                    "label": "Taiwan"
+                },
+                {
+                    "raw_value": "0x31",
+                    "label": "Palestine"
+                },
+                {
+                    "raw_value": "0x32",
+                    "label": "Bangladesh"
+                },
+                {
+                    "raw_value": "0x33",
+                    "label": "Brazil"
+                },
+                {
+                    "raw_value": "0x34",
+                    "label": "Chile"
+                },
+                {
+                    "raw_value": "0x35",
+                    "label": "Dominica"
+                },
+                {
+                    "raw_value": "0x36",
+                    "label": "Panama"
+                },
+                {
+                    "raw_value": "0x37",
+                    "label": "Colombia"
+                },
+                {
+                    "raw_value": "0x38",
+                    "label": "Peru"
+                },
+                {
+                    "raw_value": "0x39",
+                    "label": "Costa Rica"
+                },
+                {
+                    "raw_value": "0x3A",
+                    "label": "Saudi Arabia"
+                },
+                {
+                    "raw_value": "0x3B",
+                    "label": "UAE"
+                },
+                {
+                    "raw_value": "0x3C",
+                    "label": "Oman"
+                },
+                {
+                    "raw_value": "0x3D",
+                    "label": "Kuwait"
+                },
+                {
+                    "raw_value": "0x3E",
+                    "label": "Qatar"
+                },
+                {
+                    "raw_value": "0x3F",
+                    "label": "Bahrain"
+                },
+                {
+                    "raw_value": "0x40",
+                    "label": "Jordan"
+                },
+                {
+                    "raw_value": "0x41",
+                    "label": "United Kingdom"
+                },
+                {
+                    "raw_value": "0x42",
+                    "label": "Ireland"
+                },
+                {
+                    "raw_value": "0x43",
+                    "label": "Norway- Na uy"
+                },
+                {
+                    "raw_value": "0x44",
+                    "label": "Denmark"
+                },
+                {
+                    "raw_value": "0x45",
+                    "label": "Finland"
+                },
+                {
+                    "raw_value": "0x46",
+                    "label": "Czech Republic"
+                },
+                {
+                    "raw_value": "0x47",
+                    "label": "Hungary"
+                },
+                {
+                    "raw_value": "0x48",
+                    "label": "Slovakia"
+                },
+                {
+                    "raw_value": "0x49",
+                    "label": "Portugal"
+                },
+                {
+                    "raw_value": "0x4A",
+                    "label": "Armenia"
+                },
+                {
+                    "raw_value": "0x4B",
+                    "label": "Kyrgyzstan"
+                },
+                {
+                    "raw_value": "0x4C",
+                    "label": "Egypt"
+                },
+                {
+                    "raw_value": "0x4D",
+                    "label": "South Africa"
+                },
+                {
+                    "raw_value": "0x4E",
+                    "label": "Maroc"
+                },
+                {
+                    "raw_value": "0x4F",
+                    "label": "Kazachstan"
+                },
+                {
+                    "raw_value": "0x50",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x51",
+                    "label": "Georgia"
+                },
+                {
+                    "raw_value": "0x52",
+                    "label": "Uzbekistan"
+                },
+                {
+                    "raw_value": "0x53",
+                    "label": "Azerbaijan"
+                },
+                {
+                    "raw_value": "0x54",
+                    "label": "Tajikistan"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Steering Wheel Position",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Left hand drive (LHD)"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Right hand drive (RHD)"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Leveling Headlamp",
+            "byte_pos": "17",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without leveling headlamps"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Manual Leveling headlamps"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With Auto Leveling headlamps"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Instrument cluster (IPC)",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Without IPC component"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With IPC (ECU)"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With IPC (LVDS screen)"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Main screen (MDU)",
+            "byte_pos": "18",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "With MDU 10 inch"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With MDU 12.9 Inch"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Speakers",
+            "byte_pos": "19",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With 2 speakers"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With 6 speakers"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Wireless charger",
+            "byte_pos": "19",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without WLC"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With WLC (1st row)"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Tire Pressure Monitoring System (TPMS)",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without dTPMS"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With  dTPMS"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: power adjust",
+            "byte_pos": "20",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without ORVM: power adjust"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With ORVM: power adjust"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: power folding",
+            "byte_pos": "21",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without ORVM: power folding"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With ORVM: power folding"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "RPA - Rear Parking Assist",
+            "byte_pos": "21",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without RPA"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With RPA"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "SVM - Surround View Monitoring (L0)",
+            "byte_pos": "22",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without SVM"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With SVM"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "RVC - Rear view camera",
+            "byte_pos": "22",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without RVC"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With RVC"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Driver Occupant detection & Seatbelt Reminder",
+            "byte_pos": "23",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Driver Seatbelt Reminder only"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With Driver Occupant detection & Seatbelt Reminder"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Passenger Occupant detection & Seatbelt Reminder",
+            "byte_pos": "23",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "2nd Row Occupant detection & Seatbelt Reminder",
+            "byte_pos": "24",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Demist and Defrost",
+            "byte_pos": "24",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Demist only"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Defrost only"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Demist & Defrost"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vinfast Digital key (NFC/BLE/UWB)",
+            "byte_pos": "25",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With NFC only"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With NFC & BLE"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "With NFC & BLE & UWB"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Microphone",
+            "byte_pos": "25",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Evaporator Temperature Sensor",
+            "byte_pos": "26",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Ambient temp sensor",
+            "byte_pos": "26",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Position Lamp",
+            "byte_pos": "27",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Daytime running lamp (DRL)",
+            "byte_pos": "27",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Daytime running light"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Daytime running light Halogen"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: LED turning signal",
+            "byte_pos": "28",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without ORVM: LED turning signal"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With ORVM: LED turning signal"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ORVM: heated",
+            "byte_pos": "28",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without ORVM: heated"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With ORVM: heated"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Sensor Number",
+            "byte_pos": "29",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "2 USS"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "4 USS"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Ground Clearance",
+            "byte_pos": "29",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "170 mm"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "190 mm"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "175 mm"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "189 mm"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "178mm"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "198mm"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "TSC (Torque Steer Compensation)",
+            "byte_pos": "30",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "PDC (Pull Drift Compensation)",
+            "byte_pos": "30",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Wheel size",
+            "byte_pos": "31",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "16\""
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "17\""
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "18\""
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "19\""
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "20\""
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "21\""
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "22\""
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "DPB (Dynamic Parking Brake)",
+            "byte_pos": "31",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "AVH - Auto Vehicle Hold",
+            "byte_pos": "32",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "HSA (Hill Start Assist)",
+            "byte_pos": "32",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ESS (Emergency Stop Signal)",
+            "byte_pos": "33",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Front WSS Type",
+            "byte_pos": "33",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With PWM"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Stanard"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Rear WSS type",
+            "byte_pos": "34",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With PWM"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Stanard"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "ACC - Adaptive Cruise Control (L1)",
+            "byte_pos": "34",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Air Ionizer",
+            "byte_pos": "35",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Battery Capacity (kWh) - Usable",
+            "byte_pos": "37",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With 37.23 kWh"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With 43 kWh"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Battery Capacity (kWh) - Supplier type",
+            "byte_pos": "37",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With Gotion"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With CATL"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "High Voltage PTC heater",
+            "byte_pos": "38",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With out"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With >1KW HV PTC"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With 3 kW HV PTC"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Acoustic vehicle alerting system (AVAS)",
+            "byte_pos": "38",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without AVAS"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With AVAS"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Auto up/down (anti-pinch) (APM)",
+            "byte_pos": "39",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Auto up/down (anti-pinch) Driver only"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "With Auto up/down (anti-pinch) 4 windowns"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Steering wheel multi-function: entertainment",
+            "byte_pos": "39",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid\""
+                }
+            ]
+        },
+        {
+            "parameter": "Steering wheel multi-function: ADAS function",
+            "byte_pos": "40",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Basic Cruise Control"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid\""
+                }
+            ]
+        },
+        {
+            "parameter": "Charge port light",
+            "byte_pos": "40",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid\""
+                }
+            ]
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "66",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        }
+    ]
+}

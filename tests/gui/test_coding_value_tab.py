@@ -278,6 +278,7 @@ class CodingValueTabTests(unittest.TestCase):
                 panel.import_coding_value()
 
         self.assertEqual(panel.cmb_coding_json.currentText(), "coding")
+        self.assertEqual(panel.file_path.text(), "")
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Vehicle Name")
         self.assertEqual(panel.table.item(0, 4).text(), "")

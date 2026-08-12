@@ -1,6 +1,6 @@
 {
-    "source_file": "VF5NP_BCM_F108.xlsx",
-    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF5NP_BCM_F108.xlsx",
+    "source_file": "VF5NP_BPM_F108.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF5NP_BPM_F108.xlsx",
     "rows": [
         {
             "parameter": "Format Byte",
@@ -1454,25 +1454,98 @@
             ]
         },
         {
-            "parameter": "Reserved",
+            "parameter": "Driver's window Auto up/down (anti-pinch) APM",
             "byte_pos": "17",
             "bit_pos": "0",
-            "bit_length": "8",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Auto up/down (anti-pinch)"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "with auto up/down 4 window"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Reserved",
+            "byte_pos": "17",
+            "bit_pos": "4",
+            "bit_length": "4",
             "raw_value": "",
             "decoded_value": "",
             "decoded_options": []
         },
         {
-            "parameter": "Reserved",
+            "parameter": "FR Window Switch",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "FL Window Switch",
             "byte_pos": "18",
             "bit_pos": "4",
-            "bit_length": "8",
+            "bit_length": "4",
             "raw_value": "",
             "decoded_value": "",
-            "decoded_options": []
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
         },
         {
-            "parameter": "Evaporator Temperature Sensor",
+            "parameter": "RR Window Switch",
             "byte_pos": "19",
             "bit_pos": "0",
             "bit_length": "4",
@@ -1498,7 +1571,7 @@
             ]
         },
         {
-            "parameter": "Ambient temp sensor",
+            "parameter": "RL Window Switch",
             "byte_pos": "19",
             "bit_pos": "4",
             "bit_length": "4",
@@ -1516,206 +1589,6 @@
                 {
                     "raw_value": "0x2",
                     "label": "With"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "TPMS",
-            "byte_pos": "20",
-            "bit_pos": "0",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "Position Lamp",
-            "byte_pos": "20",
-            "bit_pos": "4",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "Reserved",
-            "byte_pos": "21",
-            "bit_pos": "0",
-            "bit_length": "8",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": []
-        },
-        {
-            "parameter": "Daytime running lamp (DRL)",
-            "byte_pos": "22",
-            "bit_pos": "0",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without Daytime running light"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With Daytime running light Halogen"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "Reserved",
-            "byte_pos": "22",
-            "bit_pos": "4",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": []
-        },
-        {
-            "parameter": "ORVM: power adjust",
-            "byte_pos": "23",
-            "bit_pos": "0",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without ORVM: power adjust"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With ORVM: power adjust"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "ORVM: power folding",
-            "byte_pos": "23",
-            "bit_pos": "4",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without ORVM: power folding"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With ORVM: power folding"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "ORVM: LED turning signal",
-            "byte_pos": "24",
-            "bit_pos": "0",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without ORVM: LED turning signal"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With ORVM: LED turning signal"
-                },
-                {
-                    "raw_value": "0xF",
-                    "label": "Invalid"
-                }
-            ]
-        },
-        {
-            "parameter": "ORVM: heated",
-            "byte_pos": "24",
-            "bit_pos": "4",
-            "bit_length": "4",
-            "raw_value": "",
-            "decoded_value": "",
-            "decoded_options": [
-                {
-                    "raw_value": "0x0",
-                    "label": "Unsupported"
-                },
-                {
-                    "raw_value": "0x1",
-                    "label": "Without ORVM: heated"
-                },
-                {
-                    "raw_value": "0x2",
-                    "label": "With ORVM: heated"
                 },
                 {
                     "raw_value": "0xF",
