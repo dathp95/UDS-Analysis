@@ -1,0 +1,2368 @@
+{
+    "source_file": "VF3_MHU_F108_v3.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF3_MHU_F108_v3.xlsx",
+    "rows": [
+        {
+            "parameter": "Format Byte",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "16",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "5",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Language",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Vietnamese"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "English"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Chinese"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "German"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "Japaness"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Korean"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "French"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Francais (Canada)"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Dutch"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Spanish"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Hebrew"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Sale area",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VN"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "US"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Europe"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Canada"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Germany"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "France"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Netherland"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Australia"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Thailand"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Singapore"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Israel"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Malaysia"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Indonesia"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Lao"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Cambodia"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "Phillipines"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "Myanmar"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "Nepal"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "Turkey"
+                },
+                {
+                    "raw_value": "0x15",
+                    "label": "Lebanon"
+                },
+                {
+                    "raw_value": "0x16",
+                    "label": "Nigeria"
+                },
+                {
+                    "raw_value": "0x17",
+                    "label": "India"
+                },
+                {
+                    "raw_value": "0x18",
+                    "label": "Mexico"
+                },
+                {
+                    "raw_value": "0x19",
+                    "label": "Asia"
+                },
+                {
+                    "raw_value": "0x21",
+                    "label": "Middle East"
+                },
+                {
+                    "raw_value": "0x22",
+                    "label": "Italy"
+                },
+                {
+                    "raw_value": "0x23",
+                    "label": "Spain"
+                },
+                {
+                    "raw_value": "0x24",
+                    "label": "Belgium"
+                },
+                {
+                    "raw_value": "0x25",
+                    "label": "Austria"
+                },
+                {
+                    "raw_value": "0x26",
+                    "label": "Poland"
+                },
+                {
+                    "raw_value": "0x27",
+                    "label": "Sweden"
+                },
+                {
+                    "raw_value": "0x28",
+                    "label": "Switzerland"
+                },
+                {
+                    "raw_value": "0x29",
+                    "label": "Romania"
+                },
+                {
+                    "raw_value": "0x2A",
+                    "label": "Greece"
+                },
+                {
+                    "raw_value": "0x2B",
+                    "label": "Mongolia"
+                },
+                {
+                    "raw_value": "0x2C",
+                    "label": "Hong kong"
+                },
+                {
+                    "raw_value": "0x2D",
+                    "label": "Bhutan"
+                },
+                {
+                    "raw_value": "0x2E",
+                    "label": "Sri Lanka"
+                },
+                {
+                    "raw_value": "0x2F",
+                    "label": "Pakistan"
+                },
+                {
+                    "raw_value": "0x30",
+                    "label": "Taiwan"
+                },
+                {
+                    "raw_value": "0x31",
+                    "label": "Palestine"
+                },
+                {
+                    "raw_value": "0x32",
+                    "label": "Bangladesh"
+                },
+                {
+                    "raw_value": "0x33",
+                    "label": "Brazil"
+                },
+                {
+                    "raw_value": "0x34",
+                    "label": "Chile"
+                },
+                {
+                    "raw_value": "0x35",
+                    "label": "Dominica"
+                },
+                {
+                    "raw_value": "0x36",
+                    "label": "Panama"
+                },
+                {
+                    "raw_value": "0x37",
+                    "label": "Colombia"
+                },
+                {
+                    "raw_value": "0x38",
+                    "label": "Peru"
+                },
+                {
+                    "raw_value": "0x39",
+                    "label": "Costa Rica"
+                },
+                {
+                    "raw_value": "0x3A",
+                    "label": "Saudi Arabia"
+                },
+                {
+                    "raw_value": "0x3B",
+                    "label": "UAE"
+                },
+                {
+                    "raw_value": "0x3C",
+                    "label": "Oman"
+                },
+                {
+                    "raw_value": "0x3D",
+                    "label": "Kuwait"
+                },
+                {
+                    "raw_value": "0x3E",
+                    "label": "Qatar"
+                },
+                {
+                    "raw_value": "0x3F",
+                    "label": "Bahrain"
+                },
+                {
+                    "raw_value": "0x40",
+                    "label": "Jordan"
+                },
+                {
+                    "raw_value": "0x41",
+                    "label": "United Kingdom"
+                },
+                {
+                    "raw_value": "0x42",
+                    "label": "Ireland"
+                },
+                {
+                    "raw_value": "0x43",
+                    "label": "Norway- Na uy"
+                },
+                {
+                    "raw_value": "0x44",
+                    "label": "Denmark"
+                },
+                {
+                    "raw_value": "0x45",
+                    "label": "Finland"
+                },
+                {
+                    "raw_value": "0x46",
+                    "label": "Czech Republic"
+                },
+                {
+                    "raw_value": "0x47",
+                    "label": "Hungary"
+                },
+                {
+                    "raw_value": "0x48",
+                    "label": "Slovakia"
+                },
+                {
+                    "raw_value": "0x49",
+                    "label": "Portugal"
+                },
+                {
+                    "raw_value": "0x4A",
+                    "label": "Armenia"
+                },
+                {
+                    "raw_value": "0x4B",
+                    "label": "Kyrgyzstan"
+                },
+                {
+                    "raw_value": "0x4C",
+                    "label": "Egypt"
+                },
+                {
+                    "raw_value": "0x4D",
+                    "label": "South Africa"
+                },
+                {
+                    "raw_value": "0x4E",
+                    "label": "Maroc"
+                },
+                {
+                    "raw_value": "0x4F",
+                    "label": "Kazachstan"
+                },
+                {
+                    "raw_value": "0x50",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x51",
+                    "label": "Georgia"
+                },
+                {
+                    "raw_value": "0x52",
+                    "label": "Uzbekistan"
+                },
+                {
+                    "raw_value": "0x53",
+                    "label": "Azerbaijan"
+                },
+                {
+                    "raw_value": "0x54",
+                    "label": "Tajikistan"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "AECFactor",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Fog Light",
+            "byte_pos": "15",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Fog Light"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Front"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Front and Rear"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Rear Fog light only"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Emergency Call",
+            "byte_pos": "15",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Emergency Calls"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "with Emergency Calls"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "PnC (Plug and Charge)",
+            "byte_pos": "15",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "without PnC"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "with PnC"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Welcome light",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Wireless Charger",
+            "byte_pos": "16",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With WLC"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Without WLC"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Side Mirror Memory",
+            "byte_pos": "16",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Side Mirror Memory"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Side Mirror Memory"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Intersection Assist",
+            "byte_pos": "16",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Intersection Assist"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Intersection Assist"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "coublomb factor",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Platform",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "SUV"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "SEDAN"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "eBUS"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Mini-Car"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle Type",
+            "byte_pos": "18",
+            "bit_pos": "4",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x00",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x15",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x16",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x17",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x18",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x19",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1A",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1B",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1C",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1D",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1E",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x1F",
+                    "label": "TAXI"
+                },
+                {
+                    "raw_value": "0x20",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x21",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x22",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x23",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x24",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x25",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x26",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x27",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x28",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x29",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2A",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2B",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2C",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2D",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2E",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x2F",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x30",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x31",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x32",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x33",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x34",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x35",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x36",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x37",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x38",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x39",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3A",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3B",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3C",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3D",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3E",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x3F",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x40",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x41",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x42",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x43",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x44",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x45",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x46",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x47",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x48",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x49",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4A",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4B",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4C",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4D",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4E",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x4F",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x50",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x51",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x52",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x53",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x54",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x55",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x56",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x57",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x58",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x59",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5A",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5B",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5C",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5D",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5E",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x5F",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x60",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x61",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x62",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x63",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x64",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x65",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x66",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x67",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x68",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x69",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6A",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6B",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6C",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6D",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6E",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x6F",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x70",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x71",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x72",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x73",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x74",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x75",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x76",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x77",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x78",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x79",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7A",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7B",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7C",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7D",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7E",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x7F",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x80",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x81",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x82",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x83",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x84",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x85",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x86",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x87",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x88",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x89",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8A",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8B",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8C",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8D",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8E",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8F",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x90",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x91",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x92",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x93",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x94",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x95",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x96",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x97",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x98",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x99",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9A",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9B",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9C",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9D",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9E",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x9F",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xA9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAD",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xAF",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xB9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBD",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xBF",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xC9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCD",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xCF",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xD9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDD",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xDF",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xE9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xEA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xEB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xEC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xED",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xEE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xEF",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF0",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF1",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF2",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF5",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF6",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF8",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFB",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFC",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFD",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFE",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Reserve",
+            "byte_pos": "19",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "HUD",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without HUD"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With HUD"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Ionizer",
+            "byte_pos": "20",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "without"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "with"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "LHD/RHD",
+            "byte_pos": "20",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Left hand drive"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Right hand drive"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Child Presence Detection",
+            "byte_pos": "20",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without CPD"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With CPD"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Roof Type",
+            "byte_pos": "21",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Panoramic Roof"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Steel Roof"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Rear Wireless Charger (RWLC)",
+            "byte_pos": "21",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "without RWLC"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "with RWLC"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Air Condition",
+            "byte_pos": "21",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "2  1/2 zone automatic"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "2 zone automatic"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "3 zone automatic"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "1 zone automatic"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "1 zone Manual"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Keyless start/stop with brake on BEV",
+            "byte_pos": "22",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Keyless start/stop with brake on BEV"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Keyless start/stop with brake on BEV"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Keyless entry",
+            "byte_pos": "22",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Keyless entry"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Keyless entry"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Outside rear view mirror heating",
+            "byte_pos": "22",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Outside rear view mirror heating"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Outside rear view mirror heating"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Reserve",
+            "byte_pos": "22",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Tire Size",
+            "byte_pos": "23",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "16\""
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "17\""
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "18\""
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "19\""
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "20\""
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "21\""
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "22\""
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle Name",
+            "byte_pos": "24",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VF8/VF35"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "VFe34"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "VF9/VF36"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "VF6/VF33"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "VF7/VF34"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "VF5/VF32"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "VF3"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Lane Departure Warning",
+            "byte_pos": "25",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Lane Departure Warning"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Lane Departure Warning"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Lane Keeping Assist",
+            "byte_pos": "25",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Lane Keeping Assist"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Lane Keeping Assist"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "FOTA support",
+            "byte_pos": "25",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without FOTA"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "with FOTA"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Door opening Warning oncoming traffic",
+            "byte_pos": "25",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Door opening Warning oncoming traffic"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Door opening Warning oncoming traffic"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Radio support",
+            "byte_pos": "26",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Radio Support"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "with Radio Support"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Trailer Module (TRM）",
+            "byte_pos": "26",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "with TRM"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "without TRM"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Electric Tail Gate",
+            "byte_pos": "26",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Electric Tail Gate"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Electric Tail Gate"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Foot Kick Sensor (FKS)",
+            "byte_pos": "26",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "with FKS"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "without FKS"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Driver Seat Heated",
+            "byte_pos": "27",
+            "bit_pos": "0",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Without Driver Seat Heated"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "With Driver Seat Heated"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Driver Seat Ventilation",
+            "byte_pos": "27",
+            "bit_pos": "2",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Driver Seat Ventilation"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Driver Seat Ventilation"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Front Pass. seat Ventilation",
+            "byte_pos": "27",
+            "bit_pos": "4",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Front Pass. seat Ventilation"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Front Pass. seat Ventilation"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Front Pass. seat Heated",
+            "byte_pos": "27",
+            "bit_pos": "6",
+            "bit_length": "2",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Without Front Pass. seat Heated"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "With Front Pass. seat Heated"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "HV battery threshold for pet mode",
+            "byte_pos": "28",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "SpeedometerFactor",
+            "byte_pos": "29",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Delta  display speed and true speed",
+            "byte_pos": "30",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "HV battery threshold for camp mode",
+            "byte_pos": "31",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Check compliant with previous CDS version",
+            "byte_pos": "59",
+            "bit_pos": "0",
+            "bit_length": "32",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "63",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        }
+    ]
+}
