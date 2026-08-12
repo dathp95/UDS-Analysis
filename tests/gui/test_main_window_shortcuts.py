@@ -96,7 +96,8 @@ class MainWindowShortcutTests(unittest.TestCase):
             "core.report_export",
             "gui.controllers.analysis_controller",
             "gui.controllers.report_controller",
-            "gui.tabs.coding_value_tab",`r`n            "gui.tabs.license_support_tab",
+            "gui.tabs.coding_value_tab",
+            "gui.tabs.license_support_tab",
             "gui.tabs.log_analyzer_tab",
             "gui.windows.main_window",
         }

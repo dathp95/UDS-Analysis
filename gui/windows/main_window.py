@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QKeySequence, QShortcut
 
 from gui.tabs.coding_value_tab import CodingValueTab
+from gui.tabs.license_support_tab import LicenseSupportTab
 from gui.tabs.log_analyzer_tab import LogAnalyzerTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
@@ -66,6 +67,7 @@ class MainWindow(QMainWindow):
         self.log_analyzer_tab = LogAnalyzerTab()
         self.coding_value_tab = CodingValueTab()
         self.vehicle_manager_tab = VehicleManagerTab()
+        self.license_support_tab = LicenseSupportTab()
 
         self.tabs.addTab(
             self.log_analyzer_tab,
@@ -78,6 +80,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.vehicle_manager_tab,
             "Vehicle Manager",
+        )
+        self.tabs.addTab(
+            self.license_support_tab,
+            "License & Support",
         )
 
         self.vehicle_manager_tab.vehicle_data_changed.connect(
@@ -98,3 +104,9 @@ class MainWindow(QMainWindow):
             "fn_refresh_theme",
         ):
             self.vehicle_manager_tab.fn_refresh_theme()
+
+        if hasattr(
+            self.license_support_tab,
+            "fn_refresh_theme",
+        ):
+            self.license_support_tab.fn_refresh_theme()

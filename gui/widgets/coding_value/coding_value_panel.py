@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from config.paths import EXPORT_CODING_FILES_DIR, REPORT_DIR
+from config.paths import CODING_VALUE_REPORT_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import (
     export_coding_value_rows_to_json,
     load_coding_value_rows,
@@ -70,6 +70,8 @@ class CodingValuePanel(QGroupBox):
         )
         self.cmb_coding_json = PrimaryComboBox()
         self.cmb_coding_json.setFixedWidth(200)
+        self.cmb_coding_json.setMaxVisibleItems(5)
+        fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
         self.btn_import = PrimaryButton(
             "Import",
@@ -304,7 +306,7 @@ class CodingValuePanel(QGroupBox):
         self.cmb_coding_json.clear()
         for json_file in json_files:
             self.cmb_coding_json.addItem(
-                json_file.name,
+                json_file.stem,
                 str(json_file),
             )
 
@@ -340,7 +342,12 @@ class CodingValuePanel(QGroupBox):
         self._update_action_states()
 
     def import_coding_value(self):
+        selected_json = self.cmb_coding_json.currentData()
         excel_path = self.file_path.text().strip()
+        if selected_json and not excel_path:
+            self.load_selected_coding_json()
+            return
+
         if not excel_path:
             QMessageBox.warning(
                 self,
@@ -423,8 +430,12 @@ class CodingValuePanel(QGroupBox):
         if not self._can_use_table_actions():
             return
 
+        output_file = self._choose_coding_report_file()
+        if output_file is None:
+            return
+
         try:
-            output_file = self._export_coding_report()
+            output_file = self._export_coding_report(output_file)
         except PermissionError:
             QMessageBox.warning(
                 self,
@@ -439,15 +450,38 @@ class CodingValuePanel(QGroupBox):
             f"Coding value report saved:\n\n{output_file}",
         )
 
-    def _export_coding_report(self):
+    def _choose_coding_report_file(self):
+        default_path = self._default_coding_report_file()
+        output_file, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Coding Value Report",
+            str(default_path),
+            "Excel Files (*.xlsx)",
+        )
+        if not output_file:
+            return None
+
+        output_path = Path(output_file)
+        if output_path.suffix.lower() != ".xlsx":
+            output_path = output_path.with_suffix(".xlsx")
+        return output_path
+
+    def _default_coding_report_file(self):
         now = datetime.now()
-        report_folder = REPORT_DIR / now.strftime("%d-%m-%Y")
+        report_folder = CODING_VALUE_REPORT_DIR / now.strftime("%d-%m-%Y")
         report_folder.mkdir(
             parents=True,
             exist_ok=True,
         )
-        output_file = report_folder / (
+        return report_folder / (
             f"EEIV_report_Coding value_{now.strftime('%Y%m%d_%H%M%S')}.xlsx"
+        )
+
+    def _export_coding_report(self, output_file):
+        output_file = Path(output_file)
+        output_file.parent.mkdir(
+            parents=True,
+            exist_ok=True,
         )
 
         workbook = Workbook()
@@ -543,7 +577,7 @@ class CodingValuePanel(QGroupBox):
         QApplication.clipboard().setText(raw_values)
         self._show_auto_close_information(
             "Coding value",
-            f"REDO said: Copy success:\n\n{raw_values}",
+            f"Copy thanh cong:\n\n{raw_values}",
             timeout_ms,
         )
 
