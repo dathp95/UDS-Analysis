@@ -16,6 +16,7 @@ CACHE_DIR = OUTPUT_DIR / "Cache"
 
 
 CONFIG_DIR = PROJECT_ROOT / "config"
+EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"
 
 VEHICLES_DIR = CONFIG_DIR / "vehicles"
 

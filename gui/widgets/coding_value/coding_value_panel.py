@@ -1,7 +1,7 @@
-﻿from datetime import datetime
+from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
@@ -18,13 +18,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from config.paths import REPORT_DIR
-from core.coding_value import load_coding_value_rows
+from config.paths import EXPORT_CODING_FILES_DIR, REPORT_DIR
+from core.coding_value import (
+    export_coding_value_rows_to_json,
+    load_coding_value_rows,
+    load_coding_value_rows_from_json,
+)
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
 from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 
@@ -39,6 +44,7 @@ class CodingValuePanel(QGroupBox):
         self._payload_preview_bytes = []
         self._payload_baseline_bytes = []
         self._has_encoded_payload = False
+        self._preview_editing = False
         self._setup_ui()
         self._connect_signals()
         self.fn_refresh_theme()
@@ -62,17 +68,23 @@ class CodingValuePanel(QGroupBox):
             "Browse",
             width=100,
         )
+        self.cmb_coding_json = PrimaryComboBox()
+        self.cmb_coding_json.setFixedWidth(200)
+        self.cmb_coding_json.setCurrentIndex(-1)
         self.btn_import = PrimaryButton(
             "Import",
             width=100,
         )
 
-        file_layout = QHBoxLayout()
+        self.file_row = QWidget()
+        file_layout = QHBoxLayout(self.file_row)
         file_layout.setContentsMargins(0, 0, 0, 0)
         file_layout.setSpacing(8)
         file_layout.addWidget(self.file_path, 1)
         file_layout.addWidget(self.btn_browse)
+        file_layout.addWidget(self.cmb_coding_json)
         file_layout.addWidget(self.btn_import)
+        self._refresh_coding_json_options()
 
         self.txt_coding_value = QPlainTextEdit()
         self.txt_coding_value.setPlaceholderText(
@@ -108,8 +120,8 @@ class CodingValuePanel(QGroupBox):
             "Refresh",
             width=100,
         )
-        self.btn_preview_copy = PrimaryButton(
-            "Copy",
+        self.btn_preview_edit = PrimaryButton(
+            "EDIT",
             width=100,
         )
         self.btn_preview_clear = PrimaryButton(
@@ -131,7 +143,7 @@ class CodingValuePanel(QGroupBox):
         preview_layout.setContentsMargins(0, 0, 0, 0)
         preview_layout.setSpacing(8)
         preview_layout.addWidget(self.btn_preview_refresh, 0, Qt.AlignTop)
-        preview_layout.addWidget(self.btn_preview_copy, 0, Qt.AlignTop)
+        preview_layout.addWidget(self.btn_preview_edit, 0, Qt.AlignTop)
         preview_layout.addWidget(self.btn_preview_clear, 0, Qt.AlignTop)
         preview_layout.addWidget(self.txt_coding_preview, 1)
 
@@ -204,7 +216,7 @@ class CodingValuePanel(QGroupBox):
         table_area_layout.addWidget(self.table, 1)
         table_area_layout.addWidget(self.table_side_panel, 0)
 
-        layout.addLayout(file_layout)
+        layout.addWidget(self.file_row)
         layout.addWidget(self.payload_row)
         layout.addWidget(self.filter_row)
         layout.addWidget(self.table_area, 1)
@@ -229,6 +241,9 @@ class CodingValuePanel(QGroupBox):
         self.btn_import.clicked.connect(
             self.import_coding_value
         )
+        self.cmb_coding_json.currentIndexChanged.connect(
+            self.load_selected_coding_json
+        )
         self.btn_encode.clicked.connect(
             self.encode_coding_payload
         )
@@ -241,8 +256,8 @@ class CodingValuePanel(QGroupBox):
         self.btn_preview_refresh.clicked.connect(
             self.refresh_coding_preview
         )
-        self.btn_preview_copy.clicked.connect(
-            self.copy_coding_preview
+        self.btn_preview_edit.clicked.connect(
+            self.toggle_preview_edit_import
         )
         self.btn_preview_clear.clicked.connect(
             self.clear_coding_preview
@@ -252,6 +267,9 @@ class CodingValuePanel(QGroupBox):
         )
         self.btn_export.clicked.connect(
             self.export_coding_value
+        )
+        self.btn_table_copy.clicked.connect(
+            lambda: self.copy_table_raw_values()
         )
         self.btn_table_clear.clicked.connect(
             self.clear_table_coding_values
@@ -277,6 +295,50 @@ class CodingValuePanel(QGroupBox):
         if file_path:
             self.file_path.setText(file_path)
 
+    def _refresh_coding_json_options(self, selected_path=None):
+        selected = str(selected_path) if selected_path else ""
+        export_dir = Path(EXPORT_CODING_FILES_DIR)
+        json_files = sorted(export_dir.glob("*.json")) if export_dir.exists() else []
+
+        self.cmb_coding_json.blockSignals(True)
+        self.cmb_coding_json.clear()
+        for json_file in json_files:
+            self.cmb_coding_json.addItem(
+                json_file.name,
+                str(json_file),
+            )
+
+        if selected:
+            self.cmb_coding_json.setCurrentIndex(
+                self.cmb_coding_json.findData(selected)
+            )
+        else:
+            self.cmb_coding_json.setCurrentIndex(-1)
+        self.cmb_coding_json.blockSignals(False)
+
+    def load_selected_coding_json(self):
+        json_path = self.cmb_coding_json.currentData()
+        if not json_path:
+            return
+
+        try:
+            rows = load_coding_value_rows_from_json(json_path)
+        except Exception as exc:
+            QMessageBox.warning(
+                self,
+                "Coding value",
+                f"Cannot import coding JSON file:\n{exc}",
+            )
+            return
+
+        self._set_coding_rows(rows)
+
+    def _set_coding_rows(self, rows):
+        self.table.set_rows(rows)
+        self.filter_parameter_table()
+        self.clear_coding_preview()
+        self._update_action_states()
+
     def import_coding_value(self):
         excel_path = self.file_path.text().strip()
         if not excel_path:
@@ -300,10 +362,15 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
-        self.table.set_rows(rows)
-        self.filter_parameter_table()
-        self.clear_coding_preview()
-        self._update_action_states()
+        json_path = export_coding_value_rows_to_json(
+            excel_path,
+            rows,
+            EXPORT_CODING_FILES_DIR,
+        )
+        self._refresh_coding_json_options(json_path)
+        self._set_coding_rows(
+            load_coding_value_rows_from_json(json_path)
+        )
 
     def filter_parameter_table(self):
         self.table.filter_by_parameter(
@@ -350,6 +417,7 @@ class CodingValuePanel(QGroupBox):
 
         self.table.apply_check_results()
         self._write_check_working_log()
+        self._update_action_states()
 
     def export_coding_value(self):
         if not self._can_use_table_actions():
@@ -424,6 +492,7 @@ class CodingValuePanel(QGroupBox):
         )
         for cell in row_cells:
             cell.fill = fill
+
     def _coding_export_sheet_name(self):
         return self._safe_excel_sheet_name(
             f"Coding value_{self._coding_export_identifier()}"
@@ -462,6 +531,61 @@ class CodingValuePanel(QGroupBox):
             name = name.replace(char, "_")
 
         return name[:31] or "Coding value"
+
+    def copy_table_raw_values(self, timeout_ms=5000):
+        if not self._can_use_table_actions():
+            return
+
+        raw_values = self._table_raw_value_text()
+        if not raw_values:
+            return
+
+        QApplication.clipboard().setText(raw_values)
+        self._show_auto_close_information(
+            "Coding value",
+            f"Copy thanh cong:\n\n{raw_values}",
+            timeout_ms,
+        )
+
+    def _table_raw_value_text(self):
+        tokens = []
+        for row_index in range(self.table.rowCount()):
+            item = self.table.item(row_index, 4)
+            if item is None:
+                continue
+
+            tokens.extend(
+                self._copy_raw_value_tokens(item.text())
+            )
+
+        return " ".join(tokens)
+
+    @staticmethod
+    def _copy_raw_value_tokens(raw_value):
+        copied_tokens = []
+        for token in CodingValueTable._hex_tokens(raw_value):
+            hex_text = token.upper()
+            if len(hex_text) % 2:
+                hex_text = "0" + hex_text
+
+            copied_tokens.extend(
+                f"{int(hex_text[index:index + 2], 16):02X}"
+                for index in range(0, len(hex_text), 2)
+            )
+
+        return copied_tokens
+
+    def _show_auto_close_information(self, title, message, timeout_ms=5000):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Information)
+        message_box.setWindowTitle(title)
+        message_box.setText(message)
+        QTimer.singleShot(
+            timeout_ms,
+            message_box.accept,
+        )
+        message_box.exec()
+
     def copy_coding_payload(self):
         QApplication.clipboard().setText(
             self.txt_coding_value.toPlainText()
@@ -482,13 +606,70 @@ class CodingValuePanel(QGroupBox):
                 self.txt_coding_value.toPlainText()
             )
 
-    def copy_coding_preview(self):
-        QApplication.clipboard().setText(
-            self.txt_coding_preview.toPlainText()
+    def toggle_preview_edit_import(self):
+        if self._preview_editing:
+            self.import_preview_payload()
+            return
+
+        self.start_preview_edit()
+
+    def start_preview_edit(self):
+        if not self._can_edit_preview_payload():
+            return
+
+        self._preview_editing = True
+        self.txt_coding_preview.setReadOnly(False)
+        self.btn_preview_edit.setText("IMPORT")
+        self.txt_coding_preview.setFocus()
+        self._update_action_states()
+
+    def import_preview_payload(self):
+        payload = self.txt_coding_preview.toPlainText()
+        if not payload.strip():
+            return
+
+        updated = self.table.encode_payload(
+            payload,
+            update_original=False,
         )
+        if updated <= 0:
+            QMessageBox.warning(
+                self,
+                "Coding value",
+                "No raw value row could be updated from this payload.",
+            )
+            return
+
+        self._payload_preview_bytes = self.table._parse_payload_bytes(payload)
+        self.txt_coding_preview.setPlainText(
+            self._format_payload_bytes(self._payload_preview_bytes)
+        )
+        self.txt_coding_preview.setExtraSelections([])
+        if self._has_check_results():
+            self._write_check_working_log()
+        self._finish_preview_edit()
+
+    def _finish_preview_edit(self):
+        self._preview_editing = False
+        self.txt_coding_preview.setReadOnly(True)
+        self.btn_preview_edit.setText("EDIT")
+        self._update_action_states()
+
+    def _can_edit_preview_payload(self):
+        return (
+            self._can_use_table_actions()
+            and self._has_check_results()
+            and bool(self.txt_coding_preview.toPlainText().strip())
+        )
+
+    def _has_check_results(self):
+        return self.table.columnCount() >= 9
 
     def clear_coding_preview(self):
         self.txt_coding_preview.clear()
+        self.txt_coding_preview.setReadOnly(True)
+        self.btn_preview_edit.setText("EDIT")
+        self._preview_editing = False
         self.txt_coding_preview.setExtraSelections([])
         self._payload_preview_bytes = []
         self._payload_baseline_bytes = []
@@ -507,7 +688,7 @@ class CodingValuePanel(QGroupBox):
         self.btn_copy.setEnabled(has_input_payload)
         self.btn_clear.setEnabled(has_input_payload)
         self.btn_preview_refresh.setEnabled(can_encode)
-        self.btn_preview_copy.setEnabled(can_use_preview)
+        self.btn_preview_edit.setEnabled(self._can_edit_preview_payload())
         self.btn_preview_clear.setEnabled(can_use_preview)
         self.btn_check.setEnabled(can_use_table_actions)
         self.btn_export.setEnabled(can_use_table_actions)
@@ -681,7 +862,7 @@ class CodingValuePanel(QGroupBox):
         self.btn_copy.fn_refresh_theme()
         self.btn_clear.fn_refresh_theme()
         self.btn_preview_refresh.fn_refresh_theme()
-        self.btn_preview_copy.fn_refresh_theme()
+        self.btn_preview_edit.fn_refresh_theme()
         self.btn_preview_clear.fn_refresh_theme()
         self.btn_check.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
@@ -698,4 +879,3 @@ class CodingValuePanel(QGroupBox):
         fn_apply_scrollbar_style(
             self.txt_working_log
         )
-

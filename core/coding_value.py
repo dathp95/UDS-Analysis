@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -63,6 +64,79 @@ def load_coding_value_rows(
         workbook.close()
 
     return rows
+
+
+def load_coding_value_rows_from_json(json_path: str | Path) -> list[CodingValueRow]:
+    payload = json.loads(
+        Path(json_path).read_text(encoding="utf-8")
+    )
+    rows = []
+    for row in payload.get("rows", []):
+        rows.append(
+            _coding_value_row_from_json(row)
+        )
+
+    return rows
+
+
+def _coding_value_row_from_json(row: dict[str, Any]) -> CodingValueRow:
+    return CodingValueRow(
+        parameter=str(row.get("parameter", "")),
+        byte_pos=str(row.get("byte_pos", "")),
+        bit_pos=str(row.get("bit_pos", "")),
+        bit_length=str(row.get("bit_length", "")),
+        raw_value=str(row.get("raw_value", "")),
+        decoded_value=str(row.get("decoded_value", "")),
+        decoded_options=tuple(
+            CodingValueOption(
+                raw_value=str(option.get("raw_value", "")),
+                label=str(option.get("label", "")),
+            )
+            for option in row.get("decoded_options", [])
+        ),
+    )
+def export_coding_value_rows_to_json(
+        excel_path: str | Path,
+        rows: list[CodingValueRow],
+        output_dir: str | Path,
+    ) -> Path:
+    source_path = Path(excel_path)
+    output_path = Path(output_dir) / f"{source_path.stem or 'coding_value'}.json"
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    payload = {
+        "source_file": source_path.name,
+        "source_path": str(source_path),
+        "rows": [
+            _coding_value_row_to_json(row)
+            for row in rows
+        ],
+    }
+    output_path.write_text(
+        json.dumps(payload, indent=4, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return output_path
+
+
+def _coding_value_row_to_json(row: CodingValueRow) -> dict[str, Any]:
+    return {
+        "parameter": row.parameter,
+        "byte_pos": row.byte_pos,
+        "bit_pos": row.bit_pos,
+        "bit_length": row.bit_length,
+        "raw_value": row.raw_value,
+        "decoded_value": row.decoded_value,
+        "decoded_options": [
+            {
+                "raw_value": option.raw_value,
+                "label": option.label,
+            }
+            for option in row.decoded_options
+        ],
+    }
 
 
 def _load_parameter_table_rows(

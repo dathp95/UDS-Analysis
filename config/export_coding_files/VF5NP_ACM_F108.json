@@ -1,0 +1,1093 @@
+{
+    "source_file": "VF5NP_ACM_F108.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\Coding\\VF5NP_ACM_F108.xlsx",
+    "rows": [
+        {
+            "parameter": "Format Byte",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "16",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "5",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Vehicle Name",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VF6NP"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "VF7NP"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "VF8NP"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "VF9NP"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "VF3"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "VF5NP"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "VF Wild"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "LH800"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "LH900"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Market",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "NA"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Vietnam"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "ASEAN"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "USA"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Europe"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "ASIA"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "The Gulf Cooperation Council countries"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Israel"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "United_Kingdom"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Australia"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Thailand"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Singapore"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Indonesia"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Malaysia"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Lao"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Cambodia"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "India"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "Commonwealth of Independent States_CIS"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "Middle East"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "Africa"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle variant",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "COMFORT"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "PREMIUM"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "EARTH"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "WIND"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "SKY"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "ECO"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "PLUS"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "BASE"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "ULTRA"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "MID A1"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "MID B1"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "TOP"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Heriogreen"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Steering Wheel Position",
+            "byte_pos": "15",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Left hand drive (LHD)"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Right hand drive (RHD)"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Door pressure sensor (Driver side & Passenger side)",
+            "byte_pos": "15",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Side impact sensor (Driver side & Passenger side)",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Driver airbag",
+            "byte_pos": "16",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Dual stage with active vent"
+                }
+            ]
+        },
+        {
+            "parameter": "Passenger airbag",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Dual stage with active vent"
+                }
+            ]
+        },
+        {
+            "parameter": "Driver knee airbag",
+            "byte_pos": "17",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Passenger knee airbag",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Side airbag front Driver",
+            "byte_pos": "18",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Side airbag front Passenger",
+            "byte_pos": "19",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Side airbag rear Driver",
+            "byte_pos": "19",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Side airbag rear Passenger",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Curtain airbag Driver",
+            "byte_pos": "20",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Curtain airbag Passenger",
+            "byte_pos": "21",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Center airbag",
+            "byte_pos": "21",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter pretensioner driver",
+            "byte_pos": "22",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter pretensioner passenger",
+            "byte_pos": "22",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter pretensioner 2nd row driver",
+            "byte_pos": "23",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter pretensioner 2nd row middle",
+            "byte_pos": "23",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter pretensioner 2nd row passenger",
+            "byte_pos": "24",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Dual stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter anchor pretensioner driver",
+            "byte_pos": "24",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "Retracter anchor pretensioner passenger",
+            "byte_pos": "25",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Single stage"
+                }
+            ]
+        },
+        {
+            "parameter": "HV Pyrofuse cutoff",
+            "byte_pos": "25",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Fuel Pyrofuse cutoff",
+            "byte_pos": "26",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Detection System driver",
+            "byte_pos": "26",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Detection System passenger",
+            "byte_pos": "27",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Detection System 2nd row driver",
+            "byte_pos": "27",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Detection System 2nd row middle",
+            "byte_pos": "28",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Detection System 2nd row passenger",
+            "byte_pos": "28",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Classification System driver",
+            "byte_pos": "29",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Classification System passenger",
+            "byte_pos": "29",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Classification System 2nd row driver",
+            "byte_pos": "30",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Classification System 2nd row middle",
+            "byte_pos": "30",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Occupant Classification System 2nd row passenger",
+            "byte_pos": "31",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Buckle sensor driver",
+            "byte_pos": "31",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Buckle sensor passenger",
+            "byte_pos": "32",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Buckle sensor 2nd row driver",
+            "byte_pos": "32",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Buckle sensor 2nd row middle",
+            "byte_pos": "33",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Buckle sensor 2nd row passenger",
+            "byte_pos": "33",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Seat belt reminder",
+            "byte_pos": "34",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Advanced Driver Assistance System (ADAS)\n(including all CAN signal and DTC related to ADAS, FCAM)",
+            "byte_pos": "34",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "Seat Track Position System",
+            "byte_pos": "35",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported both Driver and Passenger"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Supported Driver only"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Supported Passenger only"
+                }
+            ]
+        },
+        {
+            "parameter": "PAB suppression feature",
+            "byte_pos": "35",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Automatic suppress  with OCS CAN signal input"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "Automatic suppress  with OMS CAN signal input"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Manual Suppression with MHU CAN signal  input"
+                }
+            ]
+        },
+        {
+            "parameter": "EDS rear \n(Including CAN message and DTC)",
+            "byte_pos": "36",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "Supported"
+                }
+            ]
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "48",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        }
+    ]
+}

@@ -146,7 +146,7 @@ class CodingValueTable(PrimaryTable):
 
         self.clearSelection()
         self.setCurrentCell(-1, -1)
-    def encode_payload(self, payload):
+    def encode_payload(self, payload, update_original=True):
         payload_bytes = self._parse_payload_bytes(payload)
         if not payload_bytes:
             return 0
@@ -172,8 +172,10 @@ class CodingValueTable(PrimaryTable):
                 raw_value,
             )
             state["last_raw"] = raw_value
-            state["original_raw"] = raw_value
+            if update_original:
+                state["original_raw"] = raw_value
             self._sync_decoded_value_from_raw(row_index, raw_value)
+            self._update_check_result_if_visible(row_index, raw_value)
             updated += 1
 
         return updated
@@ -571,14 +573,3 @@ class CodingValueTable(PrimaryTable):
             result_item = self.item(row, 8)
             if result_item is not None:
                 self._apply_result_style(row, result_item.text())
-
-
-
-
-
-
-
-
-
-
-

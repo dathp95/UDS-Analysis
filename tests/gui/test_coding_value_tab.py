@@ -1,4 +1,5 @@
-﻿import os
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,6 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
 
+from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
@@ -22,11 +24,38 @@ class CodingValueTabTests(unittest.TestCase):
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
+    def setUp(self):
+        self.export_dir_handle = tempfile.TemporaryDirectory()
+        self.addCleanup(self.export_dir_handle.cleanup)
+        self.export_dir_patch = patch(
+            "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+            Path(self.export_dir_handle.name) / "config" / "export_coding_files",
+        )
+        self.export_dir_patch.start()
+        self.addCleanup(self.export_dir_patch.stop)
+
+    def test_export_coding_files_dir_lives_under_config(self):
+        self.assertEqual(
+            EXPORT_CODING_FILES_DIR,
+            CONFIG_DIR / "export_coding_files",
+        )
+
     def test_file_path_starts_empty(self):
         panel = CodingValuePanel()
         self.addCleanup(panel.deleteLater)
 
         self.assertEqual(panel.file_path.text(), "")
+
+    def test_json_drop_list_starts_empty_between_browse_and_import(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        file_layout = panel.file_row.layout()
+        self.assertEqual(file_layout.indexOf(panel.btn_browse), 1)
+        self.assertEqual(file_layout.indexOf(panel.cmb_coding_json), 2)
+        self.assertEqual(file_layout.indexOf(panel.btn_import), 3)
+        self.assertEqual(panel.cmb_coding_json.width(), 200)
+        self.assertEqual(panel.cmb_coding_json.currentText(), "")
 
     def test_import_coding_excel_renders_table_with_decoded_combobox(self):
         workbook = Workbook()
@@ -78,6 +107,132 @@ class CodingValueTabTests(unittest.TestCase):
         panel.table.item(0, 4).setText("01")
         self.assertEqual(combo.currentText(), "VF3")
 
+    def test_import_coding_excel_exports_parsed_rows_to_json(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            13,
+            0,
+            8,
+            "0x03=VF3\n0x09=VF7NP",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            export_dir = Path(tmpdir) / "config" / "export_coding_files"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                panel.import_coding_value()
+
+            exported_path = export_dir / "coding.json"
+            self.assertTrue(exported_path.exists())
+            exported = json.loads(exported_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exported["source_file"], "coding.xlsx")
+        self.assertEqual(exported["rows"][0]["parameter"], "Vehicle Name")
+        self.assertEqual(exported["rows"][0]["byte_pos"], "13")
+        self.assertEqual(exported["rows"][0]["bit_pos"], "0")
+        self.assertEqual(exported["rows"][0]["bit_length"], "8")
+        self.assertEqual(
+            exported["rows"][0]["decoded_options"],
+            [
+                {"raw_value": "0x03", "label": "VF3"},
+                {"raw_value": "0x09", "label": "VF7NP"},
+            ],
+        )
+    def test_selecting_json_drop_list_loads_table_from_export_folder(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            export_dir = Path(tmpdir) / "config" / "export_coding_files"
+            export_dir.mkdir(parents=True)
+            json_path = export_dir / "existing.json"
+            json_path.write_text(
+                json.dumps({
+                    "source_file": "existing.xlsx",
+                    "rows": [
+                        {
+                            "parameter": "Method Type",
+                            "byte_pos": "14",
+                            "bit_pos": "0",
+                            "bit_length": "8",
+                            "raw_value": "",
+                            "decoded_value": "",
+                            "decoded_options": [
+                                {"raw_value": "0x05", "label": "Sky"},
+                            ],
+                        },
+                    ],
+                }),
+                encoding="utf-8",
+            )
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                panel = CodingValuePanel()
+                self.addCleanup(panel.deleteLater)
+                panel.cmb_coding_json.setCurrentIndex(
+                    panel.cmb_coding_json.findText("existing.json")
+                )
+
+        self.assertEqual(panel.table.rowCount(), 1)
+        self.assertEqual(panel.table.item(0, 0).text(), "Method Type")
+        self.assertEqual(panel.table.item(0, 4).text(), "")
+        self.assertEqual(panel.table.cellWidget(0, 5).currentText(), "")
+    def test_import_coding_excel_refreshes_json_drop_list_and_loads_table_from_json(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            13,
+            0,
+            8,
+            "0x03=VF3\n0x09=VF7NP",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            export_dir = Path(tmpdir) / "config" / "export_coding_files"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                panel.import_coding_value()
+
+        self.assertEqual(panel.cmb_coding_json.currentText(), "coding.json")
+        self.assertEqual(panel.table.rowCount(), 1)
+        self.assertEqual(panel.table.item(0, 0).text(), "Vehicle Name")
+        self.assertEqual(panel.table.item(0, 4).text(), "")
+        self.assertEqual(panel.table.cellWidget(0, 5).currentText(), "")
     def test_decoded_combobox_options_are_one_item_per_method_type_line(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -325,7 +480,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(input_layout.indexOf(panel.btn_clear), 2)
         self.assertEqual(input_layout.indexOf(panel.txt_coding_value), 3)
         self.assertEqual(preview_layout.indexOf(panel.btn_preview_refresh), 0)
-        self.assertEqual(preview_layout.indexOf(panel.btn_preview_copy), 1)
+        self.assertEqual(preview_layout.indexOf(panel.btn_preview_edit), 1)
         self.assertEqual(preview_layout.indexOf(panel.btn_preview_clear), 2)
         self.assertEqual(preview_layout.indexOf(panel.txt_coding_preview), 3)
         self.assertLessEqual(
@@ -376,7 +531,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertFalse(panel.btn_export.isEnabled())
         self.assertFalse(panel.btn_table_copy.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
-        self.assertFalse(panel.btn_preview_copy.isEnabled())
+        self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertFalse(panel.btn_preview_clear.isEnabled())
         self.assertEqual(panel.table.columnCount(), 6)
 
@@ -394,15 +549,18 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertTrue(panel.btn_export.isEnabled())
         self.assertTrue(panel.btn_table_copy.isEnabled())
         self.assertTrue(panel.btn_table_clear.isEnabled())
-        self.assertTrue(panel.btn_preview_copy.isEnabled())
+        self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertTrue(panel.btn_preview_clear.isEnabled())
+
+        panel.check_coding_value()
+        self.assertTrue(panel.btn_preview_edit.isEnabled())
 
         panel.clear_coding_payload()
         self.assertFalse(panel.btn_check.isEnabled())
         self.assertFalse(panel.btn_export.isEnabled())
         self.assertFalse(panel.btn_table_copy.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
-        self.assertFalse(panel.btn_preview_copy.isEnabled())
+        self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertFalse(panel.btn_preview_clear.isEnabled())
     def test_check_button_shows_fixed_before_columns_from_encoded_baseline(self):
         workbook = Workbook()
@@ -716,6 +874,80 @@ class CodingValueTabTests(unittest.TestCase):
             for cell in exported_sheet[2]:
                 self.assertEqual(cell.fill.fill_type, "solid")
                 self.assertTrue(cell.fill.fgColor.rgb.upper().endswith(warning))
+
+    def test_table_copy_button_copies_raw_values_and_shows_timed_message(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Payload Byte 2",
+            2,
+            0,
+            8,
+            "0x08=Old",
+        ])
+        sheet.append([
+            "Two Byte Value",
+            3,
+            0,
+            16,
+            "0x374A=Name",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+            panel.txt_coding_value.setPlainText("62 F1 08 37 4A")
+            panel.import_coding_value()
+            panel.encode_coding_payload()
+
+        with patch.object(panel, "_show_auto_close_information") as information:
+            panel.btn_table_copy.click()
+
+        self.assertEqual(QApplication.clipboard().text(), "08 37 4A")
+        self.assertEqual(
+            panel._copy_raw_value_tokens("4a39"),
+            ["4A", "39"],
+        )
+        information.assert_called_once_with(
+            "Coding value",
+            "Copy thanh cong:\n\n08 37 4A",
+            5000,
+        )
+
+    def test_auto_close_information_uses_configurable_timeout(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        with patch(
+            "gui.widgets.coding_value.coding_value_panel.QMessageBox"
+        ) as message_box_class, patch(
+            "gui.widgets.coding_value.coding_value_panel.QTimer.singleShot"
+        ) as single_shot:
+            message_box = message_box_class.return_value
+
+            panel._show_auto_close_information(
+                "Coding value",
+                "Copy thanh cong:\n\n08",
+                1200,
+            )
+
+        message_box_class.assert_called_once_with(panel)
+        message_box.setWindowTitle.assert_called_once_with("Coding value")
+        message_box.setText.assert_called_once_with("Copy thanh cong:\n\n08")
+        single_shot.assert_called_once_with(1200, message_box.accept)
+        message_box.exec.assert_called_once()
+
     def test_table_clear_button_clears_table_and_working_log(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -970,6 +1202,59 @@ class CodingValueTabTests(unittest.TestCase):
         )
         self.assertEqual(len(panel.txt_coding_preview.extraSelections()), 1)
 
+    def test_preview_edit_imports_payload_after_check_without_resetting_before(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Editable Byte",
+            2,
+            0,
+            8,
+            "0x08=Old\n0x99=New",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+            panel.txt_coding_value.setPlainText("62 F1 08")
+            panel.import_coding_value()
+            panel.encode_coding_payload()
+
+        self.assertEqual(panel.btn_preview_edit.text(), "EDIT")
+        self.assertFalse(panel.btn_preview_edit.isEnabled())
+        self.assertTrue(panel.txt_coding_preview.isReadOnly())
+
+        panel.check_coding_value()
+        self.assertTrue(panel.btn_preview_edit.isEnabled())
+
+        panel.btn_preview_edit.click()
+        self.assertFalse(panel.txt_coding_preview.isReadOnly())
+        self.assertEqual(panel.btn_preview_edit.text(), "IMPORT")
+
+        panel.txt_coding_preview.setPlainText("62 F1 99")
+        panel.btn_preview_edit.click()
+
+        self.assertTrue(panel.txt_coding_preview.isReadOnly())
+        self.assertEqual(panel.btn_preview_edit.text(), "EDIT")
+        self.assertEqual(panel.table.item(0, 4).text(), "99")
+        self.assertEqual(panel.table.cellWidget(0, 5).currentText(), "New")
+        self.assertEqual(panel.table.item(0, 6).text(), "08")
+        self.assertEqual(panel.table.item(0, 7).text(), "Old")
+        self.assertEqual(panel.table.item(0, 8).text(), "No-M")
+        self.assertEqual(panel._payload_baseline_bytes, [0x62, 0xF1, 0x08])
+        self.assertEqual(panel._payload_preview_bytes, [0x62, 0xF1, 0x99])
+
     def test_payload_preview_refresh_copy_and_clear_buttons(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1006,12 +1291,6 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(panel.table.item(0, 4).text(), "99")
         self.assertEqual(
             panel.txt_coding_preview.toPlainText(),
-            "62 F1 99",
-        )
-
-        panel.copy_coding_preview()
-        self.assertEqual(
-            QApplication.clipboard().text(),
             "62 F1 99",
         )
 
