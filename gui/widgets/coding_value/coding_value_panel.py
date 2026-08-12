@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -27,6 +27,7 @@ from core.coding_value import (
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+from gui.utils.text_selection import clear_text_selection_on_focus_out
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
@@ -222,6 +223,20 @@ class CodingValuePanel(QGroupBox):
         layout.addWidget(self.payload_row)
         layout.addWidget(self.filter_row)
         layout.addWidget(self.table_area, 1)
+
+        self._install_text_selection_handlers()
+
+    def _install_text_selection_handlers(self):
+        clear_text_selection_on_focus_out(
+            self,
+            [
+                self.file_path,
+                self.txt_coding_value,
+                self.txt_coding_preview,
+                self.txt_parameter_filter,
+                self.txt_working_log,
+            ],
+        )
 
     def _set_payload_editor_height(self):
         self._set_editor_three_line_height(self.txt_coding_value)

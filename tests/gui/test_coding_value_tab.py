@@ -9,7 +9,8 @@ from openpyxl import Workbook, load_workbook
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
@@ -40,6 +41,35 @@ class CodingValueTabTests(unittest.TestCase):
             CONFIG_DIR / "export_coding_files",
         )
 
+    def test_text_selection_is_cleared_when_coding_lineedit_loses_focus(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        panel.file_path.setText("C:/tmp/coding.xlsx")
+        panel.file_path.selectAll()
+        self.assertNotEqual(panel.file_path.selectedText(), "")
+
+        QApplication.sendEvent(
+            panel.file_path,
+            QFocusEvent(QEvent.FocusOut),
+        )
+
+        self.assertEqual(panel.file_path.selectedText(), "")
+
+    def test_text_selection_is_cleared_when_coding_editor_loses_focus(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        panel.txt_coding_value.setPlainText("62 F1 08")
+        panel.txt_coding_value.selectAll()
+        self.assertNotEqual(panel.txt_coding_value.textCursor().selectedText(), "")
+
+        QApplication.sendEvent(
+            panel.txt_coding_value,
+            QFocusEvent(QEvent.FocusOut),
+        )
+
+        self.assertEqual(panel.txt_coding_value.textCursor().selectedText(), "")
     def test_file_path_starts_empty(self):
         panel = CodingValuePanel()
         self.addCleanup(panel.deleteLater)

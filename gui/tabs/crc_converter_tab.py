@@ -1,20 +1,27 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QPlainTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from core.converter import SUPPORTED_FORMATS, convert_data
 from core.crc import calculate_crc8_sae_j1850, parse_hex_bytes
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+from gui.utils.text_selection import clear_text_selection_on_focus_out
 from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 
 class CRCConverterTab(QWidget):
+
+    DEFAULT_FROM_FORMAT = "Hexadecimal"
+    DEFAULT_TO_FORMAT = "Decimal"
 
     def __init__(self):
         super().__init__()
@@ -43,12 +50,10 @@ class CRCConverterTab(QWidget):
         panel_layout.setSpacing(8)
 
         self.lbl_crc8_sae_j1850 = PrimaryLabel("CRC8_SAE_J1850")
-        self.txt_crc_input = QPlainTextEdit()
-        self.txt_crc_input.setPlaceholderText("01 02 03 04 05")
-        self.txt_crc_input.setLineWrapMode(QPlainTextEdit.WidgetWidth)
-        self.txt_crc_input.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.txt_crc_input.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self._set_editor_three_line_height(self.txt_crc_input, lines =20)
+        self.txt_crc_input = self._create_multiline_editor(
+            placeholder="01 02 03 04 05",
+            lines=28,
+        )
 
         self.btn_calculate_crc = PrimaryButton(
             "Calculate CRC",
@@ -57,12 +62,15 @@ class CRCConverterTab(QWidget):
         self.txt_crc_output = PrimaryLineEdit()
         self.txt_crc_output.setReadOnly(True)
         self.txt_crc_output.setFixedWidth(80)
+        self.btn_copy_crc = PrimaryButton("COPY CRC", width=100)
+        self.btn_copy_crc.setEnabled(False)
 
         result_layout = QHBoxLayout()
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(8)
         result_layout.addWidget(self.btn_calculate_crc)
         result_layout.addWidget(self.txt_crc_output)
+        result_layout.addWidget(self.btn_copy_crc)
         result_layout.addStretch(1)
 
         panel_layout.addWidget(self.lbl_crc8_sae_j1850)
@@ -76,22 +84,142 @@ class CRCConverterTab(QWidget):
         panel_layout.setSpacing(8)
 
         self.lbl_converter = PrimaryLabel("Converter")
+        self.lbl_converter_from = PrimaryLabel("From")
+        self.lbl_converter_to = PrimaryLabel("To")
+        self.cmb_converter_from = self._create_format_combo()
+        self.cmb_converter_to = self._create_format_combo()
+        self._set_combo_text(self.cmb_converter_from, self.DEFAULT_FROM_FORMAT)
+        self._set_combo_text(self.cmb_converter_to, self.DEFAULT_TO_FORMAT)
+
+        format_layout = QHBoxLayout()
+        format_layout.setContentsMargins(0, 0, 0, 0)
+        format_layout.setSpacing(8)
+        format_layout.addLayout(
+            self._create_labeled_control_layout(
+                self.lbl_converter_from,
+                self.cmb_converter_from,
+            ),
+            1,
+        )
+        format_layout.addLayout(
+            self._create_labeled_control_layout(
+                self.lbl_converter_to,
+                self.cmb_converter_to,
+            ),
+            1,
+        )
+
+        self.lbl_converter_input = PrimaryLabel("Input")
+        self.txt_converter_input = self._create_multiline_editor(
+            placeholder="41 42 43",
+            lines=8,
+        )
+
+        self.btn_converter_convert = PrimaryButton("CONVERT", width=100)
+        self.btn_converter_swap = PrimaryButton("SWAP", width=100)
+        self.btn_converter_clear = PrimaryButton("CLEAR", width=100)
+
+        action_layout = QHBoxLayout()
+        action_layout.setContentsMargins(0, 0, 0, 0)
+        action_layout.setSpacing(8)
+        action_layout.addWidget(self.btn_converter_convert)
+        action_layout.addWidget(self.btn_converter_swap)
+        action_layout.addWidget(self.btn_converter_clear)
+        action_layout.addStretch(1)
+
+        self.lbl_converter_output = PrimaryLabel("Output")
+        self.txt_converter_output = self._create_multiline_editor(lines=8)
+        self.txt_converter_output.setReadOnly(True)
+
+        self.btn_converter_copy = PrimaryButton("Copy Result", width=120)
+        copy_layout = QHBoxLayout()
+        copy_layout.setContentsMargins(0, 0, 0, 0)
+        copy_layout.setSpacing(8)
+        copy_layout.addWidget(self.btn_converter_copy)
+        copy_layout.addStretch(1)
+
         panel_layout.addWidget(self.lbl_converter)
+        panel_layout.addLayout(format_layout)
+        panel_layout.addWidget(self.lbl_converter_input)
+        panel_layout.addWidget(self.txt_converter_input)
+        panel_layout.addLayout(action_layout)
+        panel_layout.addWidget(self.lbl_converter_output)
+        panel_layout.addWidget(self.txt_converter_output)
+        panel_layout.addLayout(copy_layout)
         panel_layout.addStretch(1)
+
+        self._install_text_selection_handlers()
+
+    def _install_text_selection_handlers(self):
+        clear_text_selection_on_focus_out(
+            self,
+            [
+                self.txt_crc_input,
+                self.txt_crc_output,
+                self.txt_converter_input,
+                self.txt_converter_output,
+            ],
+        )
 
     def _connect_signals(self):
         self.btn_calculate_crc.clicked.connect(
             self.calculate_crc8_sae_j1850
         )
+        self.btn_copy_crc.clicked.connect(
+            self.copy_crc_result
+        )
+        self.btn_converter_convert.clicked.connect(
+            self.convert_value
+        )
+        self.btn_converter_swap.clicked.connect(
+            self.swap_converter_formats
+        )
+        self.btn_converter_clear.clicked.connect(
+            self.clear_converter
+        )
+        self.btn_converter_copy.clicked.connect(
+            self.copy_converter_result
+        )
+
+    def _create_format_combo(self):
+        combo = PrimaryComboBox()
+        combo.addItems(SUPPORTED_FORMATS)
+        combo.setMaxVisibleItems(len(SUPPORTED_FORMATS))
+        fn_apply_scrollbar_style(combo.view())
+        return combo
 
     @staticmethod
-    def _set_editor_three_line_height(editor, lines =3):
+    def _create_labeled_control_layout(label, control):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(label)
+        layout.addWidget(control)
+        return layout
+
+    def _create_multiline_editor(self, placeholder="", lines=3):
+        editor = QPlainTextEdit()
+        editor.setPlaceholderText(placeholder)
+        editor.setLineWrapMode(QPlainTextEdit.WidgetWidth)
+        editor.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        editor.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._set_editor_height(editor, lines=lines)
+        return editor
+
+    @staticmethod
+    def _set_editor_height(editor, lines=3):
         line_height = editor.fontMetrics().lineSpacing()
         frame_width = editor.frameWidth() * 2
         vertical_padding = 12
         height = line_height * lines + frame_width + vertical_padding
         editor.setMinimumHeight(height)
         editor.setMaximumHeight(height)
+
+    @staticmethod
+    def _set_combo_text(combo, text):
+        index = combo.findText(text)
+        if index >= 0:
+            combo.setCurrentIndex(index)
 
     def calculate_crc8_sae_j1850(self):
         try:
@@ -101,11 +229,55 @@ class CRCConverterTab(QWidget):
             crc = calculate_crc8_sae_j1850(data)
         except ValueError as error:
             self.txt_crc_output.clear()
+            self.btn_copy_crc.setEnabled(False)
             self.txt_crc_input.setToolTip(str(error))
             return
 
         self.txt_crc_input.setToolTip("")
         self.txt_crc_output.setText(f"{crc:02X}")
+        self.btn_copy_crc.setEnabled(True)
+
+    def convert_value(self):
+        try:
+            result = convert_data(
+                self.txt_converter_input.toPlainText(),
+                self.cmb_converter_from.currentText(),
+                self.cmb_converter_to.currentText(),
+            )
+        except ValueError as error:
+            self.txt_converter_output.clear()
+            self.txt_converter_input.setToolTip(str(error))
+            return
+
+        self.txt_converter_input.setToolTip("")
+        self.txt_converter_output.setPlainText(result)
+
+    def swap_converter_formats(self):
+        from_format = self.cmb_converter_from.currentText()
+        to_format = self.cmb_converter_to.currentText()
+        output = self.txt_converter_output.toPlainText()
+
+        self._set_combo_text(self.cmb_converter_from, to_format)
+        self._set_combo_text(self.cmb_converter_to, from_format)
+        if output:
+            self.txt_converter_input.setPlainText(output)
+        self.txt_converter_output.clear()
+        self.txt_converter_input.setToolTip("")
+
+    def clear_converter(self):
+        self._set_combo_text(self.cmb_converter_from, self.DEFAULT_FROM_FORMAT)
+        self._set_combo_text(self.cmb_converter_to, self.DEFAULT_TO_FORMAT)
+        self.txt_converter_input.clear()
+        self.txt_converter_output.clear()
+        self.txt_converter_input.setToolTip("")
+
+    def copy_crc_result(self):
+        QApplication.clipboard().setText(self.txt_crc_output.text())
+
+    def copy_converter_result(self):
+        QApplication.clipboard().setText(
+            self.txt_converter_output.toPlainText()
+        )
 
     def fn_refresh_theme(self):
         colors = ThemeManager.fn_colors()
@@ -113,9 +285,26 @@ class CRCConverterTab(QWidget):
         self.setStyleSheet("")
         self.lbl_crc8_sae_j1850.fn_refresh_theme()
         self.lbl_converter.fn_refresh_theme()
+        self.lbl_converter_from.fn_refresh_theme()
+        self.lbl_converter_to.fn_refresh_theme()
+        self.lbl_converter_input.fn_refresh_theme()
+        self.lbl_converter_output.fn_refresh_theme()
+        self.cmb_converter_from.fn_refresh_theme()
+        self.cmb_converter_to.fn_refresh_theme()
         self.btn_calculate_crc.fn_refresh_theme()
+        self.btn_copy_crc.fn_refresh_theme()
+        self.btn_converter_convert.fn_refresh_theme()
+        self.btn_converter_swap.fn_refresh_theme()
+        self.btn_converter_clear.fn_refresh_theme()
+        self.btn_converter_copy.fn_refresh_theme()
         self.txt_crc_output.fn_refresh_theme()
-        self.txt_crc_input.setStyleSheet(
+        self._refresh_editor_theme(self.txt_crc_input, colors)
+        self._refresh_editor_theme(self.txt_converter_input, colors)
+        self._refresh_editor_theme(self.txt_converter_output, colors)
+
+    @staticmethod
+    def _refresh_editor_theme(editor, colors):
+        editor.setStyleSheet(
             f"""
             QPlainTextEdit {{
                 background: {colors.WINDOW};
@@ -128,4 +317,4 @@ class CRCConverterTab(QWidget):
             }}
             """
         )
-        fn_apply_scrollbar_style(self.txt_crc_input)
+        fn_apply_scrollbar_style(editor)
