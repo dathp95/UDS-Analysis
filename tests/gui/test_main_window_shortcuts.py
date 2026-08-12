@@ -66,7 +66,7 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertIs(window.tabs.widget(3), window.license_support_tab)
         self.assertEqual(window.tabs.tabText(3), "License & Support")
 
-    def test_license_support_tab_starts_empty_with_base_layout(self):
+    def test_license_support_tab_shows_support_and_contact_content(self):
         with patch.dict(
             sys.modules,
             {
@@ -83,9 +83,22 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.addCleanup(window.deleteLater)
         self.addCleanup(self._clear_imported_gui_modules)
 
-        self.assertIsInstance(window.license_support_tab, LicenseSupportTab)
-        self.assertIsNotNone(window.license_support_tab.layout())
-        self.assertEqual(window.license_support_tab.layout().count(), 0)
+        tab = window.license_support_tab
+        self.assertIsInstance(tab, LicenseSupportTab)
+        self.assertIn("Support the development", tab.title_label.text())
+        self.assertIn("continued development", tab.description_label.text())
+        self.assertFalse(tab.qr_label.pixmap().isNull())
+        self.assertFalse(tab.qr_label.hasScaledContents())
+        original_pixmap = tab.support_qr_pixmap
+        displayed_pixmap = tab.qr_label.pixmap()
+        self.assertAlmostEqual(
+            original_pixmap.width() / original_pixmap.height(),
+            displayed_pixmap.width() / displayed_pixmap.height(),
+            places=2,
+        )
+        self.assertIn("tranducdat.eng@gmail.com", tab.email_label.text())
+        self.assertIn("tranducdatks95@gmail.com", tab.email_label.text())
+        self.assertEqual(tab.phone_label.text(), "Phone: 0329000529")
 
     @staticmethod
     def _clear_imported_gui_modules():
