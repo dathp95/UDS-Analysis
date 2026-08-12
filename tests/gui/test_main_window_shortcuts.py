@@ -62,9 +62,36 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertIs(window.tabs.widget(0), window.log_analyzer_tab)
         self.assertIs(window.tabs.widget(1), window.coding_value_tab)
         self.assertEqual(window.tabs.tabText(1), "Coding value")
-        self.assertIs(window.tabs.widget(2), window.vehicle_manager_tab)
-        self.assertIs(window.tabs.widget(3), window.license_support_tab)
-        self.assertEqual(window.tabs.tabText(3), "License & Support")
+        self.assertIs(window.tabs.widget(2), window.crc_converter_tab)
+        self.assertEqual(window.tabs.tabText(2), "CRC_Converter")
+        self.assertIs(window.tabs.widget(3), window.vehicle_manager_tab)
+        self.assertIs(window.tabs.widget(4), window.license_support_tab)
+        self.assertEqual(window.tabs.tabText(4), "License & Support")
+
+    def test_crc_converter_tab_is_available_with_crc_panel(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from gui.tabs.crc_converter_tab import CRCConverterTab
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertIsInstance(window.crc_converter_tab, CRCConverterTab)
+        self.assertIsNotNone(window.crc_converter_tab.layout())
+        self.assertGreater(window.crc_converter_tab.layout().count(), 0)
+        self.assertEqual(
+            window.crc_converter_tab.lbl_crc8_sae_j1850.text(),
+            "CRC8_SAE_J1850",
+        )
 
     def test_license_support_tab_shows_support_and_contact_content(self):
         with patch.dict(
@@ -110,6 +137,7 @@ class MainWindowShortcutTests(unittest.TestCase):
             "gui.controllers.analysis_controller",
             "gui.controllers.report_controller",
             "gui.tabs.coding_value_tab",
+            "gui.tabs.crc_converter_tab",
             "gui.tabs.license_support_tab",
             "gui.tabs.log_analyzer_tab",
             "gui.windows.main_window",
