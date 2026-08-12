@@ -1,9 +1,7 @@
 from config.paths import (
+    CODING_VALUE_REPORT_DIR,
+    LOG_ANALYZER_REPORT_DIR,
     OUTPUT_DIR,
-    REPORT_DIR,
-    LOG_DIR,
-    TEMP_DIR,
-    CACHE_DIR,
 )
 
 
@@ -12,9 +10,7 @@ def ensure_directories():
 
     for folder in (
         OUTPUT_DIR,
-        REPORT_DIR,
-        LOG_DIR,
-        TEMP_DIR,
-        CACHE_DIR,
+        LOG_ANALYZER_REPORT_DIR,
+        CODING_VALUE_REPORT_DIR,
     ):
         folder.mkdir(parents=True, exist_ok=True)

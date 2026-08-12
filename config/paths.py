@@ -8,12 +8,8 @@ else:
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
-REPORT_DIR = OUTPUT_DIR / "Reports"
-LOG_DIR = OUTPUT_DIR / "Logs"
-TEMP_DIR = OUTPUT_DIR / "Temp"
-CACHE_DIR = OUTPUT_DIR / "Cache"
-
-
+LOG_ANALYZER_REPORT_DIR = OUTPUT_DIR / "Report_LogAnalyzer"
+CODING_VALUE_REPORT_DIR = OUTPUT_DIR / "Report_CodingValue"
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"

@@ -55,6 +55,11 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(file_layout.indexOf(panel.cmb_coding_json), 2)
         self.assertEqual(file_layout.indexOf(panel.btn_import), 3)
         self.assertEqual(panel.cmb_coding_json.width(), 200)
+        self.assertEqual(panel.cmb_coding_json.maxVisibleItems(), 5)
+        self.assertIn(
+            "QScrollBar:vertical",
+            panel.cmb_coding_json.view().verticalScrollBar().styleSheet(),
+        )
         self.assertEqual(panel.cmb_coding_json.currentText(), "")
 
     def test_import_coding_excel_renders_table_with_decoded_combobox(self):
@@ -188,13 +193,57 @@ class CodingValueTabTests(unittest.TestCase):
                 panel = CodingValuePanel()
                 self.addCleanup(panel.deleteLater)
                 panel.cmb_coding_json.setCurrentIndex(
-                    panel.cmb_coding_json.findText("existing.json")
+                    panel.cmb_coding_json.findText("existing")
                 )
 
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Method Type")
         self.assertEqual(panel.table.item(0, 4).text(), "")
         self.assertEqual(panel.table.cellWidget(0, 5).currentText(), "")
+    def test_import_button_loads_selected_json_without_excel_warning(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            export_dir = Path(tmpdir) / "config" / "export_coding_files"
+            export_dir.mkdir(parents=True)
+            json_path = export_dir / "existing.json"
+            json_path.write_text(
+                json.dumps({
+                    "source_file": "existing.xlsx",
+                    "rows": [
+                        {
+                            "parameter": "Method Type",
+                            "byte_pos": "14",
+                            "bit_pos": "0",
+                            "bit_length": "8",
+                            "raw_value": "",
+                            "decoded_value": "",
+                            "decoded_options": [
+                                {"raw_value": "0x05", "label": "Sky"},
+                            ],
+                        },
+                    ],
+                }),
+                encoding="utf-8",
+            )
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                panel = CodingValuePanel()
+                self.addCleanup(panel.deleteLater)
+                panel.cmb_coding_json.setCurrentIndex(
+                    panel.cmb_coding_json.findText("existing")
+                )
+                panel.file_path.clear()
+
+                with patch(
+                    "gui.widgets.coding_value.coding_value_panel.QMessageBox.warning"
+                ) as warning:
+                    panel.import_coding_value()
+
+        warning.assert_not_called()
+        self.assertEqual(panel.table.rowCount(), 1)
+        self.assertEqual(panel.table.item(0, 0).text(), "Method Type")
     def test_import_coding_excel_refreshes_json_drop_list_and_loads_table_from_json(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -228,7 +277,7 @@ class CodingValueTabTests(unittest.TestCase):
             ):
                 panel.import_coding_value()
 
-        self.assertEqual(panel.cmb_coding_json.currentText(), "coding.json")
+        self.assertEqual(panel.cmb_coding_json.currentText(), "coding")
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Vehicle Name")
         self.assertEqual(panel.table.item(0, 4).text(), "")
@@ -773,6 +822,7 @@ class CodingValueTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             coding_path = Path(tmpdir) / "coding.xlsx"
             report_root = Path(tmpdir) / "report"
+            custom_export_path = Path(tmpdir) / "custom_coding_report.xlsx"
             workbook.save(coding_path)
 
             panel = CodingValuePanel()
@@ -786,18 +836,24 @@ class CodingValueTabTests(unittest.TestCase):
             panel.check_coding_value()
 
             with patch(
-                "gui.widgets.coding_value.coding_value_panel.REPORT_DIR",
+                "gui.widgets.coding_value.coding_value_panel.CODING_VALUE_REPORT_DIR",
                 report_root,
             ), patch(
+                "gui.widgets.coding_value.coding_value_panel.QFileDialog.getSaveFileName",
+                return_value=(str(custom_export_path), "Excel Files (*.xlsx)"),
+            ) as save_dialog, patch(
                 "gui.widgets.coding_value.coding_value_panel.QMessageBox.information"
             ) as information:
                 panel.btn_export.click()
 
+            save_dialog.assert_called_once()
+            default_path = Path(save_dialog.call_args.args[2])
+            self.assertEqual(default_path.parent.parent, report_root)
+            self.assertTrue(default_path.name.startswith("EEIV_report_Coding value_"))
             information.assert_called_once()
             exported_path = Path(information.call_args.args[2].split("\n\n")[1])
+            self.assertEqual(exported_path, custom_export_path)
             self.assertTrue(exported_path.exists())
-            self.assertEqual(exported_path.parent.parent, report_root)
-            self.assertTrue(exported_path.name.startswith("EEIV_report_Coding value_"))
             self.assertEqual(exported_path.suffix, ".xlsx")
 
             exported = load_workbook(exported_path)
@@ -842,6 +898,7 @@ class CodingValueTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             coding_path = Path(tmpdir) / "coding.xlsx"
             report_root = Path(tmpdir) / "report"
+            custom_export_path = Path(tmpdir) / "custom_coding_report.xlsx"
             workbook.save(coding_path)
 
             panel = CodingValuePanel()
@@ -858,9 +915,12 @@ class CodingValueTabTests(unittest.TestCase):
             panel.check_coding_value()
 
             with patch(
-                "gui.widgets.coding_value.coding_value_panel.REPORT_DIR",
+                "gui.widgets.coding_value.coding_value_panel.CODING_VALUE_REPORT_DIR",
                 report_root,
             ), patch(
+                "gui.widgets.coding_value.coding_value_panel.QFileDialog.getSaveFileName",
+                return_value=(str(custom_export_path), "Excel Files (*.xlsx)"),
+            ) as save_dialog, patch(
                 "gui.widgets.coding_value.coding_value_panel.QMessageBox.information"
             ) as information:
                 panel.btn_export.click()

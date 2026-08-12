@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import datetime
-from config.paths import REPORT_DIR
+from config.paths import LOG_ANALYZER_REPORT_DIR
 from PySide6.QtWidgets import QFileDialog
 
 from core.report_export import export_workbook
@@ -106,7 +106,7 @@ class ReportService:
 
         )
 
-        report_folder = (REPORT_DIR / today)
+        report_folder = (LOG_ANALYZER_REPORT_DIR / today)
 
         report_folder.mkdir(
 

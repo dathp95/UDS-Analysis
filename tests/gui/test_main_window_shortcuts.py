@@ -63,6 +63,29 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertIs(window.tabs.widget(1), window.coding_value_tab)
         self.assertEqual(window.tabs.tabText(1), "Coding value")
         self.assertIs(window.tabs.widget(2), window.vehicle_manager_tab)
+        self.assertIs(window.tabs.widget(3), window.license_support_tab)
+        self.assertEqual(window.tabs.tabText(3), "License & Support")
+
+    def test_license_support_tab_starts_empty_with_base_layout(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from gui.tabs.license_support_tab import LicenseSupportTab
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertIsInstance(window.license_support_tab, LicenseSupportTab)
+        self.assertIsNotNone(window.license_support_tab.layout())
+        self.assertEqual(window.license_support_tab.layout().count(), 0)
 
     @staticmethod
     def _clear_imported_gui_modules():
@@ -73,7 +96,7 @@ class MainWindowShortcutTests(unittest.TestCase):
             "core.report_export",
             "gui.controllers.analysis_controller",
             "gui.controllers.report_controller",
-            "gui.tabs.coding_value_tab",
+            "gui.tabs.coding_value_tab",`r`n            "gui.tabs.license_support_tab",
             "gui.tabs.log_analyzer_tab",
             "gui.windows.main_window",
         }

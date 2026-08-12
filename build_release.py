@@ -70,10 +70,8 @@ if readme.exists():
 
 OUTPUT_FOLDERS = [
     "output",
-    "output/Reports",
-    "output/Logs",
-    "output/Temp",
-    "output/Cache",
+    "output/Report_LogAnalyzer",
+    "output/Report_CodingValue",
 ]
 
 
