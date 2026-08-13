@@ -99,6 +99,8 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(tab.btn_converter_swap.text(), "SWAP")
         self.assertEqual(tab.btn_converter_clear.text(), "CLEAR")
         self.assertEqual(tab.btn_converter_copy.text(), "Copy Result")
+        self.assertFalse(tab.btn_converter_clear.isEnabled())
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
 
         panel_layout = tab.converter_panel.layout()
         editor_layout = panel_layout.itemAt(2).layout()
@@ -121,7 +123,7 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(action_layout.stretch(0), 1)
         self.assertEqual(action_layout.stretch(1), 1)
 
-        self.assertEqual(tab.lbl_qr_generator.text(), "QR Code Generator")
+        self.assertIn("QR Code Generator", tab.lbl_qr_generator.text())
         self.assertIsInstance(tab.txt_qr_input, QPlainTextEdit)
         self.assertIsInstance(tab.lbl_qr_preview, QLabel)
         self.assertEqual(tab.lbl_qr_preview.alignment(), Qt.AlignCenter)
@@ -129,7 +131,9 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(tab.lbl_qr_preview.height(), 180)
         self.assertEqual(tab.btn_create_qr.text(), "Create QR")
         self.assertEqual(tab.btn_copy_qr.text(), "Copy QR")
+        self.assertEqual(tab.btn_clear_qr.text(), "Clear QR")
         self.assertFalse(tab.btn_copy_qr.isEnabled())
+        self.assertFalse(tab.btn_clear_qr.isEnabled())
         self.assertIn(
             "QScrollBar:vertical",
             tab.txt_qr_input.verticalScrollBar().styleSheet(),
@@ -164,6 +168,7 @@ class CRCConverterTabTests(unittest.TestCase):
         )
 
         self.assertEqual(tab.txt_crc_output.selectedText(), "")
+
     def test_create_qr_rejects_empty_input(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
@@ -196,6 +201,27 @@ class CRCConverterTabTests(unittest.TestCase):
         tab.btn_copy_qr.click()
         self.assertFalse(QApplication.clipboard().pixmap().isNull())
 
+    def test_clear_qr_clears_input_preview_and_copy_state(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+
+        tab.txt_qr_input.setPlainText("hello qr")
+        self.assertTrue(tab.btn_clear_qr.isEnabled())
+        with patch(
+            "gui.tabs.crc_converter_tab.generate_qr_png_bytes",
+            return_value=_png_bytes(),
+        ):
+            tab.btn_create_qr.click()
+
+        tab.btn_clear_qr.click()
+
+        self.assertEqual(tab.txt_qr_input.toPlainText(), "")
+        self.assertIsNone(tab._generated_qr_pixmap)
+        self.assertTrue(tab.lbl_qr_preview.pixmap().isNull())
+        self.assertFalse(tab.btn_copy_qr.isEnabled())
+        self.assertFalse(tab.btn_clear_qr.isEnabled())
+
+
     def test_copy_qr_without_generated_image_shows_message(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
@@ -206,6 +232,7 @@ class CRCConverterTabTests(unittest.TestCase):
             tab.copy_qr_code()
 
         information.assert_called_once()
+
     def test_calculate_crc_button_renders_hex_result(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
@@ -234,17 +261,23 @@ class CRCConverterTabTests(unittest.TestCase):
         self.addCleanup(tab.deleteLater)
 
         tab.txt_converter_input.setPlainText("41 42 43")
+        self.assertTrue(tab.btn_converter_clear.isEnabled())
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
+
         tab.btn_converter_convert.click()
         self.assertEqual(tab.txt_converter_output.toPlainText(), "65 66 67")
+        self.assertTrue(tab.btn_converter_copy.isEnabled())
 
         tab.btn_converter_swap.click()
         self.assertEqual(tab.cmb_converter_from.currentText(), "Decimal")
         self.assertEqual(tab.cmb_converter_to.currentText(), "Hexadecimal")
         self.assertEqual(tab.txt_converter_input.toPlainText(), "65 66 67")
         self.assertEqual(tab.txt_converter_output.toPlainText(), "")
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
 
         tab.btn_converter_convert.click()
         self.assertEqual(tab.txt_converter_output.toPlainText(), "41 42 43")
+        self.assertTrue(tab.btn_converter_copy.isEnabled())
 
         tab.btn_converter_copy.click()
         self.assertEqual(QApplication.clipboard().text(), "41 42 43")
@@ -254,7 +287,8 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(tab.cmb_converter_to.currentText(), "Decimal")
         self.assertEqual(tab.txt_converter_input.toPlainText(), "")
         self.assertEqual(tab.txt_converter_output.toPlainText(), "")
-
+        self.assertFalse(tab.btn_converter_clear.isEnabled())
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
     def test_converter_supports_new_formats_from_the_ui(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
@@ -281,15 +315,20 @@ class CRCConverterTabTests(unittest.TestCase):
         self.addCleanup(tab.deleteLater)
 
         tab.txt_converter_input.setPlainText("41 42 43")
+        self.assertTrue(tab.btn_converter_clear.isEnabled())
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
+
         tab.btn_converter_convert.click()
         self.assertEqual(tab.txt_converter_output.toPlainText(), "65 66 67")
+        self.assertTrue(tab.btn_converter_copy.isEnabled())
 
         tab.txt_converter_input.setPlainText("41 GG")
         tab.btn_converter_convert.click()
 
         self.assertEqual(tab.txt_converter_output.toPlainText(), "")
+        self.assertTrue(tab.btn_converter_clear.isEnabled())
+        self.assertFalse(tab.btn_converter_copy.isEnabled())
         self.assertIn("Invalid HEX input", tab.txt_converter_input.toolTip())
-
 
 if __name__ == "__main__":
     unittest.main()

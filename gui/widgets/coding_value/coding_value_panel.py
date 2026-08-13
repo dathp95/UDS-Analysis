@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -70,8 +70,8 @@ class CodingValuePanel(QGroupBox):
             width=100,
         )
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(200)
-        self.cmb_coding_json.setMaxVisibleItems(5)
+        self.cmb_coding_json.setFixedWidth(300)
+        self.cmb_coding_json.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
         self.btn_import = PrimaryButton(
