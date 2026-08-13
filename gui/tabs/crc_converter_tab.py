@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QLabel,
+    QMessageBox,
     QHBoxLayout,
     QPlainTextEdit,
     QVBoxLayout,
@@ -9,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from core.converter import SUPPORTED_FORMATS, convert_data
 from core.crc import calculate_crc8_sae_j1850, parse_hex_bytes
+from core.qr_generator import QRDependencyError, generate_qr_png_bytes
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.utils.text_selection import clear_text_selection_on_focus_out
@@ -26,6 +30,7 @@ class CRCConverterTab(QWidget):
     def __init__(self):
         super().__init__()
 
+        self._generated_qr_pixmap = None
         self._setup_ui()
         self._connect_signals()
         self.fn_refresh_theme()
@@ -115,40 +120,94 @@ class CRCConverterTab(QWidget):
             lines=8,
         )
 
-        self.btn_converter_convert = PrimaryButton("CONVERT", width=100)
-        self.btn_converter_swap = PrimaryButton("SWAP", width=100)
-        self.btn_converter_clear = PrimaryButton("CLEAR", width=100)
-
-        action_layout = QHBoxLayout()
-        action_layout.setContentsMargins(0, 0, 0, 0)
-        action_layout.setSpacing(8)
-        action_layout.addWidget(self.btn_converter_convert)
-        action_layout.addWidget(self.btn_converter_swap)
-        action_layout.addWidget(self.btn_converter_clear)
-        action_layout.addStretch(1)
-
         self.lbl_converter_output = PrimaryLabel("Output")
         self.txt_converter_output = self._create_multiline_editor(lines=8)
         self.txt_converter_output.setReadOnly(True)
 
+        editor_layout = QHBoxLayout()
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(8)
+        editor_layout.addLayout(
+            self._create_labeled_control_layout(
+                self.lbl_converter_input,
+                self.txt_converter_input,
+            ),
+            1,
+        )
+        editor_layout.addLayout(
+            self._create_labeled_control_layout(
+                self.lbl_converter_output,
+                self.txt_converter_output,
+            ),
+            1,
+        )
+
+        self.btn_converter_convert = PrimaryButton("CONVERT", width=100)
+        self.btn_converter_swap = PrimaryButton("SWAP", width=100)
+        self.btn_converter_clear = PrimaryButton("CLEAR", width=100)
         self.btn_converter_copy = PrimaryButton("Copy Result", width=120)
-        copy_layout = QHBoxLayout()
-        copy_layout.setContentsMargins(0, 0, 0, 0)
-        copy_layout.setSpacing(8)
-        copy_layout.addWidget(self.btn_converter_copy)
-        copy_layout.addStretch(1)
+
+        left_action_layout = QHBoxLayout()
+        left_action_layout.setContentsMargins(0, 0, 0, 0)
+        left_action_layout.setSpacing(8)
+        left_action_layout.addWidget(self.btn_converter_convert)
+        left_action_layout.addWidget(self.btn_converter_swap)
+        left_action_layout.addWidget(self.btn_converter_clear)
+        left_action_layout.addStretch(1)
+
+        right_action_layout = QHBoxLayout()
+        right_action_layout.setContentsMargins(0, 0, 0, 0)
+        right_action_layout.setSpacing(8)
+        right_action_layout.addWidget(self.btn_converter_copy)
+        right_action_layout.addStretch(1)
+
+        action_layout = QHBoxLayout()
+        action_layout.setContentsMargins(0, 0, 0, 0)
+        action_layout.setSpacing(8)
+        action_layout.addLayout(left_action_layout, 1)
+        action_layout.addLayout(right_action_layout, 1)
 
         panel_layout.addWidget(self.lbl_converter)
         panel_layout.addLayout(format_layout)
-        panel_layout.addWidget(self.lbl_converter_input)
-        panel_layout.addWidget(self.txt_converter_input)
+        panel_layout.addLayout(editor_layout)
         panel_layout.addLayout(action_layout)
-        panel_layout.addWidget(self.lbl_converter_output)
-        panel_layout.addWidget(self.txt_converter_output)
-        panel_layout.addLayout(copy_layout)
+        panel_layout.addSpacing(8)
+        self._setup_qr_panel(panel_layout)
         panel_layout.addStretch(1)
 
         self._install_text_selection_handlers()
+
+    def _setup_qr_panel(self, parent_layout):
+        self.lbl_qr_generator = PrimaryLabel("QR Code Generator")
+        self.txt_qr_input = self._create_multiline_editor(lines=5)
+        self.btn_create_qr = PrimaryButton("Create QR", width=100)
+        self.btn_copy_qr = PrimaryButton("Copy QR", width=100)
+        self.btn_copy_qr.setEnabled(False)
+
+        self.lbl_qr_preview = QLabel()
+        self.lbl_qr_preview.setAlignment(Qt.AlignCenter)
+        self.lbl_qr_preview.setFixedSize(180, 180)
+
+        qr_action_layout = QHBoxLayout()
+        qr_action_layout.setContentsMargins(0, 0, 0, 0)
+        qr_action_layout.setSpacing(8)
+        qr_action_layout.addWidget(self.btn_create_qr)
+        qr_action_layout.addWidget(self.btn_copy_qr)
+        qr_action_layout.addStretch(1)
+
+        qr_content_layout = QHBoxLayout()
+        qr_content_layout.setContentsMargins(0, 0, 0, 0)
+        qr_content_layout.setSpacing(8)
+        qr_content_layout.addWidget(self.txt_qr_input, 1)
+        qr_content_layout.addWidget(
+            self.lbl_qr_preview,
+            0,
+            Qt.AlignTop | Qt.AlignHCenter,
+        )
+
+        parent_layout.addWidget(self.lbl_qr_generator)
+        parent_layout.addLayout(qr_content_layout)
+        parent_layout.addLayout(qr_action_layout)
 
     def _install_text_selection_handlers(self):
         clear_text_selection_on_focus_out(
@@ -158,6 +217,7 @@ class CRCConverterTab(QWidget):
                 self.txt_crc_output,
                 self.txt_converter_input,
                 self.txt_converter_output,
+                self.txt_qr_input,
             ],
         )
 
@@ -179,6 +239,12 @@ class CRCConverterTab(QWidget):
         )
         self.btn_converter_copy.clicked.connect(
             self.copy_converter_result
+        )
+        self.btn_create_qr.clicked.connect(
+            self.create_qr_code
+        )
+        self.btn_copy_qr.clicked.connect(
+            self.copy_qr_code
         )
 
     def _create_format_combo(self):
@@ -271,6 +337,67 @@ class CRCConverterTab(QWidget):
         self.txt_converter_output.clear()
         self.txt_converter_input.setToolTip("")
 
+    def create_qr_code(self):
+        text = self.txt_qr_input.toPlainText()
+        if not text.strip():
+            self._clear_qr_preview()
+            QMessageBox.warning(
+                self,
+                "QR Code Generator",
+                "Please input text before creating QR.",
+            )
+            return
+
+        try:
+            qr_bytes = generate_qr_png_bytes(text)
+        except (ValueError, QRDependencyError) as error:
+            self._clear_qr_preview()
+            QMessageBox.warning(
+                self,
+                "QR Code Generator",
+                str(error),
+            )
+            return
+
+        pixmap = QPixmap()
+        if not pixmap.loadFromData(qr_bytes, "PNG"):
+            self._clear_qr_preview()
+            QMessageBox.warning(
+                self,
+                "QR Code Generator",
+                "Cannot render generated QR image.",
+            )
+            return
+
+        self._set_qr_preview_pixmap(pixmap)
+
+    def _set_qr_preview_pixmap(self, pixmap):
+        self._generated_qr_pixmap = pixmap
+        self.lbl_qr_preview.setPixmap(
+            pixmap.scaled(
+                self.lbl_qr_preview.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        )
+        self.btn_copy_qr.setEnabled(True)
+
+    def _clear_qr_preview(self):
+        self._generated_qr_pixmap = None
+        self.lbl_qr_preview.clear()
+        self.btn_copy_qr.setEnabled(False)
+
+    def copy_qr_code(self):
+        if self._generated_qr_pixmap is None:
+            QMessageBox.information(
+                self,
+                "QR Code Generator",
+                "No QR code to copy.",
+            )
+            return
+
+        QApplication.clipboard().setPixmap(self._generated_qr_pixmap)
+
     def copy_crc_result(self):
         QApplication.clipboard().setText(self.txt_crc_output.text())
 
@@ -289,6 +416,7 @@ class CRCConverterTab(QWidget):
         self.lbl_converter_to.fn_refresh_theme()
         self.lbl_converter_input.fn_refresh_theme()
         self.lbl_converter_output.fn_refresh_theme()
+        self.lbl_qr_generator.fn_refresh_theme()
         self.cmb_converter_from.fn_refresh_theme()
         self.cmb_converter_to.fn_refresh_theme()
         self.btn_calculate_crc.fn_refresh_theme()
@@ -297,10 +425,25 @@ class CRCConverterTab(QWidget):
         self.btn_converter_swap.fn_refresh_theme()
         self.btn_converter_clear.fn_refresh_theme()
         self.btn_converter_copy.fn_refresh_theme()
+        self.btn_create_qr.fn_refresh_theme()
+        self.btn_copy_qr.fn_refresh_theme()
         self.txt_crc_output.fn_refresh_theme()
         self._refresh_editor_theme(self.txt_crc_input, colors)
         self._refresh_editor_theme(self.txt_converter_input, colors)
         self._refresh_editor_theme(self.txt_converter_output, colors)
+        self._refresh_editor_theme(self.txt_qr_input, colors)
+        self._refresh_qr_preview_theme(colors)
+
+    def _refresh_qr_preview_theme(self, colors):
+        self.lbl_qr_preview.setStyleSheet(
+            f"""
+            QLabel {{
+                background: {colors.WINDOW};
+                border: 1px solid {colors.BORDER};
+                border-radius: 6px;
+            }}
+            """
+        )
 
     @staticmethod
     def _refresh_editor_theme(editor, colors):

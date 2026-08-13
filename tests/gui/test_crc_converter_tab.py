@@ -1,17 +1,26 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QFocusEvent
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QPlainTextEdit
+from PySide6.QtCore import QBuffer, QEvent, QIODevice, Qt
+from PySide6.QtGui import QColor, QFocusEvent, QImage
+from PySide6.QtWidgets import QApplication, QLabel, QHBoxLayout, QPlainTextEdit
 
 from gui.tabs.crc_converter_tab import CRCConverterTab
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
+
+def _png_bytes():
+    image = QImage(16, 16, QImage.Format_RGB32)
+    image.fill(QColor("white"))
+    buffer = QBuffer()
+    buffer.open(QIODevice.WriteOnly)
+    image.save(buffer, "PNG")
+    return bytes(buffer.data())
 
 class CRCConverterTabTests(unittest.TestCase):
 
@@ -91,6 +100,41 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(tab.btn_converter_clear.text(), "CLEAR")
         self.assertEqual(tab.btn_converter_copy.text(), "Copy Result")
 
+        panel_layout = tab.converter_panel.layout()
+        editor_layout = panel_layout.itemAt(2).layout()
+        action_layout = panel_layout.itemAt(3).layout()
+        self.assertIsInstance(editor_layout, QHBoxLayout)
+        self.assertIs(
+            editor_layout.itemAt(0).layout().itemAt(1).widget(),
+            tab.txt_converter_input,
+        )
+        self.assertIs(
+            editor_layout.itemAt(1).layout().itemAt(1).widget(),
+            tab.txt_converter_output,
+        )
+        left_action_layout = action_layout.itemAt(0).layout()
+        right_action_layout = action_layout.itemAt(1).layout()
+        self.assertIs(left_action_layout.itemAt(0).widget(), tab.btn_converter_convert)
+        self.assertIs(left_action_layout.itemAt(1).widget(), tab.btn_converter_swap)
+        self.assertIs(left_action_layout.itemAt(2).widget(), tab.btn_converter_clear)
+        self.assertIs(right_action_layout.itemAt(0).widget(), tab.btn_converter_copy)
+        self.assertEqual(action_layout.stretch(0), 1)
+        self.assertEqual(action_layout.stretch(1), 1)
+
+        self.assertEqual(tab.lbl_qr_generator.text(), "QR Code Generator")
+        self.assertIsInstance(tab.txt_qr_input, QPlainTextEdit)
+        self.assertIsInstance(tab.lbl_qr_preview, QLabel)
+        self.assertEqual(tab.lbl_qr_preview.alignment(), Qt.AlignCenter)
+        self.assertEqual(tab.lbl_qr_preview.width(), 180)
+        self.assertEqual(tab.lbl_qr_preview.height(), 180)
+        self.assertEqual(tab.btn_create_qr.text(), "Create QR")
+        self.assertEqual(tab.btn_copy_qr.text(), "Copy QR")
+        self.assertFalse(tab.btn_copy_qr.isEnabled())
+        self.assertIn(
+            "QScrollBar:vertical",
+            tab.txt_qr_input.verticalScrollBar().styleSheet(),
+        )
+
     def test_text_selection_is_cleared_when_crc_editor_loses_focus(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
@@ -120,6 +164,48 @@ class CRCConverterTabTests(unittest.TestCase):
         )
 
         self.assertEqual(tab.txt_crc_output.selectedText(), "")
+    def test_create_qr_rejects_empty_input(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+
+        with patch(
+            "gui.tabs.crc_converter_tab.QMessageBox.warning"
+        ) as warning:
+            tab.btn_create_qr.click()
+
+        warning.assert_called_once()
+        self.assertFalse(tab.btn_copy_qr.isEnabled())
+        self.assertIsNone(tab._generated_qr_pixmap)
+
+    def test_create_qr_displays_preview_and_copy_qr_copies_pixmap(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+
+        tab.txt_qr_input.setPlainText("hello qr")
+        with patch(
+            "gui.tabs.crc_converter_tab.generate_qr_png_bytes",
+            return_value=_png_bytes(),
+        ) as generate_qr:
+            tab.btn_create_qr.click()
+
+        generate_qr.assert_called_once_with("hello qr")
+        self.assertTrue(tab.btn_copy_qr.isEnabled())
+        self.assertIsNotNone(tab._generated_qr_pixmap)
+        self.assertFalse(tab.lbl_qr_preview.pixmap().isNull())
+
+        tab.btn_copy_qr.click()
+        self.assertFalse(QApplication.clipboard().pixmap().isNull())
+
+    def test_copy_qr_without_generated_image_shows_message(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+
+        with patch(
+            "gui.tabs.crc_converter_tab.QMessageBox.information"
+        ) as information:
+            tab.copy_qr_code()
+
+        information.assert_called_once()
     def test_calculate_crc_button_renders_hex_result(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
