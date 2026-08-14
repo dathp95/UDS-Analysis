@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 
+from core.feature_access import Feature, is_feature_enabled
 from gui.tabs.coding_value_tab import CodingValueTab
 from gui.tabs.crc_converter_tab import CRCConverterTab
 from gui.tabs.license_support_tab import LicenseSupportTab
@@ -17,10 +18,12 @@ from shortcuts.shortcut_manager import load_shortcuts
 
 class MainWindow(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, license_status=None):
         super().__init__()
 
-        self.setWindowTitle(" V-CODE v1.0.2 | AES EEIV by DAT TRAN")
+        self.license_status = license_status
+
+        self.setWindowTitle("V-CODE v2.0.1 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )
@@ -71,26 +74,41 @@ class MainWindow(QMainWindow):
         self.vehicle_manager_tab = VehicleManagerTab()
         self.license_support_tab = LicenseSupportTab()
 
-        self.tabs.addTab(
-            self.log_analyzer_tab,
-            "Log Analyzer",
+        self._feature_tabs = (
+            (
+                self.log_analyzer_tab,
+                "Log Analyzer",
+                Feature.LOG_ANALYZER,
+            ),
+            (
+                self.coding_value_tab,
+                "Coding value",
+                Feature.CODING_VALUE,
+            ),
+            (
+                self.crc_converter_tab,
+                "CRC_Converter",
+                Feature.CRC_CONVERTER,
+            ),
+            (
+                self.vehicle_manager_tab,
+                "Vehicle Manager",
+                Feature.VEHICLE_MANAGER,
+            ),
+            (
+                self.license_support_tab,
+                "License & Support",
+                Feature.LICENSE_SUPPORT,
+            ),
         )
-        self.tabs.addTab(
-            self.coding_value_tab,
-            "Coding value",
-        )
-        self.tabs.addTab(
-            self.crc_converter_tab,
-            "CRC_Converter",
-        )
-        self.tabs.addTab(
-            self.vehicle_manager_tab,
-            "Vehicle Manager",
-        )
-        self.tabs.addTab(
-            self.license_support_tab,
-            "License & Support",
-        )
+
+        for tab, label, _feature in self._feature_tabs:
+            self.tabs.addTab(
+                tab,
+                label,
+            )
+
+        self._apply_feature_access()
 
         self.vehicle_manager_tab.vehicle_data_changed.connect(
             lambda _vehicle_name: self.log_analyzer_tab.fn_refresh_vehicles()
@@ -99,6 +117,36 @@ class MainWindow(QMainWindow):
         self.crc_converter_tab.crc_transfer_requested.connect(
             self.coding_value_tab.fn_set_crc_value
         )
+
+    def _apply_feature_access(self):
+        license_is_valid = self._license_is_valid()
+
+        for tab, _label, feature in self._feature_tabs:
+            tab_index = self.tabs.indexOf(tab)
+            if tab_index < 0:
+                continue
+
+            self.tabs.setTabEnabled(
+                tab_index,
+                is_feature_enabled(
+                    feature,
+                    license_is_valid=license_is_valid,
+                ),
+            )
+
+        self._select_first_enabled_tab()
+
+    def _select_first_enabled_tab(self):
+        for index in range(self.tabs.count()):
+            if self.tabs.isTabEnabled(index):
+                self.tabs.setCurrentIndex(index)
+                return
+
+    def _license_is_valid(self):
+        if self.license_status is None:
+            return True
+
+        return bool(self.license_status.is_valid)
 
     def fn_refresh_theme(self):
         self.setStyleSheet(

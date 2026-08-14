@@ -126,6 +126,55 @@ class MainWindowShortcutTests(unittest.TestCase):
         window.crc_converter_tab.crc_transfer_requested.emit("47")
 
         self.assertEqual(panel.table.item(0, 4).text(), "47")
+
+    def test_invalid_license_only_enables_free_tabs(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from license.manager import LicenseStatus
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow(
+                    license_status=LicenseStatus.invalid("test invalid")
+                )
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertFalse(window.tabs.isTabEnabled(0))
+        self.assertFalse(window.tabs.isTabEnabled(1))
+        self.assertTrue(window.tabs.isTabEnabled(2))
+        self.assertFalse(window.tabs.isTabEnabled(3))
+        self.assertTrue(window.tabs.isTabEnabled(4))
+        self.assertIs(window.tabs.currentWidget(), window.crc_converter_tab)
+
+    def test_valid_license_enables_all_tabs(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from license.manager import LicenseStatus
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow(
+                    license_status=LicenseStatus.valid()
+                )
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        for index in range(window.tabs.count()):
+            self.assertTrue(window.tabs.isTabEnabled(index))
+
     def test_license_support_tab_shows_support_and_contact_content(self):
         with patch.dict(
             sys.modules,
