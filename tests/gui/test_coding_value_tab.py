@@ -112,6 +112,13 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertEqual(panel.file_path.text(), "")
 
+    def test_filter_buttons_start_disabled_without_table_data(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        self.assertFalse(panel.btn_filter_no_m.isEnabled())
+        self.assertFalse(panel.btn_refresh_filter.isEnabled())
+
     def test_json_drop_list_starts_empty_between_browse_and_import(self):
         panel = CodingValuePanel()
         self.addCleanup(panel.deleteLater)
@@ -649,6 +656,8 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertFalse(panel.btn_preview_clear.isEnabled())
+        self.assertFalse(panel.btn_filter_no_m.isEnabled())
+        self.assertTrue(panel.btn_refresh_filter.isEnabled())
         self.assertEqual(panel.table.columnCount(), 6)
 
         panel.check_coding_value()
@@ -665,10 +674,14 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertTrue(panel.btn_export.isEnabled())
         self.assertTrue(panel.btn_table_copy.isEnabled())
         self.assertTrue(panel.btn_table_clear.isEnabled())
+        self.assertFalse(panel.btn_filter_no_m.isEnabled())
+        self.assertTrue(panel.btn_refresh_filter.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertTrue(panel.btn_preview_clear.isEnabled())
 
         panel.check_coding_value()
+        self.assertTrue(panel.btn_filter_no_m.isEnabled())
+        self.assertTrue(panel.btn_refresh_filter.isEnabled())
         self.assertTrue(panel.btn_preview_edit.isEnabled())
 
         panel.clear_coding_payload()
@@ -678,6 +691,8 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
         self.assertFalse(panel.btn_preview_clear.isEnabled())
+        self.assertFalse(panel.btn_filter_no_m.isEnabled())
+        self.assertTrue(panel.btn_refresh_filter.isEnabled())
     def test_check_button_shows_fixed_before_columns_from_encoded_baseline(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -855,7 +870,15 @@ class CodingValueTabTests(unittest.TestCase):
             panel.import_coding_value()
 
         self.assertEqual(panel.table.rowCount(), 2)
-        self.assertEqual(panel.filter_row.layout().indexOf(panel.txt_parameter_filter), 0)
+        filter_layout = panel.filter_row.layout()
+        self.assertEqual(filter_layout.indexOf(panel.txt_parameter_filter), 0)
+        self.assertEqual(filter_layout.indexOf(panel.filter_action_row), 1)
+        self.assertEqual(panel.filter_action_row.width(), 220)
+        self.assertEqual(
+            panel.btn_filter_no_m.width(),
+            panel.btn_refresh_filter.width(),
+        )
+        self.assertEqual(panel.btn_filter_no_m.width(), 106)
 
         panel.table.selectRow(1)
         panel.txt_parameter_filter.setText("vehicle")
@@ -868,6 +891,60 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertFalse(panel.table.isRowHidden(0))
         self.assertFalse(panel.table.isRowHidden(1))
+    def test_filter_no_match_and_refresh_buttons_update_filter(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Unchanged Byte",
+            2,
+            0,
+            8,
+            "0x08=Old",
+        ])
+        sheet.append([
+            "Changed Byte",
+            3,
+            0,
+            8,
+            "0x37=Old\n0x99=New",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+            panel.txt_coding_value.setPlainText("62 F1 08 37")
+            panel.import_coding_value()
+            panel.encode_coding_payload()
+
+        self.assertFalse(panel.btn_filter_no_m.isEnabled())
+        self.assertTrue(panel.btn_refresh_filter.isEnabled())
+
+        panel.check_coding_value()
+        panel.table.item(1, 4).setText("99")
+
+        panel.btn_filter_no_m.click()
+
+        self.assertEqual(panel.txt_parameter_filter.text(), "No-M")
+        self.assertTrue(panel.table.isRowHidden(0))
+        self.assertFalse(panel.table.isRowHidden(1))
+
+        panel.btn_refresh_filter.click()
+
+        self.assertEqual(panel.txt_parameter_filter.text(), "")
+        self.assertFalse(panel.table.isRowHidden(0))
+        self.assertFalse(panel.table.isRowHidden(1))
+
     def test_export_button_writes_visible_table_to_coding_value_report(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1229,6 +1306,43 @@ class CodingValueTabTests(unittest.TestCase):
 
         panel.check_coding_value()
         self.assertEqual(panel.table.columnCount(), 9)
+    def test_parameter_filter_matches_result_column_after_check(self):
+        table = CodingValueTable()
+        self.addCleanup(table.deleteLater)
+        table.set_rows([
+            CodingValueRow(
+                parameter="Unchanged Byte",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Changed Byte",
+                byte_pos="1",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        table.encode_payload("01 02")
+        table.item(1, 4).setText("FF")
+        table.apply_check_results()
+
+        table.filter_by_parameter("No-M")
+
+        self.assertTrue(table.isRowHidden(0))
+        self.assertFalse(table.isRowHidden(1))
+
+        table.filter_by_parameter("")
+
+        self.assertFalse(table.isRowHidden(0))
+        self.assertFalse(table.isRowHidden(1))
+
     def test_result_header_click_does_not_reorder_table(self):
         table = CodingValueTable()
         self.addCleanup(table.deleteLater)

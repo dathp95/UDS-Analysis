@@ -71,6 +71,7 @@ class CRCConverterTab(QWidget):
         self.btn_copy_crc = PrimaryButton("COPY CRC", width=100)
         self.btn_copy_crc.setEnabled(False)
         self.btn_transfer_crc = PrimaryButton("Transfer CRC", width=120)
+        self.btn_transfer_crc.setEnabled(False)
 
         result_layout = QHBoxLayout()
         result_layout.setContentsMargins(0, 0, 0, 0)
@@ -296,6 +297,9 @@ class CRCConverterTab(QWidget):
         self.btn_transfer_crc.clicked.connect(
             self.transfer_crc_result
         )
+        self.txt_crc_output.textChanged.connect(
+            self._update_crc_button_states
+        )
         self.btn_converter_convert.clicked.connect(
             self.convert_value
         )
@@ -375,13 +379,16 @@ class CRCConverterTab(QWidget):
             crc = calculate_crc8_sae_j1850(data)
         except ValueError as error:
             self.txt_crc_output.clear()
-            self.btn_copy_crc.setEnabled(False)
             self.txt_crc_input.setToolTip(str(error))
             return
 
         self.txt_crc_input.setToolTip("")
         self.txt_crc_output.setText(f"{crc:02X}")
-        self.btn_copy_crc.setEnabled(True)
+
+    def _update_crc_button_states(self):
+        has_crc = bool(self.txt_crc_output.text().strip())
+        self.btn_copy_crc.setEnabled(has_crc)
+        self.btn_transfer_crc.setEnabled(has_crc)
 
     def convert_value(self):
         try:

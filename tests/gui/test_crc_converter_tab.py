@@ -51,6 +51,8 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(tab.btn_calculate_crc.text(), "Calculate CRC")
         self.assertIsInstance(tab.txt_crc_output, PrimaryLineEdit)
         self.assertTrue(tab.txt_crc_output.isReadOnly())
+        self.assertFalse(tab.btn_copy_crc.isEnabled())
+        self.assertFalse(tab.btn_transfer_crc.isEnabled())
 
     def test_tab_layout_is_split_between_crc_and_converter(self):
         tab = CRCConverterTab()
@@ -77,7 +79,7 @@ class CRCConverterTabTests(unittest.TestCase):
 
         self.assertEqual(emitted, ["47"])
 
-    def test_transfer_crc_rejects_empty_output(self):
+    def test_transfer_crc_button_is_disabled_without_output(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
         emitted = []
@@ -88,7 +90,8 @@ class CRCConverterTabTests(unittest.TestCase):
         ) as warning:
             tab.btn_transfer_crc.click()
 
-        warning.assert_called_once()
+        self.assertFalse(tab.btn_transfer_crc.isEnabled())
+        warning.assert_not_called()
         self.assertEqual(emitted, [])
     def test_converter_panel_has_expected_controls_and_defaults(self):
         tab = CRCConverterTab()
@@ -265,6 +268,8 @@ class CRCConverterTabTests(unittest.TestCase):
         tab.btn_calculate_crc.click()
 
         self.assertEqual(tab.txt_crc_output.text(), "95")
+        self.assertTrue(tab.btn_copy_crc.isEnabled())
+        self.assertTrue(tab.btn_transfer_crc.isEnabled())
 
     def test_invalid_input_does_not_crash_or_keep_stale_result(self):
         tab = CRCConverterTab()
@@ -278,6 +283,8 @@ class CRCConverterTabTests(unittest.TestCase):
         tab.btn_calculate_crc.click()
 
         self.assertEqual(tab.txt_crc_output.text(), "")
+        self.assertFalse(tab.btn_copy_crc.isEnabled())
+        self.assertFalse(tab.btn_transfer_crc.isEnabled())
         self.assertIn("Invalid HEX input", tab.txt_crc_input.toolTip())
 
     def test_converter_convert_swap_clear_and_copy(self):

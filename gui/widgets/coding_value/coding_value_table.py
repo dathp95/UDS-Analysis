@@ -150,15 +150,24 @@ class CodingValueTable(PrimaryTable):
     def filter_by_parameter(self, keyword):
         text = str(keyword or "").strip().lower()
         for row_index in range(self.rowCount()):
-            item = self.item(row_index, 0)
-            parameter = item.text().lower() if item is not None else ""
+            row_text = " ".join((
+                self._cell_text(row_index, 0),
+                self._cell_text(row_index, 8),
+            )).lower()
             self.setRowHidden(
                 row_index,
-                bool(text) and text not in parameter,
+                bool(text) and text not in row_text,
             )
 
         self.clearSelection()
         self.setCurrentCell(-1, -1)
+
+    def _cell_text(self, row_index, column):
+        if column >= self.columnCount():
+            return ""
+
+        item = self.item(row_index, column)
+        return item.text() if item is not None else ""
 
     def encode_payload(self, payload, update_original=True):
         payload_bytes = self._parse_payload_bytes(payload)

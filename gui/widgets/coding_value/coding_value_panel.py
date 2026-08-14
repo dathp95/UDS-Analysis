@@ -160,11 +160,33 @@ class CodingValuePanel(QGroupBox):
         self.txt_parameter_filter = PrimaryLineEdit(
             placeholder="Filter parameter"
         )
+        filter_action_width = 256
+        filter_button_width = (filter_action_width - 8) // 2
+        self.btn_filter_no_m = PrimaryButton(
+            "No-M",
+            width=filter_button_width,
+        )
+        self.btn_filter_no_m.setFixedWidth(filter_button_width)
+        self.btn_refresh_filter = PrimaryButton(
+            "Refresh",
+            width=filter_button_width,
+        )
+        self.btn_refresh_filter.setFixedWidth(filter_button_width)
+
+        self.filter_action_row = QWidget()
+        self.filter_action_row.setFixedWidth(filter_action_width)
+        filter_action_layout = QHBoxLayout(self.filter_action_row)
+        filter_action_layout.setContentsMargins(0, 0, 0, 0)
+        filter_action_layout.setSpacing(8)
+        filter_action_layout.addWidget(self.btn_filter_no_m)
+        filter_action_layout.addWidget(self.btn_refresh_filter)
+
         self.filter_row = QWidget()
         filter_layout = QHBoxLayout(self.filter_row)
         filter_layout.setContentsMargins(0, 0, 0, 0)
         filter_layout.setSpacing(8)
         filter_layout.addWidget(self.txt_parameter_filter, 1)
+        filter_layout.addWidget(self.filter_action_row, 0)
 
         self.table = CodingValueTable()
 
@@ -297,6 +319,12 @@ class CodingValuePanel(QGroupBox):
         self.txt_parameter_filter.textChanged.connect(
             self.filter_parameter_table
         )
+        self.btn_filter_no_m.clicked.connect(
+            self.filter_no_match_rows
+        )
+        self.btn_refresh_filter.clicked.connect(
+            self.refresh_parameter_filter
+        )
         self.txt_coding_value.textChanged.connect(
             self._update_action_states
         )
@@ -399,6 +427,14 @@ class CodingValuePanel(QGroupBox):
         self.table.filter_by_parameter(
             self.txt_parameter_filter.text()
         )
+
+    def filter_no_match_rows(self):
+        self.txt_parameter_filter.setText("No-M")
+        self.filter_parameter_table()
+
+    def refresh_parameter_filter(self):
+        self.txt_parameter_filter.clear()
+        self.filter_parameter_table()
 
     def fn_set_crc_value(self, crc_value):
         value = str(crc_value or "").strip()
@@ -600,7 +636,7 @@ class CodingValuePanel(QGroupBox):
 
         return name[:31] or "Coding value"
 
-    def copy_table_raw_values(self, timeout_ms=5000):
+    def copy_table_raw_values(self, timeout_ms=1500):
         if not self._can_use_table_actions():
             return
 
@@ -611,7 +647,7 @@ class CodingValuePanel(QGroupBox):
         QApplication.clipboard().setText(raw_values)
         self._show_auto_close_information(
             "Coding value",
-            f"Copy thanh cong:\n\n{raw_values}",
+            f"Copy success:\n\n{raw_values}",
             timeout_ms,
         )
 
@@ -758,6 +794,10 @@ class CodingValuePanel(QGroupBox):
         self.btn_preview_refresh.setEnabled(can_encode)
         self.btn_preview_edit.setEnabled(self._can_edit_preview_payload())
         self.btn_preview_clear.setEnabled(can_use_preview)
+        self.btn_filter_no_m.setEnabled(
+            can_use_table_actions and self._has_check_results()
+        )
+        self.btn_refresh_filter.setEnabled(has_table_rows)
         self.btn_check.setEnabled(can_use_table_actions)
         self.btn_export.setEnabled(can_use_table_actions)
         self.btn_table_copy.setEnabled(can_use_table_actions)
@@ -924,6 +964,8 @@ class CodingValuePanel(QGroupBox):
         )
         self.file_path.fn_refresh_theme()
         self.txt_parameter_filter.fn_refresh_theme()
+        self.btn_filter_no_m.fn_refresh_theme()
+        self.btn_refresh_filter.fn_refresh_theme()
         self.btn_browse.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
         self.btn_encode.fn_refresh_theme()
