@@ -19,6 +19,7 @@ from gui.dialogs.export_vehicle_dialog import ExportVehicleDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.dialogs.shortcuts_dialog import ShortcutsDialog
 from gui.controllers.vehicle_controller import VehicleController
+from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import (
     fn_apply_scrollbar_style,
@@ -27,6 +28,7 @@ from models.ecu import ECU
 from models.vehicle import Vehicle
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.secondary_button import SecondaryButton
+from gui.widgets.controls.theme_switch import ThemeSwitch
 from core.config_loader import (
     import_display_names,
     import_display_name_rules,
@@ -234,6 +236,8 @@ class VehicleManagerTab(QWidget):
             width=180,
         )
 
+        self.theme_switch = ThemeSwitch()
+
         ecu_list_widget = QWidget()
 
         ecu_list_layout = QVBoxLayout(ecu_list_widget)
@@ -338,6 +342,21 @@ class VehicleManagerTab(QWidget):
         )
 
         detail_layout.addStretch()
+
+        bottom_layout = QHBoxLayout()
+
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.addWidget(
+                    self.theme_switch
+                )
+
+        bottom_layout.addStretch()
+
+        
+
+        detail_layout.addLayout(
+            bottom_layout
+        )
 
         self.detail_scroll_area = QScrollArea()
 
@@ -462,6 +481,10 @@ class VehicleManagerTab(QWidget):
 
             self._on_save_clicked
 
+        )
+
+        self.theme_switch.theme_changed.connect(
+            self.fn_change_theme
         )
 
     def _load_data(self):        
@@ -1197,6 +1220,20 @@ class VehicleManagerTab(QWidget):
 
         message_box.exec()
 
+    def fn_change_theme(self, theme):
+        ThemeManager.fn_set_theme(theme)
+
+        window = self.window()
+
+        if (
+            window is not self
+            and hasattr(window, "fn_refresh_theme")
+        ):
+            window.fn_refresh_theme()
+            return
+
+        self.fn_refresh_theme()
+
     def fn_refresh_theme(self):
 
         self.setStyleSheet("")
@@ -1243,3 +1280,5 @@ class VehicleManagerTab(QWidget):
         self.btn_import_display_names.fn_refresh_theme()
 
         self.btn_import_display_rules.fn_refresh_theme()
+
+        self.theme_switch.fn_refresh_theme()

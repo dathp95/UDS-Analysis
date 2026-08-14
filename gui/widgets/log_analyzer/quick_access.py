@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QGroupBox,
+    QHBoxLayout,    
     QScrollArea,
     QMenu,
     QMessageBox
@@ -56,44 +56,92 @@ class QuickAccessWidget(QWidget):
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )
+
+        self.scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )
 
         self.scroll_widget = QWidget()
 
-        self.button_layout = QVBoxLayout(self.scroll_widget)
+        self.button_layout = QVBoxLayout(
+            self.scroll_widget
+        )
 
-        self.button_layout.setContentsMargins(8, 8, 8, 8)
+        self.button_layout.setContentsMargins(
+            8,
+            8,
+            8,
+            8,
+        )
+
         self.button_layout.setSpacing(4)
 
-        self.scroll_area.setWidget(self.scroll_widget)
+        self.scroll_area.setWidget(
+            self.scroll_widget
+        )
 
-        fn_apply_scrollbar_style(self.scroll_area)
+        fn_apply_scrollbar_style(
+            self.scroll_area
+        )
 
-        # Keep room for Import/Add actions and the theme switch below without
-        # forcing the left panel beyond the available window height.
         self.scroll_area.setMinimumHeight(360)
 
-        root_layout.addWidget(self.scroll_area)
-
-        root_layout.addSpacing(4)
+        # 1 = Quick Filter chiếm toàn bộ diện tích còn lại
+        root_layout.addWidget(
+            self.scroll_area,
+            1,
+        )
 
         # --------------------------
-        # Add Filter
+        # Filter Actions
         # --------------------------
 
-        self.btn_add = SecondaryButton("+ Add Filter +")
+        self.btn_add = SecondaryButton(
+            "+ Add Filter +"
+        )
 
-        root_layout.addWidget(self.btn_add)
+        self.btn_import = SecondaryButton(
+            "Import Filters"
+        )
 
-        self.btn_import = SecondaryButton("Import Filters")
-        root_layout.addWidget(self.btn_import)
+        self.btn_export = SecondaryButton(
+            "Export Filters"
+        )
 
-        self.btn_export = SecondaryButton("Export Filters")
-        root_layout.addWidget(self.btn_export)
+        action_layout = QHBoxLayout()
 
-        root_layout.addStretch()
+        action_layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0,
+        )
+
+        action_layout.setSpacing(8)
+
+        action_layout.addWidget(
+            self.btn_add,
+            1,
+        )
+
+        action_layout.addWidget(
+            self.btn_import,
+            1,
+        )
+
+        action_layout.addWidget(
+            self.btn_export,
+            1,
+        )
+
+        # Hàng button nằm cố định dưới cùng
+        root_layout.addLayout(
+            action_layout
+        )
 
         self._connect_signals()
 

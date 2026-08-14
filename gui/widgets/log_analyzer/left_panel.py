@@ -2,7 +2,6 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal
 
 from gui.widgets.log_analyzer.quick_access import QuickAccessWidget
-from gui.widgets.controls.theme_switch import ThemeSwitch
 
 
 
@@ -15,13 +14,9 @@ class LeftPanel(QWidget):
         layout = QVBoxLayout(self)
 
         self.quick_access = QuickAccessWidget()
-        self.theme_switch = ThemeSwitch()
-
 
         layout.addWidget(self.quick_access)
         layout.addStretch()
-        layout.addWidget(self.theme_switch)
-
         self._connect_signals()
     
     
@@ -46,4 +41,3 @@ class LeftPanel(QWidget):
 
     def fn_refresh_theme(self):
         self.quick_access.fn_refresh_theme()
-        self.theme_switch.fn_refresh_theme()

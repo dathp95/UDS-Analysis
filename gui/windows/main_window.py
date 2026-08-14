@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
             "analyze": lambda: self.log_analyzer_tab.fn_run_clicked(),
             "add_quick_access": lambda: self.log_analyzer_tab.left_panel.quick_access.fn_add_filter(),
             "vehicle_selector": lambda: self.log_analyzer_tab.vehicle_selector.cmb_vehicle.setFocus(),
-            "toggle_theme": lambda: self.log_analyzer_tab.left_panel.theme_switch.switch_dark.click(),
+            "toggle_theme": lambda: self.vehicle_manager_tab.theme_switch.switch_dark.click(),
             "copy_asc": lambda: self.log_analyzer_tab.fn_copy_clicked(),
             "clone_quick_access": lambda: self.log_analyzer_tab.left_panel.quick_access.fn_clone_selected(),
         }

@@ -11,7 +11,6 @@ from gui.controllers.analysis_controller import AnalysisController
 from gui.controllers.clipboard_controller import ClipboardController
 from gui.controllers.report_controller import ReportController
 from gui.presenters.transaction_presenter import fn_build_table_rows
-from gui.themes.theme_manager import ThemeManager
 from gui.widgets.log_analyzer.filter_box import FilterBox
 from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.path_selector import PathSelectorWidget
@@ -142,10 +141,6 @@ class LogAnalyzerTab(QWidget):
 
         self.left_panel.quick_filter_selected.connect(
             self.fn_quick_filter
-        )
-
-        self.left_panel.theme_switch.theme_changed.connect(
-            self.fn_change_theme
         )
 
     def _load_vehicles(self):
@@ -291,20 +286,6 @@ class LogAnalyzerTab(QWidget):
 
     def fn_quick_filter(self, filter_data: dict):
         self.tbl_result.fn_apply_quick_filter(filter_data)
-
-    def fn_change_theme(self, theme):
-        ThemeManager.fn_set_theme(theme)
-
-        window = self.window()
-
-        if (
-            window is not self
-            and hasattr(window, "fn_refresh_theme")
-        ):
-            window.fn_refresh_theme()
-            return
-
-        self.fn_refresh_theme()
 
     def fn_refresh_theme(self):
         self.vehicle_selector.fn_refresh_theme()

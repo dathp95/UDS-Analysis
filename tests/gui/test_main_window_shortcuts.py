@@ -68,6 +68,46 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertIs(window.tabs.widget(4), window.license_support_tab)
         self.assertEqual(window.tabs.tabText(4), "License & Support")
 
+
+    def test_theme_switch_is_in_vehicle_manager_separate_bottom_right_layout(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from gui.widgets.controls.theme_switch import ThemeSwitch
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertFalse(hasattr(window.log_analyzer_tab.left_panel, "theme_switch"))
+        self.assertIsInstance(window.vehicle_manager_tab.theme_switch, ThemeSwitch)
+
+        detail_layout = window.vehicle_manager_tab.detail_scroll_area.widget().layout()
+        action_layout = detail_layout.itemAt(1).layout()
+        bottom_layout = detail_layout.itemAt(3).layout()
+
+        self.assertIs(
+            action_layout.itemAt(action_layout.count() - 1).widget(),
+            window.vehicle_manager_tab.btn_save,
+        )
+        self.assertIsNone(
+            action_layout.itemAt(action_layout.count() - 2).widget(),
+        )
+        self.assertIs(
+            bottom_layout.itemAt(bottom_layout.count() - 1).widget(),
+            window.vehicle_manager_tab.theme_switch,
+        )
+        self.assertIsNone(
+            bottom_layout.itemAt(0).widget(),
+        )
+
     def test_crc_converter_tab_is_available_with_crc_panel(self):
         with patch.dict(
             sys.modules,
