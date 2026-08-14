@@ -69,6 +69,32 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertEqual(window.tabs.tabText(4), "License & Support")
 
 
+
+    def test_log_analyzer_prioritizes_result_table_width(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        content_layout = window.log_analyzer_tab.content_layout
+
+        self.assertIs(content_layout.itemAt(0).widget(), window.log_analyzer_tab.left_panel)
+        self.assertIs(content_layout.itemAt(1).widget(), window.log_analyzer_tab.tbl_result)
+        self.assertIs(content_layout.itemAt(2).widget(), window.log_analyzer_tab.right_panel)
+        self.assertEqual(content_layout.stretch(0), 2)
+        self.assertEqual(content_layout.stretch(1), 9)
+        self.assertEqual(content_layout.stretch(2), 2)
+
     def test_theme_switch_is_in_vehicle_manager_separate_bottom_right_layout(self):
         with patch.dict(
             sys.modules,

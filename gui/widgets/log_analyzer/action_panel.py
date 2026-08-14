@@ -2,14 +2,13 @@ from PySide6.QtCore import Signal
 
 from PySide6.QtWidgets import (
     QWidget,
-    QGroupBox,    
     QVBoxLayout,
-    QHBoxLayout,
-    QPushButton
+    QPlainTextEdit
 )
 
 from gui.widgets.controls.primary_button import PrimaryButton
-from gui.widgets.controls.theme_switch import ThemeSwitch
+from gui.themes.theme_manager import ThemeManager
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 
 
 class ActionPanel (QWidget):
@@ -24,32 +23,71 @@ class ActionPanel (QWidget):
         self._connect_signals()
 
     def _setup_ui(self):
-        # container = QWidget()
         layout = QVBoxLayout(self)
 
-        # self.theme_switch = ThemeSwitch()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
+        # --------------------------
+        # Action Buttons
+        # --------------------------
 
-        self.btn_run = PrimaryButton("Analyze", width=160, height=50)                                      
-        self.btn_export = PrimaryButton("EXPORT", width = 160)                                      
-        self.btn_copy = PrimaryButton("COPY ASC DATA", width = 160)
-        self.btn_clear = PrimaryButton("CLEAR TABLE", height = 50)
+        self.btn_run = PrimaryButton(
+            "Analyze",
+            width=160,
+            height=50,
+        )
 
-        layout.addStretch()
+        self.btn_export = PrimaryButton(
+            "EXPORT",
+            width=160,
+        )
+
+        self.btn_copy = PrimaryButton(
+            "COPY ASC DATA",
+            width=160,
+        )
+
+        self.btn_clear = PrimaryButton(
+            "CLEAR TABLE",
+            width=160,
+            height=50,
+        )
+
+        # --------------------------
+        # Working Log
+        # --------------------------
+
+        self.txt_working_log = QPlainTextEdit()
+
+        self.txt_working_log.setPlaceholderText(
+            "Working log"
+        )
+
+        self.txt_working_log.setReadOnly(True)
+
+        self.txt_working_log.setLineWrapMode(
+            QPlainTextEdit.WidgetWidth
+        )
+
+        self.txt_working_log.setMinimumHeight(120)
+
+        # --------------------------
+        # Layout
+        # --------------------------
+
         layout.addWidget(self.btn_run)
+
         layout.addSpacing(12)
+
         layout.addWidget(self.btn_export)
         layout.addWidget(self.btn_copy)
         layout.addWidget(self.btn_clear)
-        layout.addStretch()
 
-        # main_layout = QVBoxLayout(self)
-        # main_layout.setContentsMargins(0, 0, 0, 0)
-        # main_layout.addWidget(container)
-
-        # main_layout.addWidget(self.theme_switch)
+        layout.addWidget(
+            self.txt_working_log,
+            1,
+        )
 
 
     def _connect_signals (self):
@@ -220,6 +258,50 @@ class ActionPanel (QWidget):
             copy = False,
             clear= False 
         )
+
+    def fn_set_quick_filter_log(
+            self,
+            filter_data: dict
+        ) -> None:
+        """Show the selected quick filter details in the working log."""
+
+        if not isinstance(filter_data, dict):
+            self.txt_working_log.clear()
+            return
+
+        filters = filter_data.get("filters", {})
+
+        if not isinstance(filters, dict):
+            filters = {}
+
+        self.txt_working_log.setPlainText(
+            "\n".join(
+                [
+                    f"Name: {self._fn_text_value(filter_data, 'name')}",
+                    f"ECU: {self._fn_text_value(filters, 'ecu')}",
+                    f"Request: {self._fn_text_value(filters, 'request')}",
+                    f"Response: {self._fn_text_value(filters, 'response')}",
+                ]
+            )
+        )
+
+    def fn_clear_working_log(self) -> None:
+        """Clear the quick filter working log."""
+
+        self.txt_working_log.clear()
+
+    @staticmethod
+    def _fn_text_value(
+            data: dict,
+            key: str
+        ) -> str:
+
+        value = data.get(key, "")
+
+        if value is None:
+            return ""
+
+        return str(value)
     
     def fn_refresh_theme(self):
 
@@ -230,4 +312,22 @@ class ActionPanel (QWidget):
         self.btn_copy.fn_refresh_theme()
 
         self.btn_clear.fn_refresh_theme()
+
+        colors = ThemeManager.fn_colors()
+
+        self.txt_working_log.setStyleSheet(
+            f"""
+            QPlainTextEdit {{
+                background: {colors.WINDOW};
+                color: {colors.TEXT};
+                border: 1px solid {colors.BORDER};
+                border-radius: 6px;
+                padding: 8px;
+                font-family: Consolas;
+                font-size: 10pt;
+            }}
+            """
+        )
+
+        fn_apply_scrollbar_style(self.txt_working_log)
                                               

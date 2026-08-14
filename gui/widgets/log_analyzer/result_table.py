@@ -44,6 +44,11 @@ class ResultTable(PrimaryTable):
 
         header.setStretchLastSection(False)
 
+        header.setSectionResizeMode(
+            self._fn_column_index("Status"),
+            QHeaderView.Stretch,
+        )
+
     def clear_data(self):
         self.setRowCount(0)
     
@@ -103,10 +108,6 @@ class ResultTable(PrimaryTable):
             80
         )
 
-        self.setColumnWidth(
-            self._fn_column_index("Status"),
-            50
-        )
     
     def fn_search(
             self,

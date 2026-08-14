@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from gui.dialogs.export_quick_filters_dialog import ExportQuickFiltersDialog
+from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.quick_access import QuickAccessWidget
 
 
@@ -16,20 +17,32 @@ class QuickAccessExportWidgetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
-    def test_quick_access_has_export_filters_under_import_filters(self):
+    def test_quick_access_has_bottom_action_buttons(self):
         widget = QuickAccessWidget()
         self.addCleanup(widget.deleteLater)
 
         layout = widget.layout()
 
-        self.assertLess(
-            layout.indexOf(widget.btn_import),
-            layout.indexOf(widget.btn_export),
-        )
-        self.assertEqual(
-            widget.btn_export.text(),
-            "Export Filters",
-        )
+        self.assertIs(layout.itemAt(0).widget(), widget.scroll_area)
+        self.assertEqual(layout.stretch(0), 1)
+        self.assertIs(layout.itemAt(1).layout(), widget.action_layout)
+        self.assertEqual(widget.action_layout.indexOf(widget.btn_add), 0)
+        self.assertEqual(widget.action_layout.indexOf(widget.btn_import), 1)
+        self.assertEqual(widget.action_layout.indexOf(widget.btn_export), 2)
+        self.assertEqual(widget.btn_add.text(), "+ Add Filter +")
+        self.assertEqual(widget.btn_import.text(), "Import Filters")
+        self.assertEqual(widget.btn_export.text(), "Export Filters")
+
+
+    def test_left_panel_gives_remaining_area_to_quick_filter(self):
+        panel = LeftPanel()
+        self.addCleanup(panel.deleteLater)
+
+        layout = panel.layout()
+
+        self.assertEqual(layout.count(), 1)
+        self.assertIs(layout.itemAt(0).widget(), panel.quick_access)
+        self.assertEqual(layout.stretch(0), 1)
 
     def test_quick_access_opens_export_dialog_with_exported_filters(self):
         widget = QuickAccessWidget()

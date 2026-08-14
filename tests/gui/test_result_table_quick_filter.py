@@ -3,7 +3,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QHeaderView
 
 from gui.widgets.log_analyzer.result_table import ResultTable
 
@@ -13,6 +13,23 @@ class ResultTableQuickFilterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
+
+
+    def test_status_column_stretches_to_fill_remaining_width(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+
+        status_column = table._fn_column_index("Status")
+        request_column = table._fn_column_index("Request")
+
+        self.assertEqual(
+            table.horizontalHeader().sectionResizeMode(status_column),
+            QHeaderView.Stretch,
+        )
+        self.assertEqual(
+            table.horizontalHeader().sectionResizeMode(request_column),
+            QHeaderView.Interactive,
+        )
 
     def test_apply_quick_filter_clears_previous_row_selection(self):
         table = ResultTable()

@@ -112,35 +112,35 @@ class QuickAccessWidget(QWidget):
             "Export Filters"
         )
 
-        action_layout = QHBoxLayout()
+        self.action_layout = QHBoxLayout()
 
-        action_layout.setContentsMargins(
+        self.action_layout.setContentsMargins(
             0,
             0,
             0,
             0,
         )
 
-        action_layout.setSpacing(8)
+        self.action_layout.setSpacing(8)
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_add,
             1,
         )
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_import,
             1,
         )
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_export,
             1,
         )
 
         # Hàng button nằm cố định dưới cùng
         root_layout.addLayout(
-            action_layout
+            self.action_layout
         )
 
         self._connect_signals()

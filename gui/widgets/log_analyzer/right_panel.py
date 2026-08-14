@@ -1,14 +1,12 @@
-
 from PySide6.QtWidgets import (
     QWidget,
-    QLabel,
-    QVBoxLayout
+    QVBoxLayout,
 )
+
 from gui.widgets.log_analyzer.action_panel import ActionPanel
-from gui.widgets.controls.theme_switch import ThemeSwitch
+
 
 class RightPanel(QWidget):
-    
 
     def __init__(self):
         super().__init__()
@@ -16,21 +14,15 @@ class RightPanel(QWidget):
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
         self.action_panel = ActionPanel()
-        # lbl_title = QLabel("Right Panel")
 
-
-        self.theme_switch = ThemeSwitch()
-
-        main_layout.addWidget(self.action_panel)
-       
-        main_layout.addStretch() #Everything stays at the top.
-        
-
-    
-
+        main_layout.addWidget(
+            self.action_panel,
+            1,
+        )
 
     def fn_refresh_theme(self):
 
         self.action_panel.fn_refresh_theme()
-

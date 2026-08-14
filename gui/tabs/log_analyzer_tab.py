@@ -50,13 +50,13 @@ class LogAnalyzerTab(QWidget):
         main_layout = QVBoxLayout(self)
 
         input_layout = QHBoxLayout()
-        content_layout = QHBoxLayout()
+        self.content_layout = QHBoxLayout()
 
         main_layout.setSpacing(8)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(8)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(8)
 
         self.vehicle_selector = VehicleSelectorWidget()
 
@@ -84,9 +84,9 @@ class LogAnalyzerTab(QWidget):
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
 
-        content_layout.addWidget(self.left_panel, 3)
-        content_layout.addWidget(self.tbl_result, 7)
-        content_layout.addWidget(self.right_panel, 2)
+        self.content_layout.addWidget(self.left_panel, 2)
+        self.content_layout.addWidget(self.tbl_result, 9)
+        self.content_layout.addWidget(self.right_panel, 2)
 
         input_layout.addWidget(
             self.vehicle_selector,
@@ -102,7 +102,7 @@ class LogAnalyzerTab(QWidget):
 
         main_layout.addLayout(input_layout)
         main_layout.addWidget(self.filter_box)
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(self.content_layout)
 
     def _create_controllers(self):
         self.analysis_controller = AnalysisController()
@@ -278,6 +278,7 @@ class LogAnalyzerTab(QWidget):
         self.pipeline_result = None
         self.analysis_controller.pipeline_result = None
         self.right_panel.action_panel.fn_set_empty_state()
+        self.right_panel.action_panel.fn_clear_working_log()
         self.left_panel.fn_disable_quick_access()
         self._update_analyze_state()
 
@@ -285,6 +286,7 @@ class LogAnalyzerTab(QWidget):
         self.tbl_result.fn_search(keyword)
 
     def fn_quick_filter(self, filter_data: dict):
+        self.right_panel.action_panel.fn_set_quick_filter_log(filter_data)
         self.tbl_result.fn_apply_quick_filter(filter_data)
 
     def fn_refresh_theme(self):
