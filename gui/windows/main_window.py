@@ -96,6 +96,10 @@ class MainWindow(QMainWindow):
             lambda _vehicle_name: self.log_analyzer_tab.fn_refresh_vehicles()
         )
 
+        self.crc_converter_tab.crc_transfer_requested.connect(
+            self.coding_value_tab.fn_set_crc_value
+        )
+
     def fn_refresh_theme(self):
         self.setStyleSheet(
             fn_window_style()

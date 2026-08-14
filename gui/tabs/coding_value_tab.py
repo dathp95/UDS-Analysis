@@ -30,5 +30,8 @@ class CodingValueTab(QWidget):
             1,
         )
 
+    def fn_set_crc_value(self, crc_value):
+        return self.coding_value_panel.fn_set_crc_value(crc_value)
+
     def fn_refresh_theme(self):
         self.coding_value_panel.fn_refresh_theme()

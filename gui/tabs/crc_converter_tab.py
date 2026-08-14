@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -26,6 +26,7 @@ class CRCConverterTab(QWidget):
 
     DEFAULT_FROM_FORMAT = "Hexadecimal"
     DEFAULT_TO_FORMAT = "Decimal"
+    crc_transfer_requested = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -69,6 +70,7 @@ class CRCConverterTab(QWidget):
         self.txt_crc_output.setFixedWidth(80)
         self.btn_copy_crc = PrimaryButton("COPY CRC", width=100)
         self.btn_copy_crc.setEnabled(False)
+        self.btn_transfer_crc = PrimaryButton("Transfer CRC", width=120)
 
         result_layout = QHBoxLayout()
         result_layout.setContentsMargins(0, 0, 0, 0)
@@ -76,6 +78,7 @@ class CRCConverterTab(QWidget):
         result_layout.addWidget(self.btn_calculate_crc)
         result_layout.addWidget(self.txt_crc_output)
         result_layout.addWidget(self.btn_copy_crc)
+        result_layout.addWidget(self.btn_transfer_crc)
         result_layout.addStretch(1)
 
         panel_layout.addWidget(self.lbl_crc8_sae_j1850)
@@ -290,6 +293,9 @@ class CRCConverterTab(QWidget):
         self.btn_copy_crc.clicked.connect(
             self.copy_crc_result
         )
+        self.btn_transfer_crc.clicked.connect(
+            self.transfer_crc_result
+        )
         self.btn_converter_convert.clicked.connect(
             self.convert_value
         )
@@ -494,6 +500,28 @@ class CRCConverterTab(QWidget):
     def copy_crc_result(self):
         QApplication.clipboard().setText(self.txt_crc_output.text())
 
+    def transfer_crc_result(self):
+        crc_value = self._normalized_crc_output()
+        if not crc_value:
+            QMessageBox.warning(
+                self,
+                "Transfer CRC",
+                "Please calculate CRC before transferring.",
+            )
+            return
+
+        self.crc_transfer_requested.emit(crc_value)
+
+    def _normalized_crc_output(self):
+        crc_text = self.txt_crc_output.text().strip()
+        if not crc_text:
+            return ""
+
+        crc_text = crc_text.removeprefix("0x").removeprefix("0X")
+        try:
+            return f"{int(crc_text, 16):02X}"
+        except ValueError:
+            return ""
     def copy_converter_result(self):
         QApplication.clipboard().setText(
             self.txt_converter_output.toPlainText()
@@ -514,6 +542,7 @@ class CRCConverterTab(QWidget):
         self.cmb_converter_to.fn_refresh_theme()
         self.btn_calculate_crc.fn_refresh_theme()
         self.btn_copy_crc.fn_refresh_theme()
+        self.btn_transfer_crc.fn_refresh_theme()
         self.btn_converter_convert.fn_refresh_theme()
         self.btn_converter_swap.fn_refresh_theme()
         self.btn_converter_clear.fn_refresh_theme()

@@ -14,6 +14,7 @@ from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
+from core.coding_value import CodingValueOption, CodingValueRow
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
@@ -35,6 +36,41 @@ class CodingValueTabTests(unittest.TestCase):
         self.export_dir_patch.start()
         self.addCleanup(self.export_dir_patch.stop)
 
+    def test_set_crc_value_updates_crc_parameter_row(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Vehicle Name",
+                byte_pos="13",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="66",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(
+                    CodingValueOption(raw_value="0x47", label="47"),
+                ),
+            ),
+        ])
+        panel._payload_preview_bytes = [0] * 67
+        panel.txt_coding_preview.setPlainText(
+            panel._format_payload_bytes(panel._payload_preview_bytes)
+        )
+
+        self.assertTrue(panel.fn_set_crc_value("47"))
+
+        self.assertEqual(panel.table.item(1, 4).text(), "47")
+        self.assertEqual(panel.table.cellWidget(1, 5).currentText(), "47")
+        self.assertEqual(panel._payload_preview_bytes[66], 0x47)
     def test_export_coding_files_dir_lives_under_config(self):
         self.assertEqual(
             EXPORT_CODING_FILES_DIR,
@@ -1193,6 +1229,38 @@ class CodingValueTabTests(unittest.TestCase):
 
         panel.check_coding_value()
         self.assertEqual(panel.table.columnCount(), 9)
+    def test_result_header_click_does_not_reorder_table(self):
+        table = CodingValueTable()
+        self.addCleanup(table.deleteLater)
+        table.set_rows([
+            CodingValueRow(
+                parameter="Original First",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Changed Second",
+                byte_pos="1",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        table.encode_payload("01 02")
+        table.item(1, 4).setText("FF")
+        table.apply_check_results()
+
+        table.horizontalHeader().sectionClicked.emit(8)
+
+        self.assertEqual(table.item(0, 0).text(), "Original First")
+        self.assertEqual(table.item(1, 0).text(), "Changed Second")
+
     def test_table_uses_compact_widths_and_elides_overflow_text(self):
         table = CodingValueTable()
         self.addCleanup(table.deleteLater)

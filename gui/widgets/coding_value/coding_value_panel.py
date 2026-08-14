@@ -399,6 +399,24 @@ class CodingValuePanel(QGroupBox):
         self.table.filter_by_parameter(
             self.txt_parameter_filter.text()
         )
+
+    def fn_set_crc_value(self, crc_value):
+        value = str(crc_value or "").strip()
+        if not value:
+            return False
+
+        updated = self.table.fn_set_raw_value_by_parameter("crc", value)
+        if not updated:
+            QMessageBox.warning(
+                self,
+                "Coding value",
+                "Cannot find CRC parameter row.",
+            )
+            return False
+
+        self._update_action_states()
+        return True
+
     def encode_coding_payload(self):
         self._encode_payload_to_table(
             warn_when_empty=True,

@@ -134,6 +134,19 @@ class CodingValueTable(PrimaryTable):
         self._row_state = {}
         self.setRowCount(0)
 
+    def fn_set_raw_value_by_parameter(self, parameter_keyword, raw_value):
+        keyword = str(parameter_keyword or "").strip().lower()
+        if not keyword:
+            return False
+
+        for row_index in range(self.rowCount()):
+            item = self.item(row_index, 0)
+            parameter = item.text().strip().lower() if item is not None else ""
+            if keyword in parameter:
+                return self._apply_raw_value_to_row(row_index, raw_value)
+
+        return False
+
     def filter_by_parameter(self, keyword):
         text = str(keyword or "").strip().lower()
         for row_index in range(self.rowCount()):
@@ -146,6 +159,7 @@ class CodingValueTable(PrimaryTable):
 
         self.clearSelection()
         self.setCurrentCell(-1, -1)
+
     def encode_payload(self, payload, update_original=True):
         payload_bytes = self._parse_payload_bytes(payload)
         if not payload_bytes:
@@ -264,18 +278,11 @@ class CodingValueTable(PrimaryTable):
         return raw_value
 
     def _create_decoded_combo(self, row_index, row):
-        combo = PrimaryComboBox(
-            minimum_height=30
-        )
         has_option_list = bool(row.decoded_options)
-        combo.setEditable(not has_option_list)
-        combo.setMaximumHeight(32)
-        combo.setMinimumWidth(0)
-        combo.setMinimumContentsLength(0)
-        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-        combo.setMaxVisibleItems(5 if has_option_list else 12)
-        combo.view().setTextElideMode(Qt.ElideRight)
-        fn_apply_scrollbar_style(combo.view())
+        combo = self._create_base_decoded_combo(
+            not has_option_list,
+            5 if has_option_list else 12,
+        )
 
         if row.decoded_options:
             for option in row.decoded_options:
@@ -294,6 +301,25 @@ class CodingValueTable(PrimaryTable):
         else:
             combo.setEditText("")
 
+        self._connect_decoded_combo(row_index, combo)
+
+        return combo
+
+    def _create_base_decoded_combo(self, editable, max_visible_items):
+        combo = PrimaryComboBox(
+            minimum_height=30
+        )
+        combo.setEditable(editable)
+        combo.setMaximumHeight(32)
+        combo.setMinimumWidth(0)
+        combo.setMinimumContentsLength(0)
+        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMaxVisibleItems(max_visible_items)
+        combo.view().setTextElideMode(Qt.ElideRight)
+        fn_apply_scrollbar_style(combo.view())
+        return combo
+
+    def _connect_decoded_combo(self, row_index, combo):
         combo.currentIndexChanged.connect(
             lambda index, row_index=row_index, combo=combo: (
                 self._sync_raw_value_from_combo(
@@ -304,54 +330,48 @@ class CodingValueTable(PrimaryTable):
             )
         )
 
-        return combo
-
     def _sync_raw_value_from_combo(self, row_index, combo, index):
         raw_value = combo.itemData(index, Qt.UserRole)
         if raw_value in (None, ""):
             return
 
-        item = self.item(row_index, 4)
-        if item is not None:
-            normalized = str(raw_value)
-            self._row_state.get(row_index, {})["last_raw"] = normalized
-            self._set_raw_item_text(
-                row_index,
-                normalized,
-            )
-            self._emit_raw_value_changed(row_index, normalized)
-            self._update_check_result_if_visible(row_index, normalized)
+        self._apply_raw_value_to_row(row_index, raw_value)
+
+    def _apply_raw_value_to_row(self, row_index, raw_value):
+        state = self._row_state.get(row_index, {})
+        normalized = self._normalize_user_raw_value(
+            raw_value,
+            state.get("bit_length"),
+        )
+        if normalized is None:
+            return False
+
+        state["last_raw"] = normalized
+        self._set_raw_item_text(row_index, normalized)
+        self._sync_decoded_value_from_raw(row_index, normalized)
+        self._emit_raw_value_changed(row_index, normalized)
+        self._update_check_result_if_visible(row_index, normalized)
+        return True
 
     def _handle_item_changed(self, item):
         if self._syncing_raw_value or item.column() != 4:
             return
 
         row_index = item.row()
-        state = self._row_state.get(row_index, {})
-        bit_length = state.get("bit_length")
-        normalized = self._normalize_user_raw_value(
-            item.text(),
-            bit_length,
-        )
-
-        if normalized is None:
-            previous = state.get("last_raw", "")
-            self._set_raw_item_text(row_index, previous)
-            QMessageBox.warning(
-                self,
-                "Invalid Raw Value",
-                (
-                    f"Byte {state.get('byte_pos', row_index)} khong hop le. "
-                    f"Raw value vuot qua BitLength {bit_length}."
-                ),
-            )
+        if self._apply_raw_value_to_row(row_index, item.text()):
             return
 
-        self._set_raw_item_text(row_index, normalized)
-        state["last_raw"] = normalized
-        self._sync_decoded_value_from_raw(row_index, normalized)
-        self._emit_raw_value_changed(row_index, normalized)
-        self._update_check_result_if_visible(row_index, normalized)
+        state = self._row_state.get(row_index, {})
+        previous = state.get("last_raw", "")
+        self._set_raw_item_text(row_index, previous)
+        QMessageBox.warning(
+            self,
+            "Invalid Raw Value",
+            (
+                f"Byte {state.get('byte_pos', row_index)} khong hop le. "
+                f"Raw value vuot qua BitLength {state.get('bit_length')}."
+            ),
+        )
 
     def _emit_raw_value_changed(self, row_index, raw_value):
         state = self._row_state.get(row_index, {})

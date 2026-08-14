@@ -93,6 +93,39 @@ class MainWindowShortcutTests(unittest.TestCase):
             "CRC8_SAE_J1850",
         )
 
+    def test_crc_transfer_signal_updates_coding_value_tab(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from core.coding_value import CodingValueRow
+            from gui.windows.main_window import MainWindow
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        panel = window.coding_value_tab.coding_value_panel
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+
+        window.crc_converter_tab.crc_transfer_requested.emit("47")
+
+        self.assertEqual(panel.table.item(0, 4).text(), "47")
     def test_license_support_tab_shows_support_and_contact_content(self):
         with patch.dict(
             sys.modules,

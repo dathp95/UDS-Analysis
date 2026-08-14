@@ -66,6 +66,30 @@ class CRCConverterTabTests(unittest.TestCase):
         self.assertEqual(main_layout.stretch(1), 1)
         self.assertEqual(tab.lbl_converter.text(), "Converter")
 
+    def test_transfer_crc_emits_normalized_crc_value(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+        emitted = []
+        tab.crc_transfer_requested.connect(emitted.append)
+
+        tab.txt_crc_output.setText("0x47")
+        tab.btn_transfer_crc.click()
+
+        self.assertEqual(emitted, ["47"])
+
+    def test_transfer_crc_rejects_empty_output(self):
+        tab = CRCConverterTab()
+        self.addCleanup(tab.deleteLater)
+        emitted = []
+        tab.crc_transfer_requested.connect(emitted.append)
+
+        with patch(
+            "gui.tabs.crc_converter_tab.QMessageBox.warning"
+        ) as warning:
+            tab.btn_transfer_crc.click()
+
+        warning.assert_called_once()
+        self.assertEqual(emitted, [])
     def test_converter_panel_has_expected_controls_and_defaults(self):
         tab = CRCConverterTab()
         self.addCleanup(tab.deleteLater)
