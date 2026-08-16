@@ -1,7 +1,7 @@
 ﻿from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
@@ -123,12 +123,12 @@ class CodingValuePanel(QGroupBox):
             "Refresh",
             width=100,
         )
-        self.btn_preview_edit = PrimaryButton(
-            "EDIT",
+        self.btn_copy_preview = PrimaryButton(
+            "Copy",
             width=100,
         )
-        self.btn_preview_clear = PrimaryButton(
-            "Clear",
+        self.btn_preview_edit = PrimaryButton(
+            "EDIT",
             width=100,
         )
 
@@ -146,8 +146,8 @@ class CodingValuePanel(QGroupBox):
         preview_layout.setContentsMargins(0, 0, 0, 0)
         preview_layout.setSpacing(8)
         preview_layout.addWidget(self.btn_preview_refresh, 0, Qt.AlignTop)
+        preview_layout.addWidget(self.btn_copy_preview, 0, Qt.AlignTop)
         preview_layout.addWidget(self.btn_preview_edit, 0, Qt.AlignTop)
-        preview_layout.addWidget(self.btn_preview_clear, 0, Qt.AlignTop)
         preview_layout.addWidget(self.txt_coding_preview, 1)
 
         self.payload_row = QWidget()
@@ -198,10 +198,6 @@ class CodingValuePanel(QGroupBox):
             "EXPORT",
             width=110,
         )
-        self.btn_table_copy = PrimaryButton(
-            "COPY",
-            width=110,
-        )
         self.btn_table_clear = PrimaryButton(
             "CLEAR",
             width=110,
@@ -213,7 +209,6 @@ class CodingValuePanel(QGroupBox):
         action_layout.setSpacing(8)
         action_layout.addWidget(self.btn_check)
         action_layout.addWidget(self.btn_export)
-        action_layout.addWidget(self.btn_table_copy)
         action_layout.addWidget(self.btn_table_clear)
         action_layout.addStretch(1)
 
@@ -298,17 +293,14 @@ class CodingValuePanel(QGroupBox):
         self.btn_preview_edit.clicked.connect(
             self.toggle_preview_edit_import
         )
-        self.btn_preview_clear.clicked.connect(
-            self.clear_coding_preview
+        self.btn_copy_preview.clicked.connect(
+            self.copy_coding_preview
         )
         self.btn_check.clicked.connect(
             self.check_coding_value
         )
         self.btn_export.clicked.connect(
             self.export_coding_value
-        )
-        self.btn_table_copy.clicked.connect(
-            lambda: self.copy_table_raw_values()
         )
         self.btn_table_clear.clicked.connect(
             self.clear_table_coding_values
@@ -381,7 +373,6 @@ class CodingValuePanel(QGroupBox):
     def _set_coding_rows(self, rows):
         self.table.set_rows(rows)
         self.filter_parameter_table()
-        self.clear_coding_preview()
         self._update_action_states()
 
     def import_coding_value(self):
@@ -636,64 +627,17 @@ class CodingValuePanel(QGroupBox):
 
         return name[:31] or "Coding value"
 
-    def copy_table_raw_values(self, timeout_ms=1500):
-        if not self._can_use_table_actions():
-            return
-
-        raw_values = self._table_raw_value_text()
-        if not raw_values:
-            return
-
-        QApplication.clipboard().setText(raw_values)
-        self._show_auto_close_information(
-            "Coding value",
-            f"Copy success:\n\n{raw_values}",
-            timeout_ms,
-        )
-
-    def _table_raw_value_text(self):
-        tokens = []
-        for row_index in range(self.table.rowCount()):
-            item = self.table.item(row_index, 4)
-            if item is None:
-                continue
-
-            tokens.extend(
-                self._copy_raw_value_tokens(item.text())
-            )
-
-        return " ".join(tokens)
-
-    @staticmethod
-    def _copy_raw_value_tokens(raw_value):
-        copied_tokens = []
-        for token in CodingValueTable._hex_tokens(raw_value):
-            hex_text = token.upper()
-            if len(hex_text) % 2:
-                hex_text = "0" + hex_text
-
-            copied_tokens.extend(
-                f"{int(hex_text[index:index + 2], 16):02X}"
-                for index in range(0, len(hex_text), 2)
-            )
-
-        return copied_tokens
-
-    def _show_auto_close_information(self, title, message, timeout_ms=5000):
-        message_box = QMessageBox(self)
-        message_box.setIcon(QMessageBox.Information)
-        message_box.setWindowTitle(title)
-        message_box.setText(message)
-        QTimer.singleShot(
-            timeout_ms,
-            message_box.accept,
-        )
-        message_box.exec()
-
     def copy_coding_payload(self):
         QApplication.clipboard().setText(
             self.txt_coding_value.toPlainText()
         )
+
+    def copy_coding_preview(self):
+        preview_text = self.txt_coding_preview.toPlainText()
+        if not preview_text.strip():
+            return
+
+        QApplication.clipboard().setText(preview_text)
 
     def clear_coding_payload(self):
         self.txt_coding_value.clear()
@@ -792,15 +736,14 @@ class CodingValuePanel(QGroupBox):
         self.btn_copy.setEnabled(has_input_payload)
         self.btn_clear.setEnabled(has_input_payload)
         self.btn_preview_refresh.setEnabled(can_encode)
+        self.btn_copy_preview.setEnabled(can_use_preview)
         self.btn_preview_edit.setEnabled(self._can_edit_preview_payload())
-        self.btn_preview_clear.setEnabled(can_use_preview)
         self.btn_filter_no_m.setEnabled(
             can_use_table_actions and self._has_check_results()
         )
         self.btn_refresh_filter.setEnabled(has_table_rows)
         self.btn_check.setEnabled(can_use_table_actions)
         self.btn_export.setEnabled(can_use_table_actions)
-        self.btn_table_copy.setEnabled(can_use_table_actions)
         self.btn_table_clear.setEnabled(can_use_table_actions)
 
     def _can_use_table_actions(self):
@@ -972,11 +915,10 @@ class CodingValuePanel(QGroupBox):
         self.btn_copy.fn_refresh_theme()
         self.btn_clear.fn_refresh_theme()
         self.btn_preview_refresh.fn_refresh_theme()
+        self.btn_copy_preview.fn_refresh_theme()
         self.btn_preview_edit.fn_refresh_theme()
-        self.btn_preview_clear.fn_refresh_theme()
         self.btn_check.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
-        self.btn_table_copy.fn_refresh_theme()
         self.btn_table_clear.fn_refresh_theme()
         self.table.fn_refresh_theme()
         self._update_action_states()

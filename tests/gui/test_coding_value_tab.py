@@ -579,13 +579,20 @@ class CodingValueTabTests(unittest.TestCase):
         panel.txt_coding_value.setPlainText("62 F1 08")
 
         panel.copy_coding_payload()
+
         self.assertEqual(
             QApplication.clipboard().text(),
             "62 F1 08",
         )
 
+        panel.txt_coding_preview.setPlainText("62 F1 99")
+        QApplication.clipboard().setText("keep clipboard")
+
         panel.clear_coding_payload()
+
         self.assertEqual(panel.txt_coding_value.toPlainText(), "")
+        self.assertEqual(panel.txt_coding_preview.toPlainText(), "")
+        self.assertEqual(QApplication.clipboard().text(), "keep clipboard")
 
     def test_payload_input_and_actions_share_one_compact_row(self):
         panel = CodingValuePanel()
@@ -603,8 +610,8 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(input_layout.indexOf(panel.btn_clear), 2)
         self.assertEqual(input_layout.indexOf(panel.txt_coding_value), 3)
         self.assertEqual(preview_layout.indexOf(panel.btn_preview_refresh), 0)
-        self.assertEqual(preview_layout.indexOf(panel.btn_preview_edit), 1)
-        self.assertEqual(preview_layout.indexOf(panel.btn_preview_clear), 2)
+        self.assertEqual(preview_layout.indexOf(panel.btn_copy_preview), 1)
+        self.assertEqual(preview_layout.indexOf(panel.btn_preview_edit), 2)
         self.assertEqual(preview_layout.indexOf(panel.txt_coding_preview), 3)
         self.assertLessEqual(
             panel.txt_coding_value.maximumHeight(),
@@ -652,10 +659,10 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertFalse(panel.btn_check.isEnabled())
         self.assertFalse(panel.btn_export.isEnabled())
-        self.assertFalse(panel.btn_table_copy.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
-        self.assertFalse(panel.btn_preview_clear.isEnabled())
+        self.assertFalse(panel.btn_copy_preview.isEnabled())
+        self.assertFalse(panel.btn_clear.isEnabled())
         self.assertFalse(panel.btn_filter_no_m.isEnabled())
         self.assertTrue(panel.btn_refresh_filter.isEnabled())
         self.assertEqual(panel.table.columnCount(), 6)
@@ -672,12 +679,11 @@ class CodingValueTabTests(unittest.TestCase):
         panel.encode_coding_payload()
         self.assertTrue(panel.btn_check.isEnabled())
         self.assertTrue(panel.btn_export.isEnabled())
-        self.assertTrue(panel.btn_table_copy.isEnabled())
         self.assertTrue(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_filter_no_m.isEnabled())
         self.assertTrue(panel.btn_refresh_filter.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
-        self.assertTrue(panel.btn_preview_clear.isEnabled())
+        self.assertTrue(panel.btn_copy_preview.isEnabled())
 
         panel.check_coding_value()
         self.assertTrue(panel.btn_filter_no_m.isEnabled())
@@ -687,12 +693,13 @@ class CodingValueTabTests(unittest.TestCase):
         panel.clear_coding_payload()
         self.assertFalse(panel.btn_check.isEnabled())
         self.assertFalse(panel.btn_export.isEnabled())
-        self.assertFalse(panel.btn_table_copy.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
-        self.assertFalse(panel.btn_preview_clear.isEnabled())
+        self.assertFalse(panel.btn_copy_preview.isEnabled())
+        self.assertFalse(panel.btn_clear.isEnabled())
         self.assertFalse(panel.btn_filter_no_m.isEnabled())
         self.assertTrue(panel.btn_refresh_filter.isEnabled())
+
     def test_check_button_shows_fixed_before_columns_from_encoded_baseline(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1079,79 +1086,6 @@ class CodingValueTabTests(unittest.TestCase):
                 self.assertEqual(cell.fill.fill_type, "solid")
                 self.assertTrue(cell.fill.fgColor.rgb.upper().endswith(warning))
 
-    def test_table_copy_button_copies_raw_values_and_shows_timed_message(self):
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.append([
-            "Parameter",
-            "BytePos (from 0)",
-            "BitPos",
-            "BitLength",
-            "MethodType",
-        ])
-        sheet.append([
-            "Payload Byte 2",
-            2,
-            0,
-            8,
-            "0x08=Old",
-        ])
-        sheet.append([
-            "Two Byte Value",
-            3,
-            0,
-            16,
-            "0x374A=Name",
-        ])
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = Path(tmpdir) / "coding.xlsx"
-            workbook.save(path)
-
-            panel = CodingValuePanel()
-            self.addCleanup(panel.deleteLater)
-            panel.file_path.setText(str(path))
-            panel.txt_coding_value.setPlainText("62 F1 08 37 4A")
-            panel.import_coding_value()
-            panel.encode_coding_payload()
-
-        with patch.object(panel, "_show_auto_close_information") as information:
-            panel.btn_table_copy.click()
-
-        self.assertEqual(QApplication.clipboard().text(), "08 37 4A")
-        self.assertEqual(
-            panel._copy_raw_value_tokens("4a39"),
-            ["4A", "39"],
-        )
-        information.assert_called_once_with(
-            "Coding value",
-            "Copy thanh cong:\n\n08 37 4A",
-            5000,
-        )
-
-    def test_auto_close_information_uses_configurable_timeout(self):
-        panel = CodingValuePanel()
-        self.addCleanup(panel.deleteLater)
-
-        with patch(
-            "gui.widgets.coding_value.coding_value_panel.QMessageBox"
-        ) as message_box_class, patch(
-            "gui.widgets.coding_value.coding_value_panel.QTimer.singleShot"
-        ) as single_shot:
-            message_box = message_box_class.return_value
-
-            panel._show_auto_close_information(
-                "Coding value",
-                "Copy thanh cong:\n\n08",
-                1200,
-            )
-
-        message_box_class.assert_called_once_with(panel)
-        message_box.setWindowTitle.assert_called_once_with("Coding value")
-        message_box.setText.assert_called_once_with("Copy thanh cong:\n\n08")
-        single_shot.assert_called_once_with(1200, message_box.accept)
-        message_box.exec.assert_called_once()
-
     def test_table_clear_button_clears_table_and_working_log(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1411,8 +1345,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIsInstance(action_layout, QVBoxLayout)
         self.assertEqual(action_layout.indexOf(panel.btn_check), 0)
         self.assertEqual(action_layout.indexOf(panel.btn_export), 1)
-        self.assertEqual(action_layout.indexOf(panel.btn_table_copy), 2)
-        self.assertEqual(action_layout.indexOf(panel.btn_table_clear), 3)
+        self.assertEqual(action_layout.indexOf(panel.btn_table_clear), 2)
         self.assertTrue(panel.txt_working_log.isReadOnly())
         self.assertIn(
             "QScrollBar:vertical",
@@ -1528,7 +1461,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(panel._payload_baseline_bytes, [0x62, 0xF1, 0x08])
         self.assertEqual(panel._payload_preview_bytes, [0x62, 0xF1, 0x99])
 
-    def test_payload_preview_refresh_copy_and_clear_buttons(self):
+    def test_payload_preview_refresh_copy_and_edit_buttons(self):
         workbook = Workbook()
         sheet = workbook.active
         sheet.append([
@@ -1567,9 +1500,11 @@ class CodingValueTabTests(unittest.TestCase):
             "62 F1 99",
         )
 
-        panel.clear_coding_preview()
-        self.assertEqual(panel.txt_coding_preview.toPlainText(), "")
-        self.assertEqual(panel._payload_preview_bytes, [])
+        panel.copy_coding_preview()
+        self.assertEqual(
+            QApplication.clipboard().text(),
+            "62 F1 99",
+        )
 
 
 if __name__ == "__main__":
