@@ -137,9 +137,10 @@ class CodingValuePanel(QGroupBox):
         input_layout = QHBoxLayout(self.payload_input_row)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
-        input_layout.addWidget(self.btn_encode, 0, Qt.AlignTop)
+        input_layout.addWidget(self.btn_clear, 0, Qt.AlignTop)        
         input_layout.addWidget(self.btn_copy, 0, Qt.AlignTop)
-        input_layout.addWidget(self.btn_clear, 0, Qt.AlignTop)
+        input_layout.addWidget(self.btn_encode, 0, Qt.AlignTop)
+        
         input_layout.addWidget(self.txt_coding_value, 1)
 
         self.payload_preview_row = QWidget()
