@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 import json
 import re
 from pathlib import Path
@@ -25,7 +25,7 @@ class CodingValueRow:
 
 
 _OPTION_PATTERN = re.compile(
-    r"(?P<raw>0x[0-9A-Fa-f]+)\s*[=:]\s*(?P<label>[^\n\r]+)"
+    r"(?P<raw>0[xX][0-9A-Fa-f]+)\s*[=:-]\s*(?P<label>[^\n\r]+)"
 )
 
 
@@ -440,3 +440,4 @@ def _cell_text(value: Any) -> str:
         return str(int(value))
 
     return str(value).strip()
+

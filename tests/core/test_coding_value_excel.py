@@ -1,4 +1,4 @@
-import tempfile
+﻿import tempfile
 import unittest
 from pathlib import Path
 
@@ -219,6 +219,46 @@ class CodingValueExcelTests(unittest.TestCase):
                 "Neptune Grey",
             ],
         )
+
+    def test_method_type_accepts_hyphen_separator(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "$Parameter",
+            "$BytePos (from 0)",
+            "$BitPos",
+            "$BitLength",
+            "$MethodType",
+        ])
+        sheet.append([
+            "Body Color",
+            14,
+            0,
+            8,
+            "0x01 - Brahminy White\n"
+            "0X02 - De Sat Silver\n"
+            "0x03 - Neptune Grey",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            rows = load_coding_value_rows(
+                path,
+                "00 " * 14 + "02",
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].decoded_value, "De Sat Silver")
+        self.assertEqual(
+            [option.label for option in rows[0].decoded_options],
+            [
+                "Brahminy White",
+                "De Sat Silver",
+                "Neptune Grey",
+            ],
+        )
     def test_bit_length_text_is_parsed_for_bit_field_decode(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -252,3 +292,7 @@ class CodingValueExcelTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+
