@@ -35,6 +35,7 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 
 DEFAULT_CODING_DIR = Path("config/Coding")
+POSITION_COPY_DATA_PAYLOAD = 3
 
 
 class CodingValuePanel(QGroupBox):
@@ -194,6 +195,10 @@ class CodingValuePanel(QGroupBox):
             "CHECK",
             width=110,
         )
+        self.btn_copy_data_payload = PrimaryButton(
+            "COPY DATA PAYLOAD",
+            width=160,
+        )
         self.btn_export = PrimaryButton(
             "EXPORT",
             width=110,
@@ -208,6 +213,7 @@ class CodingValuePanel(QGroupBox):
         action_layout.setContentsMargins(0, 0, 0, 0)
         action_layout.setSpacing(8)
         action_layout.addWidget(self.btn_check)
+        action_layout.addWidget(self.btn_copy_data_payload)
         action_layout.addWidget(self.btn_export)
         action_layout.addWidget(self.btn_table_clear)
         action_layout.addStretch(1)
@@ -298,6 +304,9 @@ class CodingValuePanel(QGroupBox):
         )
         self.btn_check.clicked.connect(
             self.check_coding_value
+        )
+        self.btn_copy_data_payload.clicked.connect(
+            self.copy_data_payload
         )
         self.btn_export.clicked.connect(
             self.export_coding_value
@@ -639,6 +648,24 @@ class CodingValuePanel(QGroupBox):
 
         QApplication.clipboard().setText(preview_text)
 
+    def copy_data_payload(self):
+        preview_text = self.txt_coding_preview.toPlainText()
+        if not preview_text.strip():
+            return
+
+        try:
+            payload_bytes = self.table._parse_payload_bytes(preview_text)
+        except ValueError:
+            return
+
+        data_payload = payload_bytes[POSITION_COPY_DATA_PAYLOAD:]
+        if not data_payload:
+            return
+
+        QApplication.clipboard().setText(
+            self._format_payload_bytes(data_payload)
+        )
+
     def clear_coding_payload(self):
         self.txt_coding_value.clear()
         self.clear_coding_preview()
@@ -743,6 +770,9 @@ class CodingValuePanel(QGroupBox):
         )
         self.btn_refresh_filter.setEnabled(has_table_rows)
         self.btn_check.setEnabled(can_use_table_actions)
+        self.btn_copy_data_payload.setEnabled(
+            len(self._payload_preview_bytes) > 3
+        )
         self.btn_export.setEnabled(can_use_table_actions)
         self.btn_table_clear.setEnabled(can_use_table_actions)
 
@@ -918,6 +948,7 @@ class CodingValuePanel(QGroupBox):
         self.btn_copy_preview.fn_refresh_theme()
         self.btn_preview_edit.fn_refresh_theme()
         self.btn_check.fn_refresh_theme()
+        self.btn_copy_data_payload.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
         self.btn_table_clear.fn_refresh_theme()
         self.table.fn_refresh_theme()

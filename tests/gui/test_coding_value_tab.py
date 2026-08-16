@@ -658,6 +658,7 @@ class CodingValueTabTests(unittest.TestCase):
             panel.import_coding_value()
 
         self.assertFalse(panel.btn_check.isEnabled())
+        self.assertFalse(panel.btn_copy_data_payload.isEnabled())
         self.assertFalse(panel.btn_export.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
@@ -678,6 +679,7 @@ class CodingValueTabTests(unittest.TestCase):
 
         panel.encode_coding_payload()
         self.assertTrue(panel.btn_check.isEnabled())
+        self.assertFalse(panel.btn_copy_data_payload.isEnabled())
         self.assertTrue(panel.btn_export.isEnabled())
         self.assertTrue(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_filter_no_m.isEnabled())
@@ -692,6 +694,7 @@ class CodingValueTabTests(unittest.TestCase):
 
         panel.clear_coding_payload()
         self.assertFalse(panel.btn_check.isEnabled())
+        self.assertFalse(panel.btn_copy_data_payload.isEnabled())
         self.assertFalse(panel.btn_export.isEnabled())
         self.assertFalse(panel.btn_table_clear.isEnabled())
         self.assertFalse(panel.btn_preview_edit.isEnabled())
@@ -1328,6 +1331,28 @@ class CodingValueTabTests(unittest.TestCase):
             table.horizontalHeader().sectionResizeMode(7),
             QHeaderView.Stretch,
         )
+
+    def test_copy_data_payload_button_copies_preview_after_first_three_bytes(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        panel.set_payload_preview("62 F1 08 01 0A ff")
+        panel._update_action_states()
+
+        self.assertTrue(panel.btn_copy_data_payload.isEnabled())
+
+        panel.btn_copy_data_payload.click()
+
+        self.assertEqual(
+            QApplication.clipboard().text(),
+            "01 0A FF",
+        )
+
+        panel.set_payload_preview("62 F1 08")
+        panel._update_action_states()
+
+        self.assertFalse(panel.btn_copy_data_payload.isEnabled())
+
     def test_table_has_right_side_actions_and_working_log_layout(self):
         panel = CodingValuePanel()
         self.addCleanup(panel.deleteLater)
@@ -1344,8 +1369,9 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(side_layout.indexOf(panel.txt_working_log), 1)
         self.assertIsInstance(action_layout, QVBoxLayout)
         self.assertEqual(action_layout.indexOf(panel.btn_check), 0)
-        self.assertEqual(action_layout.indexOf(panel.btn_export), 1)
-        self.assertEqual(action_layout.indexOf(panel.btn_table_clear), 2)
+        self.assertEqual(action_layout.indexOf(panel.btn_copy_data_payload), 1)
+        self.assertEqual(action_layout.indexOf(panel.btn_export), 2)
+        self.assertEqual(action_layout.indexOf(panel.btn_table_clear), 3)
         self.assertTrue(panel.txt_working_log.isReadOnly())
         self.assertIn(
             "QScrollBar:vertical",
