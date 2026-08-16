@@ -71,6 +71,35 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(panel.table.item(1, 4).text(), "47")
         self.assertEqual(panel.table.cellWidget(1, 5).currentText(), "47")
         self.assertEqual(panel._payload_preview_bytes[66], 0x47)
+
+    def test_set_crc_value_offsets_data_byte_pos_for_preview_header(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="63",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(
+                    CodingValueOption(raw_value="0x47", label="47"),
+                ),
+            ),
+        ])
+        payload_bytes = [0] * 67
+        payload_bytes[63] = 0xAA
+        panel.set_payload_preview(
+            panel._format_payload_bytes(payload_bytes)
+        )
+
+        self.assertTrue(panel.fn_set_crc_value("47"))
+
+        self.assertEqual(panel.table.item(0, 4).text(), "47")
+        self.assertEqual(panel._payload_preview_bytes[63], 0xAA)
+        self.assertEqual(panel._payload_preview_bytes[66], 0x47)
+
     def test_export_coding_files_dir_lives_under_config(self):
         self.assertEqual(
             EXPORT_CODING_FILES_DIR,
@@ -1535,4 +1564,3 @@ class CodingValueTabTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -134,18 +134,57 @@ class CodingValueTable(PrimaryTable):
         self._row_state = {}
         self.setRowCount(0)
 
-    def fn_set_raw_value_by_parameter(self, parameter_keyword, raw_value):
+    def fn_find_row_index_by_parameter(self, parameter_keyword):
         keyword = str(parameter_keyword or "").strip().lower()
         if not keyword:
-            return False
+            return -1
 
         for row_index in range(self.rowCount()):
             item = self.item(row_index, 0)
             parameter = item.text().strip().lower() if item is not None else ""
             if keyword in parameter:
-                return self._apply_raw_value_to_row(row_index, raw_value)
+                return row_index
 
-        return False
+        return -1
+
+    def fn_payload_location_for_row(self, row_index):
+        state = self._row_state.get(row_index, {})
+        return (
+            state.get("byte_pos_int"),
+            state.get("bit_pos"),
+            state.get("bit_length"),
+        )
+
+    def fn_set_raw_value_at_row(
+            self,
+            row_index,
+            raw_value,
+            emit_raw_change=True,
+        ):
+        if row_index < 0 or row_index >= self.rowCount():
+            return False
+
+        return self._apply_raw_value_to_row(
+            row_index,
+            raw_value,
+            emit_raw_change=emit_raw_change,
+        )
+
+    def fn_set_raw_value_by_parameter(
+            self,
+            parameter_keyword,
+            raw_value,
+            emit_raw_change=True,
+        ):
+        row_index = self.fn_find_row_index_by_parameter(parameter_keyword)
+        if row_index < 0:
+            return False
+
+        return self.fn_set_raw_value_at_row(
+            row_index,
+            raw_value,
+            emit_raw_change=emit_raw_change,
+        )
 
     def filter_by_parameter(self, keyword):
         text = str(keyword or "").strip().lower()
@@ -340,13 +379,21 @@ class CodingValueTable(PrimaryTable):
         )
 
     def _sync_raw_value_from_combo(self, row_index, combo, index):
+        if self._syncing_raw_value:
+            return
+
         raw_value = combo.itemData(index, Qt.UserRole)
         if raw_value in (None, ""):
             return
 
         self._apply_raw_value_to_row(row_index, raw_value)
 
-    def _apply_raw_value_to_row(self, row_index, raw_value):
+    def _apply_raw_value_to_row(
+            self,
+            row_index,
+            raw_value,
+            emit_raw_change=True,
+        ):
         state = self._row_state.get(row_index, {})
         normalized = self._normalize_user_raw_value(
             raw_value,
@@ -357,8 +404,14 @@ class CodingValueTable(PrimaryTable):
 
         state["last_raw"] = normalized
         self._set_raw_item_text(row_index, normalized)
-        self._sync_decoded_value_from_raw(row_index, normalized)
-        self._emit_raw_value_changed(row_index, normalized)
+        was_syncing = self._syncing_raw_value
+        self._syncing_raw_value = True
+        try:
+            self._sync_decoded_value_from_raw(row_index, normalized)
+        finally:
+            self._syncing_raw_value = was_syncing
+        if emit_raw_change:
+            self._emit_raw_value_changed(row_index, normalized)
         self._update_check_result_if_visible(row_index, normalized)
         return True
 

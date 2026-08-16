@@ -442,8 +442,8 @@ class CodingValuePanel(QGroupBox):
         if not value:
             return False
 
-        updated = self.table.fn_set_raw_value_by_parameter("crc", value)
-        if not updated:
+        row_index = self.table.fn_find_row_index_by_parameter("crc")
+        if row_index < 0:
             QMessageBox.warning(
                 self,
                 "Coding value",
@@ -451,8 +451,58 @@ class CodingValuePanel(QGroupBox):
             )
             return False
 
+        updated = self.table.fn_set_raw_value_at_row(
+            row_index,
+            value,
+            emit_raw_change=False,
+        )
+        if not updated:
+            return False
+
+        self._update_crc_payload_preview(row_index)
         self._update_action_states()
         return True
+
+    def _update_crc_payload_preview(self, row_index):
+        if not self._payload_preview_bytes:
+            return
+
+        byte_pos, bit_pos, bit_length = self.table.fn_payload_location_for_row(
+            row_index
+        )
+        preview_byte_pos = self._crc_preview_byte_pos(byte_pos)
+        if preview_byte_pos is None:
+            return
+
+        raw_item = self.table.item(row_index, 4)
+        raw_value = raw_item.text() if raw_item is not None else ""
+        changed_bytes = self._apply_raw_to_payload_bytes(
+            preview_byte_pos,
+            bit_pos,
+            bit_length,
+            raw_value,
+        )
+        if not changed_bytes:
+            return
+
+        self.txt_coding_preview.setPlainText(
+            self._format_payload_bytes(self._payload_preview_bytes)
+        )
+        self._highlight_payload_bytes(changed_bytes)
+
+    def _crc_preview_byte_pos(self, byte_pos):
+        if byte_pos is None:
+            return None
+
+        header_offset = 3
+        shifted_byte_pos = byte_pos + header_offset
+        if shifted_byte_pos < len(self._payload_preview_bytes):
+            return shifted_byte_pos
+
+        if byte_pos < len(self._payload_preview_bytes):
+            return byte_pos
+
+        return None
 
     def encode_coding_payload(self):
         self._encode_payload_to_table(

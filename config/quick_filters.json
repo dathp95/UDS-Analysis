@@ -48,5 +48,35 @@
         },
         "id": 10,
         "enabled": true
+    },
+    {
+        "id": 11,
+        "name": "22 F108",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "22 F1 08",
+            "response": ""
+        }
+    },
+    {
+        "id": 12,
+        "name": "2E f108",
+        "enabled": true,
+        "filters": {
+            "ecu": "",
+            "request": "2E F1 08",
+            "response": ""
+        }
+    },
+    {
+        "name": "6E F1 12",
+        "filters": {
+            "ecu": "",
+            "request": "",
+            "response": "6E F1 12"
+        },
+        "id": 13,
+        "enabled": true
     }
 ]
