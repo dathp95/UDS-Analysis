@@ -95,7 +95,7 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertEqual(content_layout.stretch(1), 9)
         self.assertEqual(content_layout.stretch(2), 2)
 
-    def test_theme_switch_is_in_vehicle_manager_separate_bottom_right_layout(self):
+    def test_theme_switch_is_in_vehicle_manager_separate_bottom_layout(self):
         with patch.dict(
             sys.modules,
             {
@@ -127,11 +127,11 @@ class MainWindowShortcutTests(unittest.TestCase):
             action_layout.itemAt(action_layout.count() - 2).widget(),
         )
         self.assertIs(
-            bottom_layout.itemAt(bottom_layout.count() - 1).widget(),
+            bottom_layout.itemAt(0).widget(),
             window.vehicle_manager_tab.theme_switch,
         )
         self.assertIsNone(
-            bottom_layout.itemAt(0).widget(),
+            bottom_layout.itemAt(bottom_layout.count() - 1).widget(),
         )
 
     def test_crc_converter_tab_is_available_with_crc_panel(self):

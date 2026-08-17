@@ -346,13 +346,12 @@ class VehicleManagerTab(QWidget):
         bottom_layout = QHBoxLayout()
 
         bottom_layout.setContentsMargins(0, 0, 0, 0)
+
         bottom_layout.addWidget(
-                    self.theme_switch
-                )
+            self.theme_switch
+        )
 
         bottom_layout.addStretch()
-
-        
 
         detail_layout.addLayout(
             bottom_layout
