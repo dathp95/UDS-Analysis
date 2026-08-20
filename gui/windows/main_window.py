@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QKeySequence, QShortcut
 
 from core.feature_access import Feature, is_feature_enabled
+from gui.tabs.can_interface_tab import CANInterfaceTab
 from gui.tabs.coding_value_tab import CodingValueTab
 from gui.tabs.crc_converter_tab import CRCConverterTab
 from gui.tabs.license_support_tab import LicenseSupportTab
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow):
         self.log_analyzer_tab = LogAnalyzerTab()
         self.coding_value_tab = CodingValueTab()
         self.crc_converter_tab = CRCConverterTab()
+        self.can_interface_tab = CANInterfaceTab()
         self.vehicle_manager_tab = VehicleManagerTab()
         self.license_support_tab = LicenseSupportTab()
 
@@ -89,6 +91,11 @@ class MainWindow(QMainWindow):
                 self.crc_converter_tab,
                 "CRC_Converter",
                 Feature.CRC_CONVERTER,
+            ),
+            (
+                self.can_interface_tab,
+                "CAN Interface",
+                Feature.CAN_INTERFACE,
             ),
             (
                 self.vehicle_manager_tab,
@@ -162,6 +169,12 @@ class MainWindow(QMainWindow):
             "fn_refresh_theme",
         ):
             self.crc_converter_tab.fn_refresh_theme()
+
+        if hasattr(
+            self.can_interface_tab,
+            "fn_refresh_theme",
+        ):
+            self.can_interface_tab.fn_refresh_theme()
 
         if hasattr(
             self.vehicle_manager_tab,

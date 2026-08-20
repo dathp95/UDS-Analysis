@@ -16,6 +16,7 @@ class Feature(str, Enum):
     LOG_ANALYZER = "log_analyzer"
     VEHICLE_MANAGER = "vehicle_manager"
     CODING_VALUE = "coding_value"
+    CAN_INTERFACE = "can_interface"
 
 
 FREE_FEATURES = frozenset({
