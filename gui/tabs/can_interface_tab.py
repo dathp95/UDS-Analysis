@@ -175,6 +175,8 @@ class CANInterfaceTab(QWidget):
             0,
             Qt.AlignVCenter,
         )
+        action_layout.addStretch(1)
+        
 
         action_layout.addWidget(
             self.lbl_status,
