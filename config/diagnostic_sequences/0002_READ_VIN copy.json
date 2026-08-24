@@ -1,13 +1,13 @@
 {
     "schema_version": 1,
-    "name": "READ VIN",
+    "name": "READ VIN ACM",
     "description": "Read VIN from selected ECUs",
     "enabled": true,
     "steps": [
         {
             "step": 1,
             "sequence_name": "Read VIN",
-            "ecu": "ACU",
+            "ecu": "ACM",
             "request": "22 F1 90",
             "delay_ms": 100,
             "repeat": 1,

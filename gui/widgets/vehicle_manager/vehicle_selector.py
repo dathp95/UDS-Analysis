@@ -1,8 +1,9 @@
 from PySide6.QtCore import Signal
 
 from PySide6.QtWidgets import (
-    QWidget,
+    QHBoxLayout,
     QVBoxLayout,
+    QWidget,
 )
 
 from gui.widgets.controls.primary_label import PrimaryLabel
@@ -27,9 +28,11 @@ class VehicleSelectorWidget(QWidget):
     # Constructor
     # ==========================================
 
-    def __init__(self):
+    def __init__(self, orientation: str = "vertical"):
 
         super().__init__()
+
+        self._orientation = orientation
 
         self._setup_ui()
 
@@ -41,7 +44,7 @@ class VehicleSelectorWidget(QWidget):
 
     def _setup_ui(self):
 
-        layout = QVBoxLayout(self)
+        layout = self._create_layout()
 
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -53,6 +56,14 @@ class VehicleSelectorWidget(QWidget):
         layout.addWidget(self.lbl_vehicle)
 
         layout.addWidget(self.cmb_vehicle)
+
+    def _create_layout(self):
+
+        if self._orientation == "horizontal":
+
+            return QHBoxLayout(self)
+
+        return QVBoxLayout(self)
 
     def _connect_signals(self):
 
