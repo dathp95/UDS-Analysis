@@ -41,6 +41,24 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertEqual(widget.table.item(0, widget.COL_RECEIVE).text(), "")
         self.assertEqual(widget.table.item(0, widget.COL_RESULT).text(), "")
 
+
+    def test_execution_row_has_actions_right_aligned_without_duration(self):
+        widget = DiagnosticSequenceTable()
+        self.addCleanup(widget.deleteLater)
+
+        self.assertFalse(hasattr(widget, "lbl_duration"))
+        self.assertIs(widget.execution_layout.itemAt(0).widget(), widget.lbl_loop)
+        self.assertIs(widget.execution_layout.itemAt(1).widget(), widget.txt_loop)
+        self.assertIs(widget.execution_layout.itemAt(4).widget(), widget.txt_command_delay)
+        self.assertIs(widget.execution_layout.itemAt(5).widget(), widget.lbl_ms)
+        self.assertIsNone(widget.execution_layout.itemAt(6).widget())
+        self.assertIs(widget.execution_layout.itemAt(7).widget(), widget.btn_export)
+        self.assertIs(widget.execution_layout.itemAt(8).widget(), widget.btn_stop)
+        self.assertIs(widget.execution_layout.itemAt(9).widget(), widget.btn_run)
+        self.assertEqual(widget.btn_export.text(), "EXPORT")
+        self.assertEqual(widget.btn_stop.text(), "STOP")
+        self.assertEqual(widget.btn_run.text(), "RUN")
+
     def test_old_sequence_without_execution_uses_default_inputs(self):
         widget = DiagnosticSequenceTable()
         self.addCleanup(widget.deleteLater)

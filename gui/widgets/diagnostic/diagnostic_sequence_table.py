@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -22,6 +21,7 @@ from core.diagnostic_sequence import (
 )
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
+from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.controls.primary_table import PrimaryTable
@@ -77,9 +77,9 @@ class DiagnosticSequenceTable(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.settings_layout = QHBoxLayout()
-        self.settings_layout.setContentsMargins(0, 0, 0, 0)
-        self.settings_layout.setSpacing(8)
+        self.execution_layout = QHBoxLayout()
+        self.execution_layout.setContentsMargins(0, 0, 0, 0)
+        self.execution_layout.setSpacing(8)
 
         self.lbl_loop = PrimaryLabel("Loop")
         self.txt_loop = PrimaryLineEdit()
@@ -94,17 +94,20 @@ class DiagnosticSequenceTable(QWidget):
         self.txt_command_delay.setText("100")
         self.lbl_ms = PrimaryLabel("ms")
 
-        self.lbl_duration = PrimaryLabel("Duration: --")
+        self.btn_export = PrimaryButton("EXPORT", width=100)
+        self.btn_stop = PrimaryButton("STOP", width=100)
+        self.btn_run = PrimaryButton("RUN", width=120)
 
-        self.settings_layout.addWidget(self.lbl_loop)
-        self.settings_layout.addWidget(self.txt_loop)
-        self.settings_layout.addSpacing(12)
-        self.settings_layout.addWidget(self.lbl_command_delay)
-        self.settings_layout.addWidget(self.txt_command_delay)
-        self.settings_layout.addWidget(self.lbl_ms)
-        self.settings_layout.addSpacing(12)
-        self.settings_layout.addWidget(self.lbl_duration)
-        self.settings_layout.addStretch(1)
+        self.execution_layout.addWidget(self.lbl_loop)
+        self.execution_layout.addWidget(self.txt_loop)
+        self.execution_layout.addSpacing(12)
+        self.execution_layout.addWidget(self.lbl_command_delay)
+        self.execution_layout.addWidget(self.txt_command_delay)
+        self.execution_layout.addWidget(self.lbl_ms)
+        self.execution_layout.addStretch(1)
+        self.execution_layout.addWidget(self.btn_export)
+        self.execution_layout.addWidget(self.btn_stop)
+        self.execution_layout.addWidget(self.btn_run)
 
         self.table = PrimaryTable()
         self.table.setColumnCount(len(self.HEADERS))
@@ -118,7 +121,7 @@ class DiagnosticSequenceTable(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
         self._configure_columns()
 
-        layout.addLayout(self.settings_layout)
+        layout.addLayout(self.execution_layout)
         layout.addWidget(self.table, 1)
 
     def _connect_signals(self):
@@ -138,7 +141,6 @@ class DiagnosticSequenceTable(QWidget):
         if test_case is None:
             self.txt_loop.setText("1")
             self.txt_command_delay.setText("100")
-            self.lbl_duration.setText("Duration: --")
             self._is_populating = False
             return
 
@@ -146,7 +148,6 @@ class DiagnosticSequenceTable(QWidget):
         self.txt_command_delay.setText(
             str(test_case.execution.command_delay_ms)
         )
-        self.lbl_duration.setText("Duration: --")
 
         self.table.setRowCount(len(test_case.steps))
         for row, step in enumerate(test_case.steps):
@@ -422,11 +423,13 @@ class DiagnosticSequenceTable(QWidget):
             self.lbl_loop,
             self.lbl_command_delay,
             self.lbl_ms,
-            self.lbl_duration,
         ):
             label.fn_refresh_theme()
         self.txt_loop.fn_refresh_theme()
         self.txt_command_delay.fn_refresh_theme()
+        self.btn_export.fn_refresh_theme()
+        self.btn_stop.fn_refresh_theme()
+        self.btn_run.fn_refresh_theme()
         self.table.fn_refresh_theme()
         for row in range(self.table.rowCount()):
             combo = self.table.cellWidget(row, self.COL_ECU)

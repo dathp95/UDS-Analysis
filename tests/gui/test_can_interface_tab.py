@@ -54,7 +54,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.assertEqual(tab.cmb_device.currentText(), "VN1630A")
         self.assertEqual(tab.cmb_channel.currentText(), "CAN 1")
         self.assertEqual(tab.cmb_baudrate.currentData(), 500000)
-        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "Disconnected")
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
 
@@ -119,7 +119,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.assertEqual(service.config.interface, "vector")
         self.assertEqual(service.config.channel, 1)
         self.assertEqual(service.config.bitrate, 1000000)
-        self.assertEqual(tab.lbl_status.text(), "â— Connected")
+        self.assertEqual(tab.lbl_status.text(), "Connected")
         self.assertFalse(tab.btn_connect.isEnabled())
         self.assertTrue(tab.btn_disconnect.isEnabled())
 
@@ -132,7 +132,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         with patch("gui.tabs.can_interface_tab.QMessageBox.warning"):
             tab.connect_can()
 
-        self.assertEqual(tab.lbl_status.text(), "â— Error")
+        self.assertEqual(tab.lbl_status.text(), "Error")
         self.assertIn("Invalid Vector CAN channel", tab.lbl_status.toolTip())
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
@@ -146,7 +146,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         tab.disconnect_can()
 
         self.assertFalse(service.connected)
-        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "Disconnected")
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
 
@@ -159,7 +159,7 @@ class CANInterfaceTabTests(unittest.TestCase):
 
         self.assertEqual(service.refresh_count, 1)
         self.assertEqual(tab.cmb_channel.count(), 4)
-        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "Disconnected")
 
 
 if __name__ == "__main__":

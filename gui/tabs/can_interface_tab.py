@@ -226,6 +226,7 @@ class CANInterfaceTab(QWidget):
 
     def _on_sequence_selected(self, test_case):
         self.sequence_table.fn_load_sequence(test_case)
+
     def _create_vendor_combo(self):
         combo = PrimaryComboBox()
         combo.addItem("Vector", "vector")
@@ -311,7 +312,7 @@ class CANInterfaceTab(QWidget):
     def _set_status(self, state, message=""):
         self._status_state = state
         self._status_message = message
-        self.lbl_status.setText(f"â— {state}")
+        self.lbl_status.setText(state)
         self.lbl_status.setToolTip(message)
         self._update_button_states()
         self._refresh_status_theme()
