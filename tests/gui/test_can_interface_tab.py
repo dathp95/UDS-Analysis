@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from gui.tabs.can_interface_tab import CANInterfaceTab
+from gui.widgets.diagnostic import DiagnosticSequenceList
 
 
 class FakeCANService:
@@ -64,6 +65,12 @@ class CANInterfaceTabTests(unittest.TestCase):
             tab.lbl_status.minimumHeight(),
             tab.btn_connect.minimumHeight(),
         )
+
+    def test_diagnostic_sequence_list_is_available_as_left_panel(self):
+        tab = CANInterfaceTab(service=FakeCANService())
+        self.addCleanup(tab.deleteLater)
+
+        self.assertIsInstance(tab.sequence_list, DiagnosticSequenceList)
 
     def test_connect_uses_selected_channel_and_bitrate(self):
         service = FakeCANService()

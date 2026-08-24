@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+from gui.widgets.diagnostic import DiagnosticSequenceList
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
@@ -154,37 +155,35 @@ class CANInterfaceTab(QWidget):
         # RIGHT SIDE - Actions + Status (1/3)
         # ==========================================================
 
-        action_layout = QHBoxLayout()
-        action_layout.setContentsMargins(0, 0, 0, 0)
-        action_layout.setSpacing(8)
+        self.action_layout = QHBoxLayout()
+        self.action_layout.setContentsMargins(0, 0, 0, 0)
+        self.action_layout.setSpacing(8)
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_refresh,
             0,
             Qt.AlignVCenter,
         )
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_connect,
             0,
             Qt.AlignVCenter,
         )
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.btn_disconnect,
             0,
             Qt.AlignVCenter,
         )
-        action_layout.addStretch(1)
-        
 
-        action_layout.addWidget(
+        self.action_layout.addWidget(
             self.lbl_status,
             0,
             Qt.AlignVCenter,
         )
 
-        action_layout.addStretch(1)
+        self.action_layout.addStretch(1)
 
 
         # ==========================================================
@@ -197,12 +196,20 @@ class CANInterfaceTab(QWidget):
         )
 
         config_layout.addLayout(
-            action_layout,
+            self.action_layout,
             1,
         )
 
+        self.sequence_list = DiagnosticSequenceList()
+        self.center_panel = QWidget()
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(12)
+        content_layout.addWidget(self.sequence_list, 1)
+        content_layout.addWidget(self.center_panel, 3)
+
         main_layout.addLayout(config_layout)
-        main_layout.addStretch(1)
+        main_layout.addLayout(content_layout, 1)
         
 
     def _connect_signals(self):
@@ -331,6 +338,7 @@ class CANInterfaceTab(QWidget):
         self.btn_refresh.fn_refresh_theme()
         self.btn_connect.fn_refresh_theme()
         self.btn_disconnect.fn_refresh_theme()
+        self.sequence_list.fn_refresh_theme()
         self._refresh_status_theme()
 
     def _refresh_status_theme(self):
