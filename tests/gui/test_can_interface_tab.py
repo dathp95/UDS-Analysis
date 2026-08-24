@@ -6,8 +6,13 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
+from core.diagnostic_sequence import DiagnosticStep, DiagnosticTestCase
+
 from gui.tabs.can_interface_tab import CANInterfaceTab
-from gui.widgets.diagnostic import DiagnosticSequenceList
+from gui.widgets.diagnostic import (
+    DiagnosticSequenceList,
+    DiagnosticSequenceTable,
+)
 
 
 class FakeCANService:
@@ -49,7 +54,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.assertEqual(tab.cmb_device.currentText(), "VN1630A")
         self.assertEqual(tab.cmb_channel.currentText(), "CAN 1")
         self.assertEqual(tab.cmb_baudrate.currentData(), 500000)
-        self.assertEqual(tab.lbl_status.text(), "● Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
 
@@ -66,11 +71,41 @@ class CANInterfaceTabTests(unittest.TestCase):
             tab.btn_connect.minimumHeight(),
         )
 
-    def test_diagnostic_sequence_list_is_available_as_left_panel(self):
+    def test_diagnostic_sequence_list_and_table_editor_are_available(self):
         tab = CANInterfaceTab(service=FakeCANService())
         self.addCleanup(tab.deleteLater)
 
         self.assertIsInstance(tab.sequence_list, DiagnosticSequenceList)
+        self.assertIsInstance(tab.sequence_table, DiagnosticSequenceTable)
+
+    def test_sequence_selected_loads_center_table(self):
+        tab = CANInterfaceTab(service=FakeCANService())
+        self.addCleanup(tab.deleteLater)
+        test_case = DiagnosticTestCase(
+            schema_version=1,
+            name="READ VIN",
+            description="",
+            enabled=True,
+            steps=[
+                DiagnosticStep(
+                    step=1,
+                    sequence_name="Read VIN",
+                    ecu="ACU",
+                    request="22 F1 90",
+                )
+            ],
+        )
+
+        tab._on_sequence_selected(test_case)
+
+        self.assertEqual(tab.sequence_table.table.rowCount(), 1)
+        self.assertEqual(
+            tab.sequence_table.table.item(
+                0,
+                tab.sequence_table.COL_REQUEST,
+            ).text(),
+            "22 F1 90",
+        )
 
     def test_connect_uses_selected_channel_and_bitrate(self):
         service = FakeCANService()
@@ -84,7 +119,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.assertEqual(service.config.interface, "vector")
         self.assertEqual(service.config.channel, 1)
         self.assertEqual(service.config.bitrate, 1000000)
-        self.assertEqual(tab.lbl_status.text(), "● Connected")
+        self.assertEqual(tab.lbl_status.text(), "â— Connected")
         self.assertFalse(tab.btn_connect.isEnabled())
         self.assertTrue(tab.btn_disconnect.isEnabled())
 
@@ -97,7 +132,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         with patch("gui.tabs.can_interface_tab.QMessageBox.warning"):
             tab.connect_can()
 
-        self.assertEqual(tab.lbl_status.text(), "● Error")
+        self.assertEqual(tab.lbl_status.text(), "â— Error")
         self.assertIn("Invalid Vector CAN channel", tab.lbl_status.toolTip())
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
@@ -111,7 +146,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         tab.disconnect_can()
 
         self.assertFalse(service.connected)
-        self.assertEqual(tab.lbl_status.text(), "● Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
         self.assertTrue(tab.btn_connect.isEnabled())
         self.assertFalse(tab.btn_disconnect.isEnabled())
 
@@ -124,7 +159,7 @@ class CANInterfaceTabTests(unittest.TestCase):
 
         self.assertEqual(service.refresh_count, 1)
         self.assertEqual(tab.cmb_channel.count(), 4)
-        self.assertEqual(tab.lbl_status.text(), "● Disconnected")
+        self.assertEqual(tab.lbl_status.text(), "â— Disconnected")
 
 
 if __name__ == "__main__":

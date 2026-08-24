@@ -12,7 +12,10 @@ from PySide6.QtWidgets import (
 
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
-from gui.widgets.diagnostic import DiagnosticSequenceList
+from gui.widgets.diagnostic import (
+    DiagnosticSequenceList,
+    DiagnosticSequenceTable,
+)
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
@@ -201,12 +204,12 @@ class CANInterfaceTab(QWidget):
         )
 
         self.sequence_list = DiagnosticSequenceList()
-        self.center_panel = QWidget()
+        self.sequence_table = DiagnosticSequenceTable()
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(12)
         content_layout.addWidget(self.sequence_list, 1)
-        content_layout.addWidget(self.center_panel, 3)
+        content_layout.addWidget(self.sequence_table, 3)
 
         main_layout.addLayout(config_layout)
         main_layout.addLayout(content_layout, 1)
@@ -216,7 +219,13 @@ class CANInterfaceTab(QWidget):
         self.btn_refresh.clicked.connect(self.refresh_can_setup)
         self.btn_connect.clicked.connect(self.connect_can)
         self.btn_disconnect.clicked.connect(self.disconnect_can)
+        self.sequence_list.sequence_selected.connect(
+            self._on_sequence_selected
+        )
 
+
+    def _on_sequence_selected(self, test_case):
+        self.sequence_table.fn_load_sequence(test_case)
     def _create_vendor_combo(self):
         combo = PrimaryComboBox()
         combo.addItem("Vector", "vector")
@@ -302,7 +311,7 @@ class CANInterfaceTab(QWidget):
     def _set_status(self, state, message=""):
         self._status_state = state
         self._status_message = message
-        self.lbl_status.setText(f"● {state}")
+        self.lbl_status.setText(f"â— {state}")
         self.lbl_status.setToolTip(message)
         self._update_button_states()
         self._refresh_status_theme()
@@ -339,6 +348,7 @@ class CANInterfaceTab(QWidget):
         self.btn_connect.fn_refresh_theme()
         self.btn_disconnect.fn_refresh_theme()
         self.sequence_list.fn_refresh_theme()
+        self.sequence_table.fn_refresh_theme()
         self._refresh_status_theme()
 
     def _refresh_status_theme(self):

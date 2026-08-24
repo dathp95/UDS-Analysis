@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from config.paths import DIAGNOSTIC_SEQUENCES_DIR
-from core.diagnostic_sequence import DiagnosticStep, DiagnosticTestCase
+from core.diagnostic_sequence import (
+    DiagnosticExecutionSettings,
+    DiagnosticStep,
+    DiagnosticTestCase,
+)
 
 
 VALID_MATCH_TYPES = frozenset({
@@ -117,6 +121,9 @@ class DiagnosticSequenceRepository:
                 payload.get("enabled", True),
                 "enabled",
             ),
+            execution=self._to_execution(
+                payload.get("execution", {}),
+            ),
             steps=[
                 self._to_step(step_payload, index)
                 for index, step_payload in enumerate(
@@ -124,6 +131,37 @@ class DiagnosticSequenceRepository:
                     start=1,
                 )
             ],
+        )
+
+    def _to_execution(self, payload: Any) -> DiagnosticExecutionSettings:
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            raise DiagnosticSequenceValidationError(
+                "Diagnostic sequence field 'execution' must be an object."
+            )
+
+        loop = self._to_int(
+            payload.get("loop", 1),
+            "execution loop",
+        )
+        command_delay_ms = self._to_int(
+            payload.get("command_delay_ms", 100),
+            "execution command_delay_ms",
+        )
+
+        if loop < 1 or loop > 9999:
+            raise DiagnosticSequenceValidationError(
+                "Diagnostic sequence execution loop must be in range 1..9999."
+            )
+        if command_delay_ms < 0 or command_delay_ms > 60000:
+            raise DiagnosticSequenceValidationError(
+                "Diagnostic sequence execution command_delay_ms must be in range 0..60000."
+            )
+
+        return DiagnosticExecutionSettings(
+            loop=loop,
+            command_delay_ms=command_delay_ms,
         )
 
     def _to_step(
@@ -148,7 +186,7 @@ class DiagnosticSequenceRepository:
                 context=f"step {index}",
             )
 
-        delay_ms = self._to_int(
+        delay_ms = self._to_optional_int(
             payload.get("delay_ms", 100),
             f"step {index} delay_ms",
         )
@@ -160,7 +198,7 @@ class DiagnosticSequenceRepository:
             payload.get("match", "prefix"),
         ).lower()
 
-        if delay_ms < 0:
+        if delay_ms is not None and delay_ms < 0:
             raise DiagnosticSequenceValidationError(
                 f"Diagnostic sequence step {index} delay_ms must be >= 0."
             )
@@ -227,6 +265,10 @@ class DiagnosticSequenceRepository:
             "name": test_case.name,
             "description": test_case.description,
             "enabled": test_case.enabled,
+            "execution": {
+                "loop": test_case.execution.loop,
+                "command_delay_ms": test_case.execution.command_delay_ms,
+            },
             "steps": [
                 DiagnosticSequenceRepository._step_to_json(step)
                 for step in test_case.steps
@@ -286,6 +328,15 @@ class DiagnosticSequenceRepository:
             raise DiagnosticSequenceValidationError(
                 f"Diagnostic sequence field '{field_name}' must be an integer."
             ) from error
+
+    @staticmethod
+    def _to_optional_int(value: Any, field_name: str) -> int | None:
+        if value is None:
+            return None
+        text = DiagnosticSequenceRepository._to_text(value)
+        if text == "":
+            return None
+        return DiagnosticSequenceRepository._to_int(value, field_name)
 
     @staticmethod
     def _to_bool(value: Any, field_name: str) -> bool:
