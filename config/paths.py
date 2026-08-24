@@ -13,6 +13,7 @@ CODING_VALUE_REPORT_DIR = OUTPUT_DIR / "Report_CodingValue"
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"
+DIAGNOSTIC_SEQUENCES_DIR = CONFIG_DIR / "diagnostic_sequences"
 
 VEHICLES_DIR = CONFIG_DIR / "vehicles"
 

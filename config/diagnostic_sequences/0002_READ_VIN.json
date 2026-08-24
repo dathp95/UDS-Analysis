@@ -1,0 +1,19 @@
+{
+    "schema_version": 1,
+    "name": "READ VIN",
+    "description": "Read VIN from selected ECUs",
+    "enabled": true,
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Read VIN",
+            "ecu": "ACU",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        }
+    ]
+}
