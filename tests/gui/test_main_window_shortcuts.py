@@ -184,6 +184,29 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertEqual(window.can_interface_tab.cmb_channel.currentData(), 0)
         self.assertEqual(window.can_interface_tab.cmb_baudrate.currentData(), 500000)
 
+    def test_release_config_disables_can_interface_tab(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from core.feature_access import Feature
+            from gui.windows.main_window import MainWindow
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]), patch(
+                "gui.windows.main_window.load_deactivated_features",
+                return_value={Feature.CAN_INTERFACE},
+            ):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertEqual(window.tabs.tabText(3), "CAN Interface")
+        self.assertFalse(window.tabs.isTabEnabled(3))
+
     def test_crc_transfer_signal_updates_coding_value_tab(self):
         with patch.dict(
             sys.modules,
@@ -319,3 +342,4 @@ class MainWindowShortcutTests(unittest.TestCase):
         }
         for module_name in modules_to_clear:
             sys.modules.pop(module_name, None)
+

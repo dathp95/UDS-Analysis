@@ -4,7 +4,11 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QKeySequence, QShortcut
 
-from core.feature_access import Feature, is_feature_enabled
+from core.feature_access import (
+    Feature,
+    is_feature_enabled,
+    load_deactivated_features,
+)
 from gui.tabs.can_interface_tab import CANInterfaceTab
 from gui.tabs.coding_value_tab import CodingValueTab
 from gui.tabs.crc_converter_tab import CRCConverterTab
@@ -13,7 +17,7 @@ from gui.tabs.log_analyzer_tab import LogAnalyzerTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
 from gui.themes.styles.containers.window_style import fn_window_style
-from config.paths import SHORTCUTS_FILE
+from config.paths import RELEASE_FEATURES_FILE, SHORTCUTS_FILE
 from shortcuts.shortcut_manager import load_shortcuts
 
 
@@ -23,6 +27,9 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.license_status = license_status
+        self._deactivated_features = load_deactivated_features(
+            RELEASE_FEATURES_FILE
+        )
 
         self.setWindowTitle("V-CODE v2.0.1 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
@@ -138,6 +145,7 @@ class MainWindow(QMainWindow):
                 is_feature_enabled(
                     feature,
                     license_is_valid=license_is_valid,
+                    deactivated_features=self._deactivated_features,
                 ),
             )
 

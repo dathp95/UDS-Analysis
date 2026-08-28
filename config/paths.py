@@ -22,6 +22,7 @@ SHORTCUTS_FILE = PROJECT_ROOT / "shortcuts" / "shortcuts.json"
 DISPLAY_NAMES_FILE = CONFIG_DIR / "display_names.json"
 UDS_SERVICES_FILE = CONFIG_DIR / "uds_services.json"
 UDS_USER_FILE = CONFIG_DIR / "uds_user.json"
+RELEASE_FEATURES_FILE = CONFIG_DIR / "release_features.json"
 
 if getattr(sys, "frozen", False):
     RESOURCE_ROOT = Path(sys._MEIPASS)

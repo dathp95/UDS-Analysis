@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import shutil
 
 
@@ -10,6 +11,15 @@ DIST.mkdir(
     parents=True,
     exist_ok=True,
 )
+
+
+# ==========================================
+# Release feature flags
+# ==========================================
+
+DEACTIVATED_RELEASE_FEATURES = [
+    "can_interface",
+]
 
 
 # ==========================================
@@ -48,6 +58,25 @@ for folder in RUNTIME_FOLDERS:
     print(
         f"[COPIED] {folder}"
     )
+
+
+release_features_file = DIST / "config" / "release_features.json"
+release_features_file.parent.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+release_features_file.write_text(
+    json.dumps(
+        {
+            "deactivated_features": DEACTIVATED_RELEASE_FEATURES,
+        },
+        indent=2,
+    ),
+    encoding="utf-8",
+)
+print(
+    f"[WRITTEN] {release_features_file.relative_to(DIST)}"
+)
 
 
 # ==========================================
