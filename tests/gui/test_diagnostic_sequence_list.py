@@ -55,6 +55,22 @@ class DiagnosticSequenceListTests(unittest.TestCase):
                 ["READ CDS", "READ VIN"],
             )
 
+    def test_select_all_text_shows_check_mark_when_checked(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_sequence(tmpdir, "0001_READ_CDS.json", "READ CDS")
+            widget = self._create_widget(tmpdir)
+            self.addCleanup(widget.deleteLater)
+
+            self.assertEqual(widget.chk_select_all.text(), "Select All")
+
+            widget.chk_select_all.setChecked(True)
+
+            self.assertEqual(widget.chk_select_all.text(), "✓ Select All")
+
+            widget.chk_select_all.setChecked(False)
+
+            self.assertEqual(widget.chk_select_all.text(), "Select All")
+
     def test_unchecking_one_item_clears_select_all(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             self._write_sequence(tmpdir, "0001_READ_CDS.json", "READ CDS")

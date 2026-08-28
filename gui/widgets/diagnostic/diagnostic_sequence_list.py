@@ -46,6 +46,7 @@ class DiagnosticSequenceList(QWidget):
         layout.setSpacing(8)
 
         self.chk_select_all = PrimaryCheckBox("Select All")
+        self._update_select_all_text(False)
         self.list_sequences = QListWidget()
         self.list_sequences.setSelectionMode(QListWidget.SingleSelection)
         self.list_sequences.setVerticalScrollMode(QListWidget.ScrollPerPixel)
@@ -121,6 +122,7 @@ class DiagnosticSequenceList(QWidget):
         for index in range(self.list_sequences.count()):
             self.list_sequences.item(index).setCheckState(Qt.Unchecked)
         self.chk_select_all.setChecked(False)
+        self._update_select_all_text(False)
         self._is_updating = False
         self._emit_selection_changed()
 
@@ -143,6 +145,7 @@ class DiagnosticSequenceList(QWidget):
         if self._is_updating:
             return
 
+        self._update_select_all_text(checked)
         self._is_updating = True
         state = Qt.Checked if checked else Qt.Unchecked
         for index in range(self.list_sequences.count()):
@@ -173,7 +176,12 @@ class DiagnosticSequenceList(QWidget):
             )
         )
         self.chk_select_all.setChecked(all_checked)
+        self._update_select_all_text(all_checked)
         self._is_updating = False
+
+    def _update_select_all_text(self, checked):
+        text = "✓ Select All" if checked else "Select All"
+        self.chk_select_all.setText(text)
 
     def _emit_selection_changed(self):
         self.selection_changed.emit(

@@ -22,7 +22,7 @@ from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
-from gui.widgets.controls.primary_spinbox import PrimarySpinBox
+from gui.widgets.controls.primary_number_input import PrimaryNumberInput
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
 from services.vehicle_service import VehicleService
@@ -90,18 +90,16 @@ class DiagnosticSequenceTable(QWidget):
         )
 
         self.lbl_loop = PrimaryLabel("Loop")
-        self.spn_loop = PrimarySpinBox()
+        self.spn_loop = PrimaryNumberInput(value_width=62)
         self.spn_loop.setRange(1, 9999)
         self.spn_loop.setSingleStep(1)
         self.spn_loop.setValue(1)
-        self.spn_loop.setFixedWidth(78)
 
         self.lbl_command_delay = PrimaryLabel("Command Delay")
-        self.spn_command_delay = PrimarySpinBox()
+        self.spn_command_delay = PrimaryNumberInput(value_width=86)
         self.spn_command_delay.setRange(0, 60000)
         self.spn_command_delay.setSingleStep(100)
         self.spn_command_delay.setValue(100)
-        self.spn_command_delay.setFixedWidth(96)
         self.lbl_ms = PrimaryLabel("ms")
 
         self.btn_import_delay = PrimaryButton("Import Delay", width=110)

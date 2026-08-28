@@ -5,6 +5,7 @@ from dataclasses import replace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtWidgets import QAbstractSpinBox
 from PySide6.QtWidgets import QApplication, QAbstractItemView
 
 from core.diagnostic_sequence import (
@@ -13,7 +14,7 @@ from core.diagnostic_sequence import (
     DiagnosticTestCase,
 )
 from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
-from gui.widgets.controls.primary_spinbox import PrimarySpinBox
+from gui.widgets.controls.primary_number_input import PrimaryNumberInput
 from gui.widgets.diagnostic.diagnostic_sequence_table import DiagnosticSequenceTable
 from models.ecu import ECU
 from models.vehicle import Vehicle
@@ -129,8 +130,8 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertIs(widget.execution_layout.itemAt(11).widget(), widget.btn_export)
         self.assertIs(widget.execution_layout.itemAt(12).widget(), widget.btn_stop)
         self.assertIs(widget.execution_layout.itemAt(13).widget(), widget.btn_run)
-        self.assertIsInstance(widget.spn_loop, PrimarySpinBox)
-        self.assertIsInstance(widget.spn_command_delay, PrimarySpinBox)
+        self.assertIsInstance(widget.spn_loop, PrimaryNumberInput)
+        self.assertIsInstance(widget.spn_command_delay, PrimaryNumberInput)
         self.assertEqual(widget.btn_import_delay.text(), "Import Delay")
         self.assertEqual(widget.btn_add.text(), "+ Add")
         self.assertEqual(widget.btn_export.text(), "EXPORT")
@@ -244,6 +245,23 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertIn("QSpinBox::down-button:pressed", style)
         self.assertIn("QSpinBox::up-arrow:disabled", style)
         self.assertIn("QSpinBox::down-arrow:disabled", style)
+
+    def test_loop_and_delay_spinboxes_use_custom_minus_plus_buttons(self):
+        widget = self._create_widget()
+        self.addCleanup(widget.deleteLater)
+
+        self.assertEqual(widget.spn_loop.btn_decrement.text(), "-")
+        self.assertEqual(widget.spn_loop.btn_increment.text(), "+")
+        self.assertEqual(widget.spn_command_delay.btn_decrement.text(), "-")
+        self.assertEqual(widget.spn_command_delay.btn_increment.text(), "+")
+        self.assertEqual(
+            widget.spn_loop.spinbox.buttonSymbols(),
+            QAbstractSpinBox.NoButtons,
+        )
+        self.assertEqual(
+            widget.spn_command_delay.spinbox.buttonSymbols(),
+            QAbstractSpinBox.NoButtons,
+        )
 
     def test_loop_spinbox_range_step_and_manual_value(self):
         widget = self._create_widget()
