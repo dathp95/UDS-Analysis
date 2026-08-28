@@ -20,6 +20,5 @@ Update the CAN Interface Diagnostic Sequence table:
 
 ## Verification
 
-- `python -m unittest tests.gui.test_diagnostic_sequence_table`
-- `python -m unittest tests.gui.test_can_interface_tab tests.gui.test_diagnostic_sequence_table tests.gui.test_diagnostic_sequence_list`
-
+- `python -m unittest tests.gui.test_diagnostic_sequence_table` -> OK, 30 tests.
+- `python -m unittest tests.gui.test_can_interface_tab tests.gui.test_diagnostic_sequence_table tests.gui.test_diagnostic_sequence_list` -> OK, 47 tests.

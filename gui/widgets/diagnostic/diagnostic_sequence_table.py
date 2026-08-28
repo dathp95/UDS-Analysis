@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import replace
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
@@ -107,7 +107,6 @@ class DiagnosticSequenceTable(QWidget):
 
         self.btn_import_delay = SecondaryButton("Import", width=90)
         self.btn_add = SecondaryButton("+ Add", width=90)
-        
         self.btn_export = PrimaryButton("EXPORT", width=100)
         self.btn_stop = PrimaryButton("STOP", width=100)
         self.btn_run = PrimaryButton("RUN", width=120)
@@ -118,7 +117,6 @@ class DiagnosticSequenceTable(QWidget):
             Qt.AlignVCenter,
         )
         self.execution_layout.addWidget(self.btn_add)
-        self.execution_layout.addWidget(self.btn_import_delay)
         self.execution_layout.addSpacing(12)
         self.execution_layout.addWidget(self.lbl_loop)
         self.execution_layout.addWidget(self.spn_loop)
@@ -126,6 +124,7 @@ class DiagnosticSequenceTable(QWidget):
         self.execution_layout.addWidget(self.lbl_command_delay)
         self.execution_layout.addWidget(self.spn_command_delay)
         self.execution_layout.addWidget(self.lbl_ms)
+        self.execution_layout.addWidget(self.btn_import_delay)
         self.execution_layout.addStretch(1)
         self.execution_layout.addWidget(self.btn_export)
         self.execution_layout.addWidget(self.btn_stop)
@@ -143,6 +142,7 @@ class DiagnosticSequenceTable(QWidget):
             | QAbstractItemView.EditKeyPressed
             | QAbstractItemView.AnyKeyPressed
         )
+        self.table.installEventFilter(self)
         self.table.horizontalHeader().setStretchLastSection(True)
         self._configure_columns()
 
@@ -231,16 +231,16 @@ class DiagnosticSequenceTable(QWidget):
         self._ensure_test_case()
         insert_index = self._selected_insert_index()
         steps = list(self._test_case.steps)
-        inherited_ecu = self._inherited_ecu_for_insert(insert_index, steps)
+        inherited = self._inherited_values_for_insert(insert_index, steps)
         steps.insert(
             insert_index,
             DiagnosticStep(
                 step=insert_index + 1,
                 sequence_name="",
-                ecu=inherited_ecu,
+                ecu=inherited["ecu"],
                 request="",
-                delay_ms=None,
-                repeat=1,
+                delay_ms=inherited["delay_ms"],
+                repeat=inherited["repeat"],
                 expected_response="",
                 match="prefix",
                 comment="",
@@ -278,7 +278,24 @@ class DiagnosticSequenceTable(QWidget):
         self._mark_dirty()
 
     def fn_remove_selected_step(self):
-        return None
+        if self._test_case is None or not self._test_case.steps:
+            return
+
+        selected_rows = self._selected_rows()
+        if not selected_rows:
+            return
+
+        remaining_steps = [
+            step
+            for row, step in enumerate(self._test_case.steps)
+            if row not in selected_rows
+        ]
+        next_row = min(selected_rows[0], len(remaining_steps) - 1)
+
+        self._replace_steps(remaining_steps)
+        self._reload_steps_into_table()
+        self._select_row(next_row)
+        self._mark_dirty()
 
     def fn_move_step_up(self):
         return None
@@ -516,10 +533,29 @@ class DiagnosticSequenceTable(QWidget):
         return len(self._test_case.steps)
 
     @staticmethod
-    def _inherited_ecu_for_insert(insert_index, steps):
+    def _inherited_values_for_insert(insert_index, steps):
         if insert_index <= 0 or not steps:
-            return ""
-        return steps[insert_index - 1].ecu
+            return {
+                "ecu": "",
+                "delay_ms": None,
+                "repeat": 1,
+            }
+        previous_step = steps[insert_index - 1]
+        return {
+            "ecu": previous_step.ecu,
+            "delay_ms": previous_step.delay_ms,
+            "repeat": previous_step.repeat,
+        }
+
+    def eventFilter(self, watched, event):
+        if (
+            watched is self.table
+            and event.type() == QEvent.KeyPress
+            and event.key() == Qt.Key_Delete
+        ):
+            self.fn_remove_selected_step()
+            return True
+        return super().eventFilter(watched, event)
 
     def _select_row(self, row):
         self.table.clearSelection()
