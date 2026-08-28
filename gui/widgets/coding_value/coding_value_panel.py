@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QKeySequence, QShortcut, QTextCharFormat, QTextCursor
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
 
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from config.paths import CODING_VALUE_REPORT_DIR, EXPORT_CODING_FILES_DIR
+from core.crc import calculate_crc8_sae_j1850
 from core.coding_value import (
     export_coding_value_rows_to_json,
     load_coding_value_rows,
@@ -49,6 +50,7 @@ class CodingValuePanel(QGroupBox):
         self._preview_editing = False
         self._setup_ui()
         self._connect_signals()
+        self._setup_shortcuts()
         self.fn_refresh_theme()
 
     def _setup_ui(self):
@@ -71,12 +73,16 @@ class CodingValuePanel(QGroupBox):
             width=100,
         )
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(300)
-        self.cmb_coding_json.setMaxVisibleItems(10)
+        self.cmb_coding_json.setFixedWidth(200)
+        self.cmb_coding_json.setMaxVisibleItems(5)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
         self.btn_import = PrimaryButton(
             "Import",
+            width=100,
+        )
+        self.btn_default = PrimaryButton(
+            "Default",
             width=100,
         )
 
@@ -88,6 +94,7 @@ class CodingValuePanel(QGroupBox):
         file_layout.addWidget(self.btn_browse)
         file_layout.addWidget(self.cmb_coding_json)
         file_layout.addWidget(self.btn_import)
+        file_layout.addWidget(self.btn_default)
         self._refresh_coding_json_options()
 
         self.txt_coding_value = QPlainTextEdit()
@@ -275,12 +282,29 @@ class CodingValuePanel(QGroupBox):
         editor.setMinimumHeight(height)
         editor.setMaximumHeight(height)
 
+    def _setup_shortcuts(self):
+        shortcuts = (
+            ("Ctrl+R", self.btn_check),
+            ("Ctrl+F", self.btn_filter_no_m),
+            ("Ctrl+Z", self.btn_refresh_filter),
+            ("Ctrl+Q", self.btn_encode),
+        )
+        self._coding_value_shortcuts = []
+        for sequence, button in shortcuts:
+            shortcut = QShortcut(QKeySequence(sequence), self)
+            shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+            shortcut.activated.connect(button.click)
+            self._coding_value_shortcuts.append(shortcut)
+
     def _connect_signals(self):
         self.btn_browse.clicked.connect(
             self.browse_file
         )
         self.btn_import.clicked.connect(
             self.import_coding_value
+        )
+        self.btn_default.clicked.connect(
+            self.set_default_coding_payload
         )
         self.cmb_coding_json.currentIndexChanged.connect(
             self.load_selected_coding_json
@@ -429,6 +453,47 @@ class CodingValuePanel(QGroupBox):
             self.txt_parameter_filter.text()
         )
 
+    def set_default_coding_payload(self):
+        byte_count = self._default_coding_payload_byte_count()
+        if byte_count <= 0:
+            return
+
+        self.txt_coding_value.setPlainText(
+            self._format_payload_bytes([0] * byte_count)
+        )
+        self._update_action_states()
+
+    def _default_coding_payload_byte_count(self):
+        byte_count = 0
+        for row_index in range(self.table.rowCount()):
+            byte_pos = CodingValueTable._to_int(
+                self._table_item_text(row_index, 1)
+            )
+            bit_pos = CodingValueTable._to_int(
+                self._table_item_text(row_index, 2)
+            )
+            bit_length = CodingValueTable._to_int(
+                self._table_item_text(row_index, 3)
+            )
+            if (
+                    byte_pos is None
+                    or bit_pos is None
+                    or bit_length is None
+                    or byte_pos < 0
+                    or bit_pos < 0
+                    or bit_length <= 0
+                ):
+                continue
+
+            row_byte_count = (bit_pos + bit_length + 7) // 8
+            byte_count = max(byte_count, byte_pos + row_byte_count)
+
+        return byte_count
+
+    def _table_item_text(self, row_index, column):
+        item = self.table.item(row_index, column)
+        return item.text() if item is not None else ""
+
     def filter_no_match_rows(self):
         self.txt_parameter_filter.setText("No-M")
         self.filter_parameter_table()
@@ -543,6 +608,7 @@ class CodingValuePanel(QGroupBox):
         if not self._can_use_table_actions():
             return
 
+        self._update_calculated_crc_value()
         self.table.apply_check_results()
         self._write_check_working_log()
         self._update_action_states()
@@ -806,10 +872,12 @@ class CodingValuePanel(QGroupBox):
         has_input_payload = bool(self.txt_coding_value.toPlainText().strip())
         has_preview_payload = bool(self.txt_coding_preview.toPlainText().strip())
         has_table_rows = self.table.rowCount() > 0
+        can_use_default = self._default_coding_payload_byte_count() > 0
         can_encode = has_table_rows and has_input_payload
         can_use_preview = has_preview_payload
         can_use_table_actions = self._can_use_table_actions()
 
+        self.btn_default.setEnabled(can_use_default)
         self.btn_encode.setEnabled(can_encode)
         self.btn_copy.setEnabled(has_input_payload)
         self.btn_clear.setEnabled(has_input_payload)
@@ -832,6 +900,137 @@ class CodingValuePanel(QGroupBox):
             self._has_encoded_payload
             and self.table.rowCount() > 0
             and bool(self._payload_preview_bytes)
+        )
+
+    def _update_calculated_crc_value(self):
+        crc_range = self._crc_calculation_range()
+        if crc_range is None:
+            return False
+
+        start, end = crc_range
+        if start >= end:
+            return False
+
+        crc = calculate_crc8_sae_j1850(
+            bytes(self._payload_preview_bytes[start:end])
+        )
+        return self.fn_set_crc_value(f"{crc:02X}")
+
+    def _crc_calculation_range(self):
+        crc_row_index = self.table.fn_find_row_index_by_parameter("crc")
+        if crc_row_index < 0 or not self._payload_preview_bytes:
+            return None
+
+        crc_start, _, _, _ = self._payload_span_for_row(crc_row_index)
+        if crc_start is None:
+            return None
+
+        short_vin_row_index = self._find_parameter_row("short", "vin")
+        if short_vin_row_index >= 0:
+            _, short_vin_end, _, _ = self._payload_span_for_row(
+                short_vin_row_index
+            )
+            if short_vin_end is not None:
+                return short_vin_end, crc_start
+
+        format_row_index = self._find_parameter_row("format")
+        if format_row_index < 0:
+            return None
+
+        _, format_end, _, _ = self._payload_span_for_row(format_row_index)
+        if format_end is None:
+            return None
+
+        return format_end, crc_start
+
+    def _find_parameter_row(self, *keywords):
+        lowered_keywords = [
+            str(keyword or "").lower()
+            for keyword in keywords
+            if str(keyword or "").strip()
+        ]
+        if not lowered_keywords:
+            return -1
+
+        for row_index in range(self.table.rowCount()):
+            parameter = self._table_item_text(row_index, 0).lower()
+            if all(keyword in parameter for keyword in lowered_keywords):
+                return row_index
+
+        return -1
+
+    def _payload_span_for_row(self, row_index):
+        byte_pos, bit_pos, bit_length = self.table.fn_payload_location_for_row(
+            row_index
+        )
+        preview_byte_pos = self._preview_byte_pos_for_row(row_index, byte_pos)
+        if preview_byte_pos is None or bit_pos is None or bit_length is None:
+            return None, None, bit_pos, bit_length
+
+        byte_count = (bit_pos + bit_length + 7) // 8
+        if byte_count <= 0:
+            return None, None, bit_pos, bit_length
+
+        return (
+            preview_byte_pos,
+            preview_byte_pos + byte_count,
+            bit_pos,
+            bit_length,
+        )
+
+    def _preview_byte_pos_for_row(self, row_index, byte_pos):
+        if byte_pos is None:
+            return None
+
+        parameter = self._table_item_text(row_index, 0).lower()
+        if "crc" in parameter:
+            return self._crc_preview_byte_pos(byte_pos)
+
+        raw_value = self._table_item_text(row_index, 4)
+        direct_pos = (
+            byte_pos
+            if byte_pos < len(self._payload_preview_bytes)
+            else None
+        )
+        shifted_pos = byte_pos + 3
+        if shifted_pos >= len(self._payload_preview_bytes):
+            shifted_pos = None
+
+        if (
+                shifted_pos is not None
+                and byte_pos < 3
+                and self._payload_preview_has_uds_header()
+            ):
+            return shifted_pos
+        if (
+                direct_pos is not None
+                and self._row_raw_matches_preview(row_index, direct_pos, raw_value)
+            ):
+            return direct_pos
+        if (
+                shifted_pos is not None
+                and self._row_raw_matches_preview(row_index, shifted_pos, raw_value)
+            ):
+            return shifted_pos
+        if shifted_pos is not None and self._payload_preview_has_uds_header():
+            return shifted_pos
+
+        return direct_pos
+
+    def _row_raw_matches_preview(self, row_index, preview_byte_pos, raw_value):
+        _, bit_pos, bit_length = self.table.fn_payload_location_for_row(row_index)
+        expected = CodingValueTable._payload_raw_value(
+            self._payload_preview_bytes,
+            preview_byte_pos,
+            bit_pos,
+            bit_length,
+        )
+        return bool(raw_value) and expected == raw_value
+
+    def _payload_preview_has_uds_header(self):
+        return (
+            len(self._payload_preview_bytes) >= 3
+            and self._payload_preview_bytes[0] == 0x62
         )
 
     def _write_check_working_log(self):
@@ -992,6 +1191,7 @@ class CodingValuePanel(QGroupBox):
         self.btn_refresh_filter.fn_refresh_theme()
         self.btn_browse.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
+        self.btn_default.fn_refresh_theme()
         self.btn_encode.fn_refresh_theme()
         self.btn_copy.fn_refresh_theme()
         self.btn_clear.fn_refresh_theme()

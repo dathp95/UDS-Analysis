@@ -10,11 +10,12 @@ from openpyxl import Workbook, load_workbook
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QFocusEvent
+from PySide6.QtGui import QFocusEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingValueOption, CodingValueRow
+from core.crc import calculate_crc8_sae_j1850
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
@@ -156,6 +157,9 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(file_layout.indexOf(panel.btn_browse), 1)
         self.assertEqual(file_layout.indexOf(panel.cmb_coding_json), 2)
         self.assertEqual(file_layout.indexOf(panel.btn_import), 3)
+        self.assertEqual(file_layout.indexOf(panel.btn_default), 4)
+        self.assertEqual(panel.btn_default.text(), "Default")
+        self.assertFalse(panel.btn_default.isEnabled())
         self.assertEqual(panel.cmb_coding_json.width(), 200)
         self.assertEqual(panel.cmb_coding_json.maxVisibleItems(), 5)
         self.assertIn(
@@ -163,6 +167,48 @@ class CodingValueTabTests(unittest.TestCase):
             panel.cmb_coding_json.view().verticalScrollBar().styleSheet(),
         )
         self.assertEqual(panel.cmb_coding_json.currentText(), "")
+
+    def test_coding_value_shortcuts_click_expected_action_buttons(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Payload Byte",
+                byte_pos="2",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        panel.txt_coding_value.setPlainText("62 F1 08")
+        panel.encode_coding_payload()
+        panel.btn_filter_no_m.setEnabled(True)
+
+        expected = {
+            "Ctrl+R": panel.btn_check,
+            "Ctrl+F": panel.btn_filter_no_m,
+            "Ctrl+Z": panel.btn_refresh_filter,
+            "Ctrl+Q": panel.btn_encode,
+        }
+        clicked = []
+        for button in expected.values():
+            button.clicked.connect(
+                lambda checked=False, button=button: clicked.append(button)
+            )
+
+        shortcuts = {
+            shortcut.key().toString(QKeySequence.PortableText): shortcut
+            for shortcut in panel._coding_value_shortcuts
+        }
+
+        self.assertEqual(set(shortcuts), set(expected))
+        for shortcut in shortcuts.values():
+            self.assertEqual(shortcut.context(), Qt.WidgetWithChildrenShortcut)
+        for sequence, button in expected.items():
+            shortcuts[sequence].activated.emit()
+            self.assertIs(clicked[-1], button)
 
     def test_import_coding_excel_renders_table_with_decoded_combobox(self):
         workbook = Workbook()
@@ -213,6 +259,49 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(combo.currentText(), "Invalid")
         panel.table.item(0, 4).setText("01")
         self.assertEqual(combo.currentText(), "VF3")
+
+    def test_default_button_fills_zero_payload_matching_imported_file_length(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            13,
+            0,
+            8,
+            "0x00=Default\n0x09=VF7NP",
+        ])
+        sheet.append([
+            "Two Byte Value",
+            14,
+            0,
+            16,
+            "0x0000=Default",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            panel = CodingValuePanel()
+            self.addCleanup(panel.deleteLater)
+            panel.file_path.setText(str(path))
+            panel.import_coding_value()
+
+        self.assertTrue(panel.btn_default.isEnabled())
+
+        panel.btn_default.click()
+
+        self.assertEqual(
+            panel.txt_coding_value.toPlainText(),
+            " ".join(["00"] * 16),
+        )
 
     def test_import_coding_excel_exports_parsed_rows_to_json(self):
         workbook = Workbook()
@@ -872,6 +961,117 @@ class CodingValueTabTests(unittest.TestCase):
             "Byte 14: Heriogreen -> Sky\n"
             "Byte 66: A5 -> 12\n\n"
             "CRC: 77 -> 88",
+        )
+
+    def test_check_button_updates_crc_after_short_vin(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Short VIN",
+                byte_pos="2",
+                bit_pos="0",
+                bit_length="16",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="6",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        payload = [0x10, 0x20, 0xAA, 0xBB, 0x01, 0x02, 0x00]
+        panel.txt_coding_value.setPlainText(panel._format_payload_bytes(payload))
+        panel.encode_coding_payload()
+        expected_crc = calculate_crc8_sae_j1850(bytes([0x01, 0x02]))
+
+        panel.check_coding_value()
+
+        self.assertEqual(panel.table.item(1, 4).text(), f"{expected_crc:02X}")
+        self.assertEqual(panel._payload_preview_bytes[6], expected_crc)
+        self.assertEqual(
+            panel.txt_coding_preview.toPlainText(),
+            panel._format_payload_bytes(payload[:-1] + [expected_crc]),
+        )
+
+    def test_check_button_updates_crc_after_format_byte_when_short_vin_is_missing(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Format Byte",
+                byte_pos="3",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="6",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        payload = [0x62, 0xF1, 0x08, 0x99, 0x01, 0x02, 0x00]
+        panel.txt_coding_value.setPlainText(panel._format_payload_bytes(payload))
+        panel.encode_coding_payload()
+        expected_crc = calculate_crc8_sae_j1850(bytes([0x01, 0x02]))
+
+        panel.check_coding_value()
+
+        self.assertEqual(panel.table.item(1, 4).text(), f"{expected_crc:02X}")
+        self.assertEqual(panel._payload_preview_bytes[6], expected_crc)
+        self.assertEqual(
+            panel.txt_coding_preview.toPlainText(),
+            panel._format_payload_bytes(payload[:-1] + [expected_crc]),
+        )
+
+    def test_check_button_updates_crc_from_data_payload_offsets_with_uds_header(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Format Byte",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+            CodingValueRow(
+                parameter="Payload CRC Byte",
+                byte_pos="3",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        payload = [0x62, 0xF1, 0x08, 0x99, 0x01, 0x02, 0x00]
+        panel.txt_coding_value.setPlainText(panel._format_payload_bytes(payload))
+        panel.encode_coding_payload()
+        expected_crc = calculate_crc8_sae_j1850(bytes([0x01, 0x02]))
+
+        panel.check_coding_value()
+
+        self.assertEqual(panel.table.item(1, 4).text(), f"{expected_crc:02X}")
+        self.assertEqual(panel._payload_preview_bytes[6], expected_crc)
+        self.assertEqual(
+            panel.txt_coding_preview.toPlainText(),
+            panel._format_payload_bytes(payload[:-1] + [expected_crc]),
         )
 
     def test_parameter_filter_hides_non_matching_rows(self):
