@@ -4,7 +4,8 @@ from dataclasses import replace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtCore import QEvent, QItemSelectionModel, Qt
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QAbstractSpinBox
 from PySide6.QtWidgets import QApplication, QAbstractItemView
 
@@ -462,6 +463,41 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         combo = widget.table.cellWidget(1, widget.COL_ECU)
         self.assertEqual(current.steps[1].ecu, "LEGACY")
         self.assertEqual(combo.currentIndex(), -1)
+
+    def test_add_step_inherits_delay_and_loop_from_previous_row(self):
+        widget = self._create_widget()
+        self.addCleanup(widget.deleteLater)
+        widget.fn_load_sequence(self._test_case_with_three_steps())
+        widget.table.selectRow(1)
+
+        widget.fn_add_step_after_selected()
+
+        current = widget.fn_current_sequence()
+        self.assertEqual(current.steps[2].ecu, "BCM")
+        self.assertEqual(current.steps[2].delay_ms, 500)
+        self.assertEqual(current.steps[2].repeat, 1)
+        self.assertEqual(widget.table.item(2, widget.COL_DELAY).text(), "500")
+        self.assertEqual(widget.table.item(2, widget.COL_REPEAT).text(), "1")
+
+    def test_delete_key_removes_selected_rows_and_reindexes_steps(self):
+        widget = self._create_widget()
+        self.addCleanup(widget.deleteLater)
+        widget.fn_load_sequence(self._test_case_with_three_steps())
+        widget.table.selectRow(1)
+        widget._is_dirty = False
+
+        event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier)
+        QApplication.sendEvent(widget.table, event)
+
+        current = widget.fn_current_sequence()
+        self.assertEqual(widget.table.rowCount(), 2)
+        self.assertEqual([step.step for step in current.steps], [1, 2])
+        self.assertEqual(
+            [step.sequence_name for step in current.steps],
+            ["Read VIN", "Extended Session"],
+        )
+        self.assertEqual(widget.table.currentRow(), 1)
+        self.assertTrue(widget.fn_is_dirty())
 
     def test_import_updates_loop_and_delay_on_selected_rows_only(self):
         widget = self._create_widget()
