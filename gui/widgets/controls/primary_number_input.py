@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QAbstractSpinBox, QHBoxLayout, QWidget
 
 from gui.widgets.controls.primary_button import PrimaryButton
@@ -50,6 +50,7 @@ class PrimaryNumberInput(QWidget):
         self.spinbox.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.spinbox.setFixedWidth(self._value_width)
         self.spinbox.setMinimumHeight(self._height)
+        self.spinbox.lineEdit().setAlignment(Qt.AlignCenter)
 
         layout.addWidget(self.btn_decrement)
         layout.addWidget(self.spinbox)

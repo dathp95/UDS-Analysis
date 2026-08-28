@@ -20,12 +20,15 @@ from core.diagnostic_sequence import (
 )
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.secondary_button import SecondaryButton
+
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_number_input import PrimaryNumberInput
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
 from services.vehicle_service import VehicleService
+
 
 
 _HEX_BYTE_PATTERN = re.compile(r"^[0-9A-Fa-f]{2}$")
@@ -95,15 +98,15 @@ class DiagnosticSequenceTable(QWidget):
         self.spn_loop.setSingleStep(1)
         self.spn_loop.setValue(1)
 
-        self.lbl_command_delay = PrimaryLabel("Command Delay")
+        self.lbl_command_delay = PrimaryLabel("DELAY")
         self.spn_command_delay = PrimaryNumberInput(value_width=86)
         self.spn_command_delay.setRange(0, 60000)
         self.spn_command_delay.setSingleStep(100)
         self.spn_command_delay.setValue(100)
         self.lbl_ms = PrimaryLabel("ms")
 
-        self.btn_import_delay = PrimaryButton("Import Delay", width=110)
-        self.btn_add = PrimaryButton("+ Add", width=90)
+        self.btn_import_delay = SecondaryButton("Import", width=90)
+        self.btn_add = SecondaryButton("+ Add", width=90)
         self.btn_export = PrimaryButton("EXPORT", width=100)
         self.btn_stop = PrimaryButton("STOP", width=100)
         self.btn_run = PrimaryButton("RUN", width=120)
@@ -113,6 +116,8 @@ class DiagnosticSequenceTable(QWidget):
             0,
             Qt.AlignVCenter,
         )
+        self.execution_layout.addWidget(self.btn_add)
+        self.execution_layout.addWidget(self.btn_import_delay)
         self.execution_layout.addSpacing(12)
         self.execution_layout.addWidget(self.lbl_loop)
         self.execution_layout.addWidget(self.spn_loop)
@@ -120,8 +125,6 @@ class DiagnosticSequenceTable(QWidget):
         self.execution_layout.addWidget(self.lbl_command_delay)
         self.execution_layout.addWidget(self.spn_command_delay)
         self.execution_layout.addWidget(self.lbl_ms)
-        self.execution_layout.addWidget(self.btn_import_delay)
-        self.execution_layout.addWidget(self.btn_add)
         self.execution_layout.addStretch(1)
         self.execution_layout.addWidget(self.btn_export)
         self.execution_layout.addWidget(self.btn_stop)
@@ -157,7 +160,7 @@ class DiagnosticSequenceTable(QWidget):
             self.fn_add_step_after_selected
         )
         self.btn_import_delay.clicked.connect(
-            self.fn_import_command_delay_to_rows
+            self.fn_import_execution_values_to_rows
         )
         self.table.itemChanged.connect(self._on_item_changed)
 
@@ -248,18 +251,23 @@ class DiagnosticSequenceTable(QWidget):
         self._mark_dirty()
 
     def fn_import_command_delay_to_rows(self):
+        self.fn_import_execution_values_to_rows()
+
+    def fn_import_execution_values_to_rows(self):
         if self._test_case is None or not self._test_case.steps:
             return
 
         selected_rows = self._selected_rows()
         target_rows = selected_rows or list(range(len(self._test_case.steps)))
         command_delay_ms = self.spn_command_delay.value()
+        loop = self.spn_loop.value()
         steps = list(self._test_case.steps)
 
         for row in target_rows:
             steps[row] = replace(
                 steps[row],
                 delay_ms=command_delay_ms,
+                repeat=loop,
             )
 
         self._replace_steps(steps)

@@ -113,27 +113,27 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertEqual(widget.table.selectionBehavior(), QAbstractItemView.SelectRows)
         self.assertEqual(widget.table.selectionMode(), QAbstractItemView.ExtendedSelection)
 
-    def test_execution_row_has_vehicle_spin_add_import_and_actions(self):
+    def test_execution_row_order_has_vehicle_add_loop_delay_import_and_actions(self):
         widget = self._create_widget()
         self.addCleanup(widget.deleteLater)
 
         self.assertFalse(hasattr(widget, "lbl_duration"))
         self.assertIs(widget.execution_layout.itemAt(0).widget(), widget.vehicle_selector)
-        self.assertIs(widget.execution_layout.itemAt(2).widget(), widget.lbl_loop)
-        self.assertIs(widget.execution_layout.itemAt(3).widget(), widget.spn_loop)
-        self.assertIs(widget.execution_layout.itemAt(5).widget(), widget.lbl_command_delay)
-        self.assertIs(widget.execution_layout.itemAt(6).widget(), widget.spn_command_delay)
-        self.assertIs(widget.execution_layout.itemAt(7).widget(), widget.lbl_ms)
-        self.assertIs(widget.execution_layout.itemAt(8).widget(), widget.btn_import_delay)
-        self.assertIs(widget.execution_layout.itemAt(9).widget(), widget.btn_add)
+        self.assertIs(widget.execution_layout.itemAt(1).widget(), widget.btn_add)
+        self.assertIs(widget.execution_layout.itemAt(3).widget(), widget.lbl_loop)
+        self.assertIs(widget.execution_layout.itemAt(4).widget(), widget.spn_loop)
+        self.assertIs(widget.execution_layout.itemAt(6).widget(), widget.lbl_command_delay)
+        self.assertIs(widget.execution_layout.itemAt(7).widget(), widget.spn_command_delay)
+        self.assertIs(widget.execution_layout.itemAt(8).widget(), widget.lbl_ms)
+        self.assertIs(widget.execution_layout.itemAt(9).widget(), widget.btn_import_delay)
         self.assertIsNone(widget.execution_layout.itemAt(10).widget())
         self.assertIs(widget.execution_layout.itemAt(11).widget(), widget.btn_export)
         self.assertIs(widget.execution_layout.itemAt(12).widget(), widget.btn_stop)
         self.assertIs(widget.execution_layout.itemAt(13).widget(), widget.btn_run)
         self.assertIsInstance(widget.spn_loop, PrimaryNumberInput)
         self.assertIsInstance(widget.spn_command_delay, PrimaryNumberInput)
-        self.assertEqual(widget.btn_import_delay.text(), "Import Delay")
         self.assertEqual(widget.btn_add.text(), "+ Add")
+        self.assertEqual(widget.btn_import_delay.text(), "Import")
         self.assertEqual(widget.btn_export.text(), "EXPORT")
         self.assertEqual(widget.btn_stop.text(), "STOP")
         self.assertEqual(widget.btn_run.text(), "RUN")
@@ -246,6 +246,18 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertIn("QSpinBox::up-arrow:disabled", style)
         self.assertIn("QSpinBox::down-arrow:disabled", style)
 
+    def test_number_inputs_center_align_numeric_text(self):
+        widget = self._create_widget()
+        self.addCleanup(widget.deleteLater)
+
+        self.assertEqual(
+            widget.spn_loop.spinbox.lineEdit().alignment(),
+            Qt.AlignCenter,
+        )
+        self.assertEqual(
+            widget.spn_command_delay.spinbox.lineEdit().alignment(),
+            Qt.AlignCenter,
+        )
     def test_loop_and_delay_spinboxes_use_custom_minus_plus_buttons(self):
         widget = self._create_widget()
         self.addCleanup(widget.deleteLater)
@@ -451,10 +463,11 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
         self.assertEqual(current.steps[1].ecu, "LEGACY")
         self.assertEqual(combo.currentIndex(), -1)
 
-    def test_import_delay_updates_selected_rows_only(self):
+    def test_import_updates_loop_and_delay_on_selected_rows_only(self):
         widget = self._create_widget()
         self.addCleanup(widget.deleteLater)
         widget.fn_load_sequence(self._test_case_with_three_steps())
+        widget.spn_loop.setValue(4)
         widget.spn_command_delay.setValue(100)
         widget._is_dirty = False
         widget.table.clearSelection()
@@ -475,29 +488,44 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
             [step.delay_ms for step in current.steps],
             [100, 500, 100],
         )
+        self.assertEqual(
+            [step.repeat for step in current.steps],
+            [4, 1, 4],
+        )
         self.assertEqual(widget.table.item(0, widget.COL_DELAY).text(), "100")
         self.assertEqual(widget.table.item(1, widget.COL_DELAY).text(), "500")
         self.assertEqual(widget.table.item(2, widget.COL_DELAY).text(), "100")
+        self.assertEqual(widget.table.item(0, widget.COL_REPEAT).text(), "4")
+        self.assertEqual(widget.table.item(1, widget.COL_REPEAT).text(), "1")
+        self.assertEqual(widget.table.item(2, widget.COL_REPEAT).text(), "4")
         self.assertTrue(widget.fn_is_dirty())
 
-    def test_import_delay_updates_all_rows_when_nothing_selected(self):
+    def test_import_updates_loop_and_delay_on_all_rows_when_nothing_selected(self):
         widget = self._create_widget()
         self.addCleanup(widget.deleteLater)
         widget.fn_load_sequence(self._test_case_with_three_steps())
+        widget.spn_loop.setValue(3)
         widget.spn_command_delay.setValue(250)
         widget._is_dirty = False
         widget.table.clearSelection()
 
-        widget.fn_import_command_delay_to_rows()
+        widget.fn_import_execution_values_to_rows()
 
         current = widget.fn_current_sequence()
         self.assertEqual(
             [step.delay_ms for step in current.steps],
             [250, 250, 250],
         )
+        self.assertEqual(
+            [step.repeat for step in current.steps],
+            [3, 3, 3],
+        )
         self.assertEqual(widget.table.item(0, widget.COL_DELAY).text(), "250")
         self.assertEqual(widget.table.item(1, widget.COL_DELAY).text(), "250")
         self.assertEqual(widget.table.item(2, widget.COL_DELAY).text(), "250")
+        self.assertEqual(widget.table.item(0, widget.COL_REPEAT).text(), "3")
+        self.assertEqual(widget.table.item(1, widget.COL_REPEAT).text(), "3")
+        self.assertEqual(widget.table.item(2, widget.COL_REPEAT).text(), "3")
         self.assertTrue(widget.fn_is_dirty())
 
     @staticmethod
