@@ -117,8 +117,6 @@ class DiagnosticSequenceTable(QWidget):
             Qt.AlignVCenter,
         )
         self.execution_layout.addWidget(self.btn_add)
-        self.execution_layout.addWidget(self.btn_import_delay)
-
         self.execution_layout.addSpacing(12)
         self.execution_layout.addWidget(self.lbl_loop)
         self.execution_layout.addWidget(self.spn_loop)
@@ -126,6 +124,7 @@ class DiagnosticSequenceTable(QWidget):
         self.execution_layout.addWidget(self.lbl_command_delay)
         self.execution_layout.addWidget(self.spn_command_delay)
         self.execution_layout.addWidget(self.lbl_ms)
+        self.execution_layout.addWidget(self.btn_import_delay)
         self.execution_layout.addStretch(1)
         self.execution_layout.addWidget(self.btn_export)
         self.execution_layout.addWidget(self.btn_stop)
@@ -538,7 +537,7 @@ class DiagnosticSequenceTable(QWidget):
         if insert_index <= 0 or not steps:
             return {
                 "ecu": "",
-                "delay_ms": None,
+                "delay_ms": 100,
                 "repeat": 1,
             }
         previous_step = steps[insert_index - 1]

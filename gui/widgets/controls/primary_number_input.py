@@ -90,9 +90,16 @@ class PrimaryNumberInput(QWidget):
 
     def stepUp(self):
         self.spinbox.stepUp()
+        self._clear_text_selection()
 
     def stepDown(self):
         self.spinbox.stepDown()
+        self._clear_text_selection()
+
+    def _clear_text_selection(self):
+        line_edit = self.spinbox.lineEdit()
+        line_edit.deselect()
+        line_edit.setCursorPosition(len(line_edit.text()))
 
     def blockSignals(self, block):
         self.spinbox.blockSignals(block)

@@ -276,6 +276,22 @@ class DiagnosticSequenceTableTests(unittest.TestCase):
             QAbstractSpinBox.NoButtons,
         )
 
+    def test_number_input_step_buttons_clear_text_selection(self):
+        widget = self._create_widget()
+        self.addCleanup(widget.deleteLater)
+        widget.fn_load_sequence(self._test_case())
+
+        line_edit = widget.spn_loop.spinbox.lineEdit()
+        line_edit.selectAll()
+        widget.spn_loop.stepUp()
+
+        self.assertFalse(line_edit.hasSelectedText())
+
+        delay_line_edit = widget.spn_command_delay.spinbox.lineEdit()
+        delay_line_edit.selectAll()
+        widget.spn_command_delay.stepDown()
+
+        self.assertFalse(delay_line_edit.hasSelectedText())
     def test_loop_spinbox_range_step_and_manual_value(self):
         widget = self._create_widget()
         self.addCleanup(widget.deleteLater)
