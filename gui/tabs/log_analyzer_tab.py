@@ -96,7 +96,7 @@ class LogAnalyzerTab(QWidget):
 
         input_layout.addWidget(
             self.log_selector,
-            8,
+            9,
             Qt.AlignTop,
         )
 

@@ -19,6 +19,7 @@ class Feature(str, Enum):
     VEHICLE_MANAGER = "vehicle_manager"
     CODING_VALUE = "coding_value"
     CAN_INTERFACE = "can_interface"
+    Q_CURRENT = "q_current"
 
 
 FREE_FEATURES = frozenset({

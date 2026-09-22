@@ -52,6 +52,7 @@ class MainWindowShortcutTests(unittest.TestCase):
             },
         ):
             from gui.windows.main_window import MainWindow
+            from gui.tabs.q_current_tab import QCurrentTab
 
             with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
                 window = MainWindow()
@@ -66,9 +67,12 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertEqual(window.tabs.tabText(2), "CRC_Converter")
         self.assertIs(window.tabs.widget(3), window.can_interface_tab)
         self.assertEqual(window.tabs.tabText(3), "CAN Interface")
-        self.assertIs(window.tabs.widget(4), window.vehicle_manager_tab)
-        self.assertIs(window.tabs.widget(5), window.license_support_tab)
-        self.assertEqual(window.tabs.tabText(5), "License & Support")
+        self.assertIs(window.tabs.widget(4), window.q_current_tab)
+        self.assertIsInstance(window.q_current_tab, QCurrentTab)
+        self.assertEqual(window.tabs.tabText(4), "Q current")
+        self.assertIs(window.tabs.widget(5), window.vehicle_manager_tab)
+        self.assertIs(window.tabs.widget(6), window.license_support_tab)
+        self.assertEqual(window.tabs.tabText(6), "License & Support")
 
 
 
@@ -184,6 +188,28 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertEqual(window.can_interface_tab.cmb_channel.currentData(), 0)
         self.assertEqual(window.can_interface_tab.cmb_baudrate.currentData(), 500000)
 
+    def test_q_current_tab_is_available_after_can_interface(self):
+        with patch.dict(
+            sys.modules,
+            {
+                "can": types.SimpleNamespace(),
+                "pandas": types.SimpleNamespace(),
+            },
+        ):
+            from gui.windows.main_window import MainWindow
+            from gui.tabs.q_current_tab import QCurrentTab
+
+            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+                window = MainWindow()
+
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(self._clear_imported_gui_modules)
+
+        self.assertIsInstance(window.q_current_tab, QCurrentTab)
+        self.assertIs(window.tabs.widget(4), window.q_current_tab)
+        self.assertEqual(window.tabs.tabText(4), "Q current")
+        self.assertEqual(window.q_current_tab.layout().count(), 2)
+
     def test_release_config_disables_can_interface_tab(self):
         with patch.dict(
             sys.modules,
@@ -265,7 +291,8 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertTrue(window.tabs.isTabEnabled(2))
         self.assertFalse(window.tabs.isTabEnabled(3))
         self.assertFalse(window.tabs.isTabEnabled(4))
-        self.assertTrue(window.tabs.isTabEnabled(5))
+        self.assertFalse(window.tabs.isTabEnabled(5))
+        self.assertTrue(window.tabs.isTabEnabled(6))
         self.assertIs(window.tabs.currentWidget(), window.crc_converter_tab)
 
     def test_valid_license_enables_all_tabs(self):
@@ -338,8 +365,8 @@ class MainWindowShortcutTests(unittest.TestCase):
             "gui.tabs.crc_converter_tab",
             "gui.tabs.license_support_tab",
             "gui.tabs.log_analyzer_tab",
+            "gui.tabs.q_current_tab",
             "gui.windows.main_window",
         }
         for module_name in modules_to_clear:
             sys.modules.pop(module_name, None)
-

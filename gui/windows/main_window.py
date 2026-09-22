@@ -14,6 +14,7 @@ from gui.tabs.coding_value_tab import CodingValueTab
 from gui.tabs.crc_converter_tab import CRCConverterTab
 from gui.tabs.license_support_tab import LicenseSupportTab
 from gui.tabs.log_analyzer_tab import LogAnalyzerTab
+from gui.tabs.q_current_tab import QCurrentTab
 from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
 from gui.themes.styles.containers.window_style import fn_window_style
@@ -31,7 +32,7 @@ class MainWindow(QMainWindow):
             RELEASE_FEATURES_FILE
         )
 
-        self.setWindowTitle("V-CODE v2.0.1 | AES EEIV by DAT TRAN")
+        self.setWindowTitle("V-CODE v2.0.6 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )
@@ -80,6 +81,7 @@ class MainWindow(QMainWindow):
         self.coding_value_tab = CodingValueTab()
         self.crc_converter_tab = CRCConverterTab()
         self.can_interface_tab = CANInterfaceTab()
+        self.q_current_tab = QCurrentTab()
         self.vehicle_manager_tab = VehicleManagerTab()
         self.license_support_tab = LicenseSupportTab()
 
@@ -103,6 +105,11 @@ class MainWindow(QMainWindow):
                 self.can_interface_tab,
                 "CAN Interface",
                 Feature.CAN_INTERFACE,
+            ),
+            (
+                self.q_current_tab,
+                "Q current",
+                Feature.Q_CURRENT,
             ),
             (
                 self.vehicle_manager_tab,
@@ -183,6 +190,12 @@ class MainWindow(QMainWindow):
             "fn_refresh_theme",
         ):
             self.can_interface_tab.fn_refresh_theme()
+
+        if hasattr(
+            self.q_current_tab,
+            "fn_refresh_theme",
+        ):
+            self.q_current_tab.fn_refresh_theme()
 
         if hasattr(
             self.vehicle_manager_tab,
