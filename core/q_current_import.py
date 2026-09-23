@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.sleep_current_database import (
+    database_path_for_source,
     default_dataset_name,
     import_dataset,
     normalize_current_data,
-    resolve_database_path,
 )
 
 
@@ -23,15 +23,17 @@ class QCurrentImportResult:
 def import_q_current_file(source_path: str | Path) -> QCurrentImportResult:
     source = Path(source_path).expanduser().resolve()
     normalized = normalize_current_data(source)
+    database_path = database_path_for_source(source)
     result = import_dataset(
         default_dataset_name(source),
         source,
         normalized.rows,
+        database_path,
         detected_channel=normalized.detected_channel,
     )
     return QCurrentImportResult(
         source_path=source,
-        database_path=resolve_database_path(),
+        database_path=result.dataset.database_path or database_path,
         row_count=result.row_count,
         detected_channel=normalized.detected_channel,
         samples=[

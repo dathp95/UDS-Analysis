@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from config.paths import Q_CURRENT_DATABASE_FILE
+from config.paths import Q_CURRENT_DATABASE_DIR
 from core.q_current_column_detection import (
     CURRENT_COLUMN_KEYWORDS,
     TIME_COLUMN_KEYWORDS,
@@ -18,7 +19,7 @@ from core.q_current_column_detection import (
     _find_column,
 )
 
-DATABASE_FILE = Q_CURRENT_DATABASE_FILE
+DATABASE_DIR = Q_CURRENT_DATABASE_DIR
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 EXPECTED_SAMPLE_COLUMNS = ["id", "dataset_id", "time", "current_A", "current_mA"]
 
@@ -30,6 +31,7 @@ class SleepCurrentDataset:
     source_file: str | None
     imported_at: str
     detected_channel: str | None = None
+    database_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -53,13 +55,32 @@ class DatasetImportResult:
     row_count: int
 
 
-def resolve_database_path(database_file: str | Path | None = None) -> Path:
-    if database_file is None:
-        return DATABASE_FILE
+def resolve_database_directory(database_dir: str | Path | None = None) -> Path:
+    if database_dir is None:
+        return DATABASE_DIR
+    return Path(database_dir).expanduser().resolve()
+
+
+def ensure_database_directory(database_dir: str | Path | None = None) -> Path:
+    directory = resolve_database_directory(database_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def database_path_for_source(
+    source_file: str | Path,
+    database_dir: str | Path | None = None,
+) -> Path:
+    directory = ensure_database_directory(database_dir)
+    stem = _safe_database_stem(Path(source_file).expanduser().resolve().stem)
+    return directory / f"{stem}.db"
+
+
+def resolve_database_path(database_file: str | Path) -> Path:
     return Path(database_file).expanduser().resolve()
 
 
-def initialize_database(database_file: str | Path | None = None) -> Path:
+def initialize_database(database_file: str | Path) -> Path:
     database_path = resolve_database_path(database_file)
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -78,26 +99,46 @@ def initialize_database(database_file: str | Path | None = None) -> Path:
 
 
 def list_datasets(
-    database_file: str | Path | None = None,
+    database_dir: str | Path | None = None,
 ) -> list[SleepCurrentDataset]:
-    initialize_database(database_file)
-    with closing(_connect(resolve_database_path(database_file))) as connection:
-        rows = connection.execute(
-            """
-            SELECT id, name, source_file, imported_at, detected_channel
-            FROM datasets
-            ORDER BY imported_at DESC, id DESC
-            """
-        ).fetchall()
-    return [_dataset_from_row(row) for row in rows]
+    directory = ensure_database_directory(database_dir)
+    datasets: list[SleepCurrentDataset] = []
+    for database_path in sorted(directory.glob("*.db"), key=lambda path: path.name.lower()):
+        dataset = get_primary_dataset(database_path)
+        if dataset is not None:
+            datasets.append(dataset)
+    return datasets
+
+
+def get_primary_dataset(database_file: str | Path) -> SleepCurrentDataset | None:
+    database_path = resolve_database_path(database_file)
+    if not database_path.exists() or not database_path.is_file():
+        return None
+    try:
+        with closing(_connect(database_path)) as connection:
+            if not _looks_like_q_current_database(connection):
+                return None
+        initialize_database(database_path)
+        with closing(_connect(database_path)) as connection:
+            row = connection.execute(
+                """
+                SELECT id, name, source_file, imported_at, detected_channel
+                FROM datasets
+                ORDER BY id
+                LIMIT 1
+                """
+            ).fetchone()
+    except sqlite3.DatabaseError:
+        return None
+    return _dataset_from_row(row, database_path) if row else None
 
 
 def get_dataset_by_name(
     name: str,
-    database_file: str | Path | None = None,
+    database_file: str | Path,
 ) -> SleepCurrentDataset | None:
-    initialize_database(database_file)
-    with closing(_connect(resolve_database_path(database_file))) as connection:
+    database_path = initialize_database(database_file)
+    with closing(_connect(database_path)) as connection:
         row = connection.execute(
             """
             SELECT id, name, source_file, imported_at, detected_channel
@@ -106,15 +147,15 @@ def get_dataset_by_name(
             """,
             (name,),
         ).fetchone()
-    return _dataset_from_row(row) if row else None
+    return _dataset_from_row(row, database_path) if row else None
 
 
 def get_samples(
     dataset_id: int,
-    database_file: str | Path | None = None,
+    database_file: str | Path,
 ) -> list[CurrentSample]:
-    initialize_database(database_file)
-    with closing(_connect(resolve_database_path(database_file))) as connection:
+    database_path = initialize_database(database_file)
+    with closing(_connect(database_path)) as connection:
         rows = connection.execute(
             """
             SELECT id, dataset_id, time, current_A, current_mA
@@ -155,45 +196,7 @@ def import_dataset(
     name: str,
     source_file: str | Path,
     rows: Iterable[tuple[str, float, float]],
-    database_file: str | Path | None = None,
-    detected_channel: str | None = None,
-) -> DatasetImportResult:
-    database_path = initialize_database(database_file)
-    normalized_rows = _normalize_rows(rows)
-    if not normalized_rows:
-        raise ValueError("Current data file contains no valid measurement rows")
-
-    source_path = str(Path(source_file).expanduser().resolve())
-    imported_at = _timestamp()
-
-    with closing(_connect(database_path)) as connection:
-        with connection:
-            cursor = connection.execute(
-                """
-                INSERT INTO datasets (name, source_file, imported_at, detected_channel)
-                VALUES (?, ?, ?, ?)
-                """,
-                (name, source_path, imported_at, detected_channel),
-            )
-            dataset_id = int(cursor.lastrowid)
-            _insert_samples(connection, dataset_id, normalized_rows)
-
-    dataset = SleepCurrentDataset(
-        dataset_id,
-        name,
-        source_path,
-        imported_at,
-        detected_channel,
-    )
-    return DatasetImportResult(dataset=dataset, row_count=len(normalized_rows))
-
-
-def replace_dataset(
-    dataset_id: int,
-    name: str,
-    source_file: str | Path,
-    rows: Iterable[tuple[str, float, float]],
-    database_file: str | Path | None = None,
+    database_file: str | Path,
     detected_channel: str | None = None,
 ) -> DatasetImportResult:
     database_path = initialize_database(database_file)
@@ -207,24 +210,31 @@ def replace_dataset(
     with closing(_connect(database_path)) as connection:
         with connection:
             existing = connection.execute(
-                "SELECT id FROM datasets WHERE id = ?",
-                (dataset_id,),
+                "SELECT id FROM datasets ORDER BY id LIMIT 1"
             ).fetchone()
             if existing is None:
-                raise ValueError("Dataset does not exist")
-
-            connection.execute(
-                """
-                UPDATE datasets
-                SET name = ?, source_file = ?, imported_at = ?, detected_channel = ?
-                WHERE id = ?
-                """,
-                (name, source_path, imported_at, detected_channel, dataset_id),
-            )
-            connection.execute(
-                "DELETE FROM current_samples WHERE dataset_id = ?",
-                (dataset_id,),
-            )
+                cursor = connection.execute(
+                    """
+                    INSERT INTO datasets (name, source_file, imported_at, detected_channel)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (name, source_path, imported_at, detected_channel),
+                )
+                dataset_id = int(cursor.lastrowid)
+            else:
+                dataset_id = int(existing["id"])
+                connection.execute(
+                    """
+                    UPDATE datasets
+                    SET name = ?, source_file = ?, imported_at = ?, detected_channel = ?
+                    WHERE id = ?
+                    """,
+                    (name, source_path, imported_at, detected_channel, dataset_id),
+                )
+                connection.execute(
+                    "DELETE FROM current_samples WHERE dataset_id = ?",
+                    (dataset_id,),
+                )
             _insert_samples(connection, dataset_id, normalized_rows)
 
     dataset = SleepCurrentDataset(
@@ -233,8 +243,26 @@ def replace_dataset(
         source_path,
         imported_at,
         detected_channel,
+        database_path,
     )
     return DatasetImportResult(dataset=dataset, row_count=len(normalized_rows))
+
+
+def replace_dataset(
+    dataset_id: int,
+    name: str,
+    source_file: str | Path,
+    rows: Iterable[tuple[str, float, float]],
+    database_file: str | Path,
+    detected_channel: str | None = None,
+) -> DatasetImportResult:
+    return import_dataset(
+        name,
+        source_file,
+        rows,
+        database_file,
+        detected_channel=detected_channel,
+    )
 
 
 def _ensure_datasets_table(connection: sqlite3.Connection) -> None:
@@ -305,6 +333,12 @@ def _create_current_samples_table(connection: sqlite3.Connection) -> None:
         """
     )
 
+
+def _looks_like_q_current_database(connection: sqlite3.Connection) -> bool:
+    return _table_exists(connection, "datasets") and _table_exists(
+        connection,
+        "current_samples",
+    )
 
 def _table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
     row = connection.execute(
@@ -452,14 +486,23 @@ def _insert_samples(
     )
 
 
-def _dataset_from_row(row: sqlite3.Row) -> SleepCurrentDataset:
+def _dataset_from_row(
+    row: sqlite3.Row,
+    database_path: Path | None = None,
+) -> SleepCurrentDataset:
     return SleepCurrentDataset(
         id=int(row["id"]),
         name=str(row["name"]),
         source_file=row["source_file"],
         imported_at=str(row["imported_at"]),
         detected_channel=row["detected_channel"],
+        database_path=database_path,
     )
+
+
+def _safe_database_stem(value: str) -> str:
+    safe = re.sub(r'[<>:"/\\|?*\x00-\x1F]+', "_", value).strip().strip(".")
+    return safe or "q_current"
 
 
 def _timestamp() -> str:

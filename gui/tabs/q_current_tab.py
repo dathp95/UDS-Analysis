@@ -19,15 +19,13 @@ from PySide6.QtWidgets import (
 )
 
 from core.sleep_current_database import (
+    database_path_for_source,
     default_dataset_name,
-    get_dataset_by_name,
+    ensure_database_directory,
     get_samples,
     import_dataset,
-    initialize_database,
     list_datasets,
     normalize_current_data,
-    replace_dataset,
-    resolve_database_path,
 )
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
@@ -50,11 +48,11 @@ SOURCE_FILE_FILTER = (
 
 class QCurrentTab(QWidget):
 
-    def __init__(self, database_file: str | Path | None = None):
+    def __init__(self, database_dir: str | Path | None = None):
         super().__init__()
 
         self._theme_widgets = []
-        self._database_file = database_file
+        self._database_dir = database_dir
         self.current_import = None
         self.current_samples = []
         self.current_database_path = None
@@ -86,7 +84,7 @@ class QCurrentTab(QWidget):
         main_layout.addWidget(self.main_splitter, 1)
 
     def _initialize_database(self):
-        self.current_database_path = initialize_database(self._database_file)
+        ensure_database_directory(self._database_dir)
 
     def _connect_signals(self):
         self.browse_button.clicked.connect(self.browse_current_file)
@@ -125,7 +123,7 @@ class QCurrentTab(QWidget):
             height=36,
         )
         self.import_button.setObjectName("import_button")
-        self.import_button.setEnabled(False)
+        self.import_button.setEnabled(True)
 
         self.current_limit_label = PrimaryLabel(
             "Standard current (mA)"
@@ -302,63 +300,59 @@ class QCurrentTab(QWidget):
         path_text = str(path)
         self.source_file_edit.setText(path_text)
         self.source_file_edit.setToolTip(path_text)
-        self.import_button.setEnabled(self._is_valid_source_file(path))
+        self.import_button.setEnabled(True)
 
+    def clear_source_file_selection(self):
+        self.source_file_edit.clear()
+        self.source_file_edit.setToolTip("")
+        self.import_button.setEnabled(True)
     def import_current_file(self):
         source_path = Path(self.source_file_edit.text()).expanduser()
         try:
             source_path = source_path.resolve()
             normalized = normalize_current_data(source_path)
             dataset_name = default_dataset_name(source_path)
-            existing_dataset = get_dataset_by_name(
+            database_path = database_path_for_source(source_path, self._database_dir)
+        except Exception as error:
+            self.analysis_result_edit.setText("IMPORT FAILED")
+            QMessageBox.warning(self, "Q current Import", str(error))
+            return
+
+        if database_path.exists():
+            response = QMessageBox.question(
+                self,
+                "Replace Dataset",
+                (
+                    f"Database '{database_path.name}' already exists.\n"
+                    "Replace it with the selected file?"
+                ),
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                QMessageBox.No,
+            )
+            if response != QMessageBox.Yes:
+                return
+
+        try:
+            result = import_dataset(
                 dataset_name,
-                self._database_file,
+                source_path,
+                normalized.rows,
+                database_path,
+                detected_channel=normalized.detected_channel,
             )
         except Exception as error:
             self.analysis_result_edit.setText("IMPORT FAILED")
             QMessageBox.warning(self, "Q current Import", str(error))
             return
 
-        try:
-            if existing_dataset is not None:
-                response = QMessageBox.question(
-                    self,
-                    "Replace Dataset",
-                    (
-                        f"Dataset '{dataset_name}' already exists.\n"
-                        "Replace it with the selected file?"
-                    ),
-                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
-                    QMessageBox.No,
-                )
-                if response != QMessageBox.Yes:
-                    return
-
-                result = replace_dataset(
-                    existing_dataset.id,
-                    dataset_name,
-                    source_path,
-                    normalized.rows,
-                    self._database_file,
-                    detected_channel=normalized.detected_channel,
-                )
-            else:
-                result = import_dataset(
-                    dataset_name,
-                    source_path,
-                    normalized.rows,
-                    self._database_file,
-                    detected_channel=normalized.detected_channel,
-                )
-        except Exception as error:
-            self.analysis_result_edit.setText("IMPORT FAILED")
-            QMessageBox.warning(self, "Q current Import", str(error))
-            return
-
         self.current_import = result
-        self.current_samples = get_samples(result.dataset.id, self._database_file)
-        self.current_database_path = resolve_database_path(self._database_file)
-        self._refresh_dataset_combo(result.dataset.id)
+        self.current_database_path = result.dataset.database_path or database_path
+        self.current_samples = get_samples(
+            result.dataset.id,
+            self.current_database_path,
+        )
+        self._refresh_dataset_combo(self.current_database_path)
+        self.clear_source_file_selection()
         self.analysis_result_edit.setText("IMPORTED")
         QMessageBox.information(
             self,
@@ -371,17 +365,22 @@ class QCurrentTab(QWidget):
             ),
         )
 
-    def _refresh_dataset_combo(self, desired_dataset_id: int | None = None):
-        selected_id = desired_dataset_id
-        if selected_id is None:
-            selected_id = self.dataset_combo.currentData()
+    def _refresh_dataset_combo(self, desired_database_path: Path | None = None):
+        selected_path = desired_database_path
+        if selected_path is None:
+            selected_path = self.dataset_combo.currentData()
 
         self.dataset_combo.clear()
-        for dataset in list_datasets(self._database_file):
-            self.dataset_combo.addItem(dataset.name, dataset.id)
+        for dataset in list_datasets(self._database_dir):
+            if dataset.database_path is None:
+                continue
+            self.dataset_combo.addItem(
+                dataset.database_path.stem,
+                dataset.database_path,
+            )
 
-        if selected_id is not None:
-            index = self.dataset_combo.findData(selected_id)
+        if selected_path is not None:
+            index = self.dataset_combo.findData(selected_path)
             if index >= 0:
                 self.dataset_combo.setCurrentIndex(index)
 

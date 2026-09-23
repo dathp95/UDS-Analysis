@@ -5,6 +5,7 @@ from contextlib import closing
 from pathlib import Path
 
 from core.sleep_current_database import (
+    database_path_for_source,
     get_dataset_by_name,
     get_samples,
     import_dataset,
@@ -20,7 +21,7 @@ class SleepCurrentDatabaseTests(unittest.TestCase):
 
     def test_initialize_database_creates_expected_schema(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            database_file = Path(tmpdir) / "config" / "database_qcurrent" / "sleep_current.db"
+            database_file = Path(tmpdir) / "config" / "database_qcurrent" / "sample.db"
 
             created_path = initialize_database(database_file)
 
@@ -49,11 +50,29 @@ class SleepCurrentDatabaseTests(unittest.TestCase):
                 ["id", "dataset_id", "time", "current_A", "current_mA"],
             )
             self.assertIn("idx_current_samples_dataset_id", indexes)
-            self.assertEqual(list_datasets(database_file), [])
+            self.assertEqual(list_datasets(database_file.parent), [])
 
+    def test_list_datasets_ignores_non_q_current_database_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            database_dir = Path(tmpdir) / "database_qcurrent"
+            database_dir.mkdir(parents=True)
+            with closing(sqlite3.connect(database_dir / "other.db")) as connection:
+                connection.execute("CREATE TABLE unrelated (id INTEGER PRIMARY KEY)")
+                connection.commit()
+
+            self.assertEqual(list_datasets(database_dir), [])
+    def test_database_path_for_source_uses_database_directory_and_source_stem(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            database_dir = Path(tmpdir) / "config" / "database_qcurrent"
+            source_file = Path(tmpdir) / "Q_5Z.4.7.0 V3_1.CSV"
+
+            database_file = database_path_for_source(source_file, database_dir)
+
+            self.assertEqual(database_file, database_dir.resolve() / "Q_5Z.4.7.0 V3_1.db")
+            self.assertTrue(database_dir.exists())
     def test_initialize_database_migrates_old_current_sample_schema(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            database_file = Path(tmpdir) / "sleep_current.db"
+            database_file = Path(tmpdir) / "sample.db"
             with closing(sqlite3.connect(database_file)) as connection:
                 connection.execute(
                     """
@@ -150,7 +169,7 @@ class SleepCurrentDatabaseTests(unittest.TestCase):
 
     def test_import_dataset_writes_dataset_and_ampere_milliamp_samples(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            database_file = Path(tmpdir) / "config" / "database_qcurrent" / "sleep_current.db"
+            database_file = Path(tmpdir) / "config" / "database_qcurrent" / "sample.db"
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text(
                 "Trigger time,No1 Average Ch10\n0,-1.2E-03\n1,-1.3E-03\n",
@@ -170,6 +189,8 @@ class SleepCurrentDatabaseTests(unittest.TestCase):
             self.assertEqual(result.dataset.name, "sample")
             self.assertEqual(result.dataset.detected_channel, "No1 Average Ch10")
             self.assertEqual(get_dataset_by_name("sample", database_file), result.dataset)
+            self.assertEqual(result.dataset.database_path, database_file.resolve())
+            self.assertEqual(list_datasets(database_file.parent), [result.dataset])
             self.assertEqual(
                 [
                     (sample.time, sample.current_A, sample.current_mA)
@@ -180,7 +201,7 @@ class SleepCurrentDatabaseTests(unittest.TestCase):
 
     def test_replace_dataset_keeps_dataset_id_and_replaces_samples_atomically(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            database_file = Path(tmpdir) / "sleep_current.db"
+            database_file = Path(tmpdir) / "sample.db"
             source_file = Path(tmpdir) / "sample.csv"
             first = import_dataset(
                 "sample",

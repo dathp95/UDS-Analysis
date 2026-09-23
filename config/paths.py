@@ -13,7 +13,6 @@ CODING_VALUE_REPORT_DIR = OUTPUT_DIR / "Report_CodingValue"
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 Q_CURRENT_DATABASE_DIR = CONFIG_DIR / "database_qcurrent"
-Q_CURRENT_DATABASE_FILE = Q_CURRENT_DATABASE_DIR / "sleep_current.db"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"
 DIAGNOSTIC_SEQUENCES_DIR = CONFIG_DIR / "diagnostic_sequences"
 

@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QSplitter,
 )
 
-from core.sleep_current_database import import_dataset
+from core.sleep_current_database import database_path_for_source, import_dataset
 from gui.tabs.q_current_tab import PLACEHOLDER_VALUE, QCurrentTab
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
@@ -34,14 +34,14 @@ class QCurrentTabTests(unittest.TestCase):
         ThemeManager.fn_set_theme(ThemeType.LIGHT)
 
     def _create_tab(self, tmpdir: str):
-        database_file = Path(tmpdir) / "config" / "database_qcurrent" / "sleep_current.db"
-        tab = QCurrentTab(database_file=database_file)
+        database_dir = Path(tmpdir) / "config" / "database_qcurrent"
+        tab = QCurrentTab(database_dir=database_dir)
         self.addCleanup(tab.deleteLater)
-        return tab, database_file
+        return tab, database_dir
 
     def test_analysis_settings_header_has_two_rows_and_file_controls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_file = self._create_tab(tmpdir)
+            tab, _database_dir = self._create_tab(tmpdir)
 
             self.assertIsInstance(tab.settings_group, QGroupBox)
             self.assertEqual(tab.settings_group.title(), "Analysis Settings")
@@ -61,7 +61,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.dataset_combo.count(), 0)
             self.assertEqual(tab.import_button.objectName(), "import_button")
             self.assertEqual(tab.import_button.text(), "Import")
-            self.assertFalse(tab.import_button.isEnabled())
+            self.assertTrue(tab.import_button.isEnabled())
             self.assertEqual(tab.current_limit_label.text(), "Standard current (mA)")
             self.assertIsInstance(tab.current_limit_edit, QDoubleSpinBox)
             self.assertEqual(tab.current_limit_edit.minimum(), 0.0)
@@ -72,7 +72,8 @@ class QCurrentTabTests(unittest.TestCase):
 
     def test_startup_populates_dataset_combo_from_sqlite(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            database_file = Path(tmpdir) / "sleep_current.db"
+            database_dir = Path(tmpdir) / "database_qcurrent"
+            database_file = database_dir / "sample.db"
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
             result = import_dataset(
@@ -82,16 +83,16 @@ class QCurrentTabTests(unittest.TestCase):
                 database_file,
             )
 
-            tab = QCurrentTab(database_file=database_file)
+            tab = QCurrentTab(database_dir=database_dir)
             self.addCleanup(tab.deleteLater)
 
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.dataset_combo.itemText(0), "sample")
-            self.assertEqual(tab.dataset_combo.itemData(0), result.dataset.id)
+            self.assertEqual(tab.dataset_combo.itemData(0), database_file.resolve())
 
     def test_browse_cancel_keeps_existing_path_and_does_not_import(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_file = self._create_tab(tmpdir)
+            tab, _database_dir = self._create_tab(tmpdir)
             tab.source_file_edit.setText("C:/already/selected.csv")
             tab.source_file_edit.setToolTip("C:/already/selected.csv")
 
@@ -108,7 +109,7 @@ class QCurrentTabTests(unittest.TestCase):
 
     def test_browse_selects_absolute_file_path_enables_import_and_does_not_add_combo_item(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_file = self._create_tab(tmpdir)
+            tab, _database_dir = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
 
@@ -125,7 +126,7 @@ class QCurrentTabTests(unittest.TestCase):
 
     def test_import_button_imports_selected_file_refreshes_combo_and_updates_header_state(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, database_file = self._create_tab(tmpdir)
+            tab, database_dir = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch7\n0,-1.2E-03\n", encoding="utf-8")
             tab.set_source_file(source_file)
@@ -135,18 +136,24 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertEqual(tab.analysis_result_edit.text(), "IMPORTED")
             self.assertEqual(tab.current_import.row_count, 1)
-            self.assertEqual(tab.current_database_path, database_file.resolve())
+            expected_database = database_path_for_source(source_file, database_dir)
+            self.assertEqual(tab.current_database_path, expected_database)
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.dataset_combo.currentText(), "sample")
+            self.assertEqual(tab.dataset_combo.currentData(), expected_database)
+            self.assertEqual(tab.source_file_edit.text(), "")
+            self.assertEqual(tab.source_file_edit.toolTip(), "")
+            self.assertTrue(tab.import_button.isEnabled())
             self.assertEqual(len(tab.current_samples), 1)
-            self.assertTrue(database_file.exists())
+            self.assertTrue(expected_database.exists())
             info_box.assert_called_once()
 
     def test_duplicate_import_no_cancel_keeps_existing_dataset_unchanged(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, database_file = self._create_tab(tmpdir)
+            tab, database_dir = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
             first = import_dataset("sample", source_file, [("0", 0.001, 1.0)], database_file)
             tab._refresh_dataset_combo()
             source_file.write_text("Trigger time,No1 Average Ch1\n1,0.009\n", encoding="utf-8")
@@ -160,15 +167,16 @@ class QCurrentTabTests(unittest.TestCase):
 
             tab._refresh_dataset_combo()
             self.assertEqual(tab.dataset_combo.count(), 1)
-            self.assertEqual(tab.dataset_combo.itemData(0), first.dataset.id)
+            self.assertEqual(tab.dataset_combo.itemData(0), database_file)
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
             info_box.assert_not_called()
 
     def test_duplicate_import_yes_replaces_dataset_and_selects_it(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, database_file = self._create_tab(tmpdir)
+            tab, database_dir = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
             first = import_dataset("sample", source_file, [("0", 0.001, 1.0)], database_file)
             source_file.write_text("Trigger time,No1 Average Ch2\n1,0.009\n2,0.010\n", encoding="utf-8")
             tab.set_source_file(source_file)
@@ -180,7 +188,7 @@ class QCurrentTabTests(unittest.TestCase):
                 tab.import_current_file()
 
             self.assertEqual(tab.dataset_combo.count(), 1)
-            self.assertEqual(tab.dataset_combo.currentData(), first.dataset.id)
+            self.assertEqual(tab.dataset_combo.currentData(), database_file)
             self.assertEqual(tab.current_import.dataset.id, first.dataset.id)
             self.assertEqual(
                 [(sample.time, sample.current_mA) for sample in tab.current_samples],
@@ -189,7 +197,7 @@ class QCurrentTabTests(unittest.TestCase):
 
     def test_q_current_tab_keeps_non_settings_layout_regions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_file = self._create_tab(tmpdir)
+            tab, _database_dir = self._create_tab(tmpdir)
 
             self.assertIsInstance(tab.main_splitter, QSplitter)
             self.assertEqual(tab.main_splitter.orientation(), Qt.Horizontal)
@@ -204,7 +212,7 @@ class QCurrentTabTests(unittest.TestCase):
 
     def test_q_current_tab_uses_existing_controls_and_theme_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_file = self._create_tab(tmpdir)
+            tab, _database_dir = self._create_tab(tmpdir)
 
             buttons = [
                 tab.btn_run,
