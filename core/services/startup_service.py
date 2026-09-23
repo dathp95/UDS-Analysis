@@ -2,7 +2,7 @@ from config.paths import (
     CODING_VALUE_REPORT_DIR,
     LOG_ANALYZER_REPORT_DIR,
     OUTPUT_DIR,
-    Q_CURRENT_REPORT_DIR,
+    Q_CURRENT_DATABASE_DIR,
 )
 
 
@@ -13,6 +13,6 @@ def ensure_directories():
         OUTPUT_DIR,
         LOG_ANALYZER_REPORT_DIR,
         CODING_VALUE_REPORT_DIR,
-        Q_CURRENT_REPORT_DIR,
+        Q_CURRENT_DATABASE_DIR,
     ):
         folder.mkdir(parents=True, exist_ok=True)

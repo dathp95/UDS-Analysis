@@ -30,3 +30,4 @@ dist/
 # OS files
 Thumbs.db
 .DS_Store
+config/database_qcurrent/
