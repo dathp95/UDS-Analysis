@@ -165,14 +165,29 @@ class QCurrentTab(QWidget):
 
         self.current_limit_edit = QDoubleSpinBox()
         self.current_limit_edit.setObjectName("current_limit_edit")
-        self.current_limit_edit.setDecimals(2)
+        self.current_limit_edit.setDecimals(1)
         self.current_limit_edit.setMinimum(0.0)
         self.current_limit_edit.setMaximum(1000000.0)
-        self.current_limit_edit.setSingleStep(0.10)
-        self.current_limit_edit.setValue(30.00)
+        self.current_limit_edit.setSingleStep(0.5)
+        self.current_limit_edit.setValue(30.0)
         self.current_limit_edit.setFixedWidth(110)
         self.current_limit_edit.setMinimumHeight(36)
         self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        self.sleep_duration_label = PrimaryLabel(
+            "Sleep duration (s)"
+        )
+
+        self.sleep_duration_edit = QDoubleSpinBox()
+        self.sleep_duration_edit.setObjectName("sleep_duration_edit")
+        self.sleep_duration_edit.setDecimals(1)
+        self.sleep_duration_edit.setMinimum(10)
+        self.sleep_duration_edit.setMaximum(1000000.0)
+        self.sleep_duration_edit.setSingleStep(1)
+        self.sleep_duration_edit.setValue(60)
+        self.sleep_duration_edit.setFixedWidth(110)
+        self.sleep_duration_edit.setMinimumHeight(36)
+        self.sleep_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
         self.wake_limit_label = PrimaryLabel(
             "Wake Up limit (mA)"
@@ -180,11 +195,11 @@ class QCurrentTab(QWidget):
 
         self.wake_limit_edit = QDoubleSpinBox()
         self.wake_limit_edit.setObjectName("wake_limit_edit")
-        self.wake_limit_edit.setDecimals(2)
+        self.wake_limit_edit.setDecimals(1)
         self.wake_limit_edit.setMinimum(0.0)
         self.wake_limit_edit.setMaximum(1000000.0)
-        self.wake_limit_edit.setSingleStep(0.10)
-        self.wake_limit_edit.setValue(300.00)
+        self.wake_limit_edit.setSingleStep(0.5)
+        self.wake_limit_edit.setValue(300.0)
         self.wake_limit_edit.setFixedWidth(110)
         self.wake_limit_edit.setMinimumHeight(36)
         self.wake_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
@@ -196,11 +211,11 @@ class QCurrentTab(QWidget):
         self.wake_duration_edit = QDoubleSpinBox()
         self.wake_duration_edit.setObjectName("wake_duration_edit")
         self.wake_duration_edit.setDecimals(1)
-        self.wake_duration_edit.setMinimum(0.1)
+        self.wake_duration_edit.setMinimum(1.0)
         self.wake_duration_edit.setMaximum(3600.0)
         self.wake_duration_edit.setSingleStep(0.5)
         self.wake_duration_edit.setValue(2.0)
-        self.wake_duration_edit.setFixedWidth(90)
+        self.wake_duration_edit.setFixedWidth(110)
         self.wake_duration_edit.setMinimumHeight(36)
         self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
@@ -228,6 +243,10 @@ class QCurrentTab(QWidget):
         result_layout.addWidget(self.current_limit_label)
         result_layout.addWidget(self.current_limit_edit)
         result_layout.addSpacing(16)
+        result_layout.addWidget(self.sleep_duration_label)
+        result_layout.addWidget(self.sleep_duration_edit)
+        result_layout.addSpacing(16)
+
         result_layout.addWidget(self.wake_limit_label)
         result_layout.addWidget(self.wake_limit_edit)
         result_layout.addSpacing(16)
