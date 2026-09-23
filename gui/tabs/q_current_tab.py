@@ -84,14 +84,14 @@ class QCurrentTab(QWidget):
         self.main_splitter = QSplitter(Qt.Horizontal)
         self.main_splitter.setChildrenCollapsible(False)
 
-        self.information_group = self._create_information_group()
-        self.center_splitter = self._create_center_splitter()
+        self.review_group = self._create_review_group()
+        self.chart_group = self._create_chart_group()
         self.right_panel = self._create_right_panel()
 
-        self.main_splitter.addWidget(self.information_group)
-        self.main_splitter.addWidget(self.center_splitter)
+        self.main_splitter.addWidget(self.review_group)
+        self.main_splitter.addWidget(self.chart_group)
         self.main_splitter.addWidget(self.right_panel)
-        self.main_splitter.setSizes([260, 620, 220])
+        self.main_splitter.setSizes([360, 620, 220])
 
         main_layout.addWidget(self.settings_group)
         main_layout.addWidget(self.main_splitter, 1)
@@ -185,52 +185,21 @@ class QCurrentTab(QWidget):
 
         return group
 
-    def _create_information_group(self):
-        group = QGroupBox("Analysis Information")
-        layout = QGridLayout(group)
+    def _create_chart_group(self):
+        group = QGroupBox("Current Chart")
+        layout = QVBoxLayout(group)
         layout.setContentsMargins(12, 16, 12, 12)
-        layout.setHorizontalSpacing(10)
-        layout.setVerticalSpacing(8)
-
-        self.info_values = {}
-        rows = (
-            ("sample_count", "Samples"),
-            ("duration", "Duration"),
-            ("min_current", "Min Current"),
-            ("max_current", "Max Current"),
-            ("avg_current", "Average Current"),
-            ("status", "Status"),
-        )
-        for row, (key, label_text) in enumerate(rows):
-            layout.addWidget(PrimaryLabel(label_text), row, 0)
-            value_label = self._create_value_label()
-            self.info_values[key] = value_label
-            layout.addWidget(value_label, row, 1)
-
-        layout.setColumnStretch(1, 1)
-        layout.setRowStretch(len(rows), 1)
+        self.chart_placeholder = self._create_placeholder_panel()
+        layout.addWidget(self.chart_placeholder, 1)
         return group
 
-    def _create_center_splitter(self):
-        splitter = QSplitter(Qt.Vertical)
-        splitter.setChildrenCollapsible(False)
-
-        self.chart_group = QGroupBox("Current Chart")
-        chart_layout = QVBoxLayout(self.chart_group)
-        chart_layout.setContentsMargins(12, 16, 12, 12)
-        self.chart_placeholder = self._create_placeholder_panel()
-        chart_layout.addWidget(self.chart_placeholder, 1)
-
-        self.review_group = QGroupBox("Data Review")
-        review_layout = QVBoxLayout(self.review_group)
-        review_layout.setContentsMargins(12, 16, 12, 12)
+    def _create_review_group(self):
+        group = QGroupBox("Data Review")
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(12, 16, 12, 12)
         self.review_table = self._create_review_table()
-        review_layout.addWidget(self.review_table, 1)
-
-        splitter.addWidget(self.chart_group)
-        splitter.addWidget(self.review_group)
-        splitter.setSizes([420, 240])
-        return splitter
+        layout.addWidget(self.review_table, 1)
+        return group
 
     def _create_right_panel(self):
         panel = QWidget()
@@ -267,10 +236,11 @@ class QCurrentTab(QWidget):
 
         self.summary_values = {}
         rows = (
-            ("peak", "Peak"),
-            ("rms", "RMS"),
-            ("energy", "Energy"),
-            ("window", "Window"),
+            ("sample_count", "Samples"),
+            ("duration", "Duration"),
+            ("min_current", "Min Current"),
+            ("max_current", "Max Current"),
+            ("avg_current", "Average Current"),
         )
         for row, (key, label_text) in enumerate(rows):
             layout.addWidget(PrimaryLabel(label_text), row, 0)
@@ -490,7 +460,6 @@ class QCurrentTab(QWidget):
         group_style = fn_groupbox_style()
         for group in (
             self.settings_group,
-            self.information_group,
             self.chart_group,
             self.review_group,
             self.summary_group,

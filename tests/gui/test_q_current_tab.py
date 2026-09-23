@@ -290,18 +290,21 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertIsInstance(tab.main_splitter, QSplitter)
             self.assertEqual(tab.main_splitter.orientation(), Qt.Horizontal)
-            self.assertIs(tab.main_splitter.widget(0), tab.information_group)
-            self.assertIs(tab.main_splitter.widget(1), tab.center_splitter)
+            self.assertFalse(hasattr(tab, "information_group"))
+            self.assertIs(tab.main_splitter.widget(0), tab.review_group)
+            self.assertIs(tab.main_splitter.widget(1), tab.chart_group)
             self.assertIs(tab.main_splitter.widget(2), tab.right_panel)
-            self.assertEqual(tab.center_splitter.orientation(), Qt.Vertical)
-            self.assertIs(tab.center_splitter.widget(0), tab.chart_group)
-            self.assertIs(tab.center_splitter.widget(1), tab.review_group)
             self.assertEqual(tab.chart_placeholder.text(), PLACEHOLDER_VALUE)
             self.assertEqual(tab.review_table.rowCount(), 0)
             self.assertEqual(tab.review_table.columnCount(), 3)
             self.assertEqual(tab.review_table.horizontalHeaderItem(0).text(), "No.")
             self.assertEqual(tab.review_table.horizontalHeaderItem(1).text(), "Time")
             self.assertEqual(tab.review_table.horizontalHeaderItem(2).text(), "Current (mA)")
+            self.assertIn("sample_count", tab.summary_values)
+            self.assertIn("duration", tab.summary_values)
+            self.assertIn("min_current", tab.summary_values)
+            self.assertIn("max_current", tab.summary_values)
+            self.assertIn("avg_current", tab.summary_values)
 
     def test_q_current_tab_uses_existing_controls_and_theme_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:
