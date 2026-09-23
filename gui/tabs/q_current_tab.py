@@ -16,12 +16,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QHBoxLayout,
+    QHeaderView,
 )
 
 from core.sleep_current_database import (
     database_path_for_source,
     default_dataset_name,
     ensure_database_directory,
+    get_primary_dataset,
     get_samples,
     import_dataset,
     list_datasets,
@@ -34,6 +36,7 @@ from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.widgets.controls.primary_table import PrimaryTable
 
 
 PLACEHOLDER_VALUE = "\u2014"
@@ -55,6 +58,7 @@ class QCurrentDatasetComboBox(PrimaryComboBox):
     def showPopup(self):
         self._refresh_callback()
         super().showPopup()
+
 
 class QCurrentTab(QWidget):
 
@@ -220,8 +224,8 @@ class QCurrentTab(QWidget):
         self.review_group = QGroupBox("Data Review")
         review_layout = QVBoxLayout(self.review_group)
         review_layout.setContentsMargins(12, 16, 12, 12)
-        self.review_placeholder = self._create_placeholder_panel()
-        review_layout.addWidget(self.review_placeholder, 1)
+        self.review_table = self._create_review_table()
+        review_layout.addWidget(self.review_table, 1)
 
         splitter.addWidget(self.chart_group)
         splitter.addWidget(self.review_group)
@@ -292,6 +296,20 @@ class QCurrentTab(QWidget):
         self._theme_widgets.append(label)
         return label
 
+    def _create_review_table(self):
+        table = PrimaryTable()
+        table.setObjectName("review_table")
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["No.", "Time", "Current (mA)"])
+        table.setSortingEnabled(False)
+        table.setRowCount(0)
+
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        return table
+
     def browse_current_file(self):
         file_path, _selected_filter = QFileDialog.getOpenFileName(
             self,
@@ -317,7 +335,12 @@ class QCurrentTab(QWidget):
         self.import_button.setEnabled(True)
 
     def import_current_file(self):
-        source_path = Path(self.source_file_edit.text()).expanduser()
+        source_text = self.source_file_edit.text().strip()
+        if not source_text:
+            self.load_selected_dataset()
+            return
+
+        source_path = Path(source_text).expanduser()
         try:
             source_path = source_path.resolve()
             normalized = normalize_current_data(source_path)
@@ -361,6 +384,7 @@ class QCurrentTab(QWidget):
             result.dataset.id,
             self.current_database_path,
         )
+        self._populate_review_table(self.current_samples)
         self._refresh_dataset_combo(selected_db_path=self.current_database_path)
         self.clear_source_file_selection()
         self.analysis_result_edit.setText("IMPORTED")
@@ -374,6 +398,63 @@ class QCurrentTab(QWidget):
                 f"Database: {self.current_database_path}"
             ),
         )
+
+    def load_selected_dataset(self):
+        database_value = self.dataset_combo.currentData()
+        if not database_value:
+            QMessageBox.warning(
+                self,
+                "Q current Import",
+                "Select an imported Q current dataset.",
+            )
+            return
+
+        database_path = Path(database_value).expanduser().resolve()
+        dataset = get_primary_dataset(database_path)
+        if dataset is None:
+            self.analysis_result_edit.setText("IMPORT FAILED")
+            QMessageBox.warning(
+                self,
+                "Q current Import",
+                f"Q current database is not valid: {database_path}",
+            )
+            return
+
+        self.current_import = None
+        self.current_database_path = dataset.database_path or database_path
+        self.current_samples = get_samples(dataset.id, self.current_database_path)
+        self._populate_review_table(self.current_samples)
+        self.analysis_result_edit.setText("LOADED")
+        self.import_button.setEnabled(True)
+
+    def _populate_review_table(self, samples):
+        self.review_table.setSortingEnabled(False)
+        self.review_table.setRowCount(0)
+        for row, sample in enumerate(samples):
+            self.review_table.insertRow(row)
+            self.review_table.setItem(
+                row,
+                0,
+                self.review_table.fn_create_item(
+                    row + 1,
+                    row,
+                    Qt.AlignCenter,
+                ),
+            )
+            self.review_table.setItem(
+                row,
+                1,
+                self.review_table.fn_create_item(sample.time, row),
+            )
+            self.review_table.setItem(
+                row,
+                2,
+                self.review_table.fn_create_item(
+                    f"{sample.current_mA:.2f}",
+                    row,
+                    Qt.AlignRight | Qt.AlignVCenter,
+                ),
+            )
 
     def _refresh_dataset_combo(self, selected_db_path: Path | str | None = None):
         selected_path = selected_db_path
@@ -420,6 +501,7 @@ class QCurrentTab(QWidget):
             self.source_file_edit,
             self.analysis_result_edit,
             self.dataset_combo,
+            self.review_table,
             self.browse_button,
             self.import_button,
             self.btn_run,
@@ -455,7 +537,7 @@ class QCurrentTab(QWidget):
             }}
         """
         for label in self._theme_widgets:
-            if label in (self.chart_placeholder, self.review_placeholder):
+            if label is self.chart_placeholder:
                 label.setStyleSheet(placeholder_style)
             else:
                 label.setStyleSheet(value_style)

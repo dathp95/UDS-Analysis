@@ -169,6 +169,44 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(expected_database.exists())
             info_box.assert_called_once()
 
+    def test_import_button_loads_selected_dataset_into_data_review(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            source_file = Path(tmpdir) / "sample.csv"
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
+            import_dataset(
+                "sample",
+                source_file,
+                [
+                    ("26-09-11 11:41:29.036", -0.0169, -16.9),
+                    ("26-09-11 11:41:30.079", -0.0173, -17.3),
+                    ("26-09-11 11:41:31.101", -0.0158, -15.8),
+                ],
+                database_file,
+            )
+            tab._refresh_dataset_combo(selected_db_path=database_file)
+            self.assertEqual(tab.source_file_edit.text(), "")
+
+            with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
+                tab.import_current_file()
+
+            self.assertEqual(tab.current_database_path, database_file.resolve())
+            self.assertEqual(len(tab.current_samples), 3)
+            self.assertEqual(tab.review_table.rowCount(), 3)
+            self.assertEqual(tab.review_table.columnCount(), 3)
+            self.assertEqual(
+                [tab.review_table.horizontalHeaderItem(index).text() for index in range(3)],
+                ["No.", "Time", "Current (mA)"],
+            )
+            self.assertEqual(tab.review_table.item(0, 0).text(), "1")
+            self.assertEqual(tab.review_table.item(0, 1).text(), "26-09-11 11:41:29.036")
+            self.assertEqual(tab.review_table.item(0, 2).text(), "-16.90")
+            self.assertEqual(tab.review_table.item(2, 0).text(), "3")
+            self.assertEqual(tab.review_table.item(2, 2).text(), "-15.80")
+            self.assertTrue(tab.import_button.isEnabled())
+            warning_box.assert_not_called()
+
     def test_import_failure_keeps_source_combo_selection_and_import_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -259,7 +297,11 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIs(tab.center_splitter.widget(0), tab.chart_group)
             self.assertIs(tab.center_splitter.widget(1), tab.review_group)
             self.assertEqual(tab.chart_placeholder.text(), PLACEHOLDER_VALUE)
-            self.assertEqual(tab.review_placeholder.text(), PLACEHOLDER_VALUE)
+            self.assertEqual(tab.review_table.rowCount(), 0)
+            self.assertEqual(tab.review_table.columnCount(), 3)
+            self.assertEqual(tab.review_table.horizontalHeaderItem(0).text(), "No.")
+            self.assertEqual(tab.review_table.horizontalHeaderItem(1).text(), "Time")
+            self.assertEqual(tab.review_table.horizontalHeaderItem(2).text(), "Current (mA)")
 
     def test_q_current_tab_uses_existing_controls_and_theme_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:
