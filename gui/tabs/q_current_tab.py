@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
+    QHBoxLayout,
+    QComboBox,
 )
 
 from core.q_current_import import import_q_current_file
@@ -76,11 +78,15 @@ class QCurrentTab(QWidget):
 
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
+
         self.settings_layout = QGridLayout(group)
         self.settings_layout.setContentsMargins(12, 16, 12, 12)
         self.settings_layout.setHorizontalSpacing(8)
         self.settings_layout.setVerticalSpacing(8)
 
+        # =========================================================
+        # ROW 1 - SOURCE FILE
+        # =========================================================
         self.source_file_edit = PrimaryLineEdit(
             placeholder=SOURCE_FILE_PLACEHOLDER,
         )
@@ -88,13 +94,43 @@ class QCurrentTab(QWidget):
         self.source_file_edit.setReadOnly(True)
         self.source_file_edit.setToolTip("")
 
-        self.browse_button = PrimaryButton("Browse", width=90, height=36)
+        # Browse button
+        self.browse_button = PrimaryButton(
+            "Browse",
+            width=90,
+            height=36,
+        )
         self.browse_button.setObjectName("browse_button")
-        self.import_button = PrimaryButton("Import", width=90, height=36)
+
+        # =========================================================
+        # IMPORTED DATA COMBOBOX
+        # =========================================================
+        self.dataset_combo = QComboBox()
+        self.dataset_combo.setObjectName("dataset_combo")
+        self.dataset_combo.setMinimumWidth(400)
+        self.dataset_combo.setFixedHeight(36)
+
+        # Placeholder khi chưa có database
+        self.dataset_combo.addItem("")
+
+        # =========================================================
+        # IMPORT BUTTON
+        # =========================================================
+        self.import_button = PrimaryButton(
+            "Import",
+            width=90,
+            height=36,
+        )
         self.import_button.setObjectName("import_button")
         self.import_button.setEnabled(False)
 
-        self.current_limit_label = PrimaryLabel("Standard current (mA)")
+        # =========================================================
+        # STANDARD CURRENT
+        # =========================================================
+        self.current_limit_label = PrimaryLabel(
+            "Standard current (mA)"
+        )
+
         self.current_limit_edit = QDoubleSpinBox()
         self.current_limit_edit.setObjectName("current_limit_edit")
         self.current_limit_edit.setDecimals(2)
@@ -104,26 +140,88 @@ class QCurrentTab(QWidget):
         self.current_limit_edit.setValue(30.00)
         self.current_limit_edit.setFixedWidth(110)
         self.current_limit_edit.setMinimumHeight(36)
-        self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
-        self.analysis_result_label = PrimaryLabel("Analysis result:")
+        self.current_limit_edit.lineEdit().setAlignment(
+            Qt.AlignCenter
+        )
+
+        # =========================================================
+        # ANALYSIS RESULT
+        # =========================================================
+        self.analysis_result_label = PrimaryLabel(
+            "Analysis result:"
+        )
+
         self.analysis_result_edit = PrimaryLineEdit()
-        self.analysis_result_edit.setObjectName("analysis_result_edit")
+        self.analysis_result_edit.setObjectName(
+            "analysis_result_edit"
+        )
         self.analysis_result_edit.setReadOnly(True)
         self.analysis_result_edit.setText("NOT RUN")
         self.analysis_result_edit.setFixedWidth(130)
 
-        self.settings_layout.addWidget(self.source_file_edit, 0, 0, 1, 4)
-        self.settings_layout.addWidget(self.browse_button, 0, 4)
-        self.settings_layout.addWidget(self.import_button, 0, 5)
-        self.settings_layout.addWidget(self.current_limit_label, 1, 0)
-        self.settings_layout.addWidget(self.current_limit_edit, 1, 1)
-        self.settings_layout.addWidget(self.analysis_result_label, 1, 2)
-        self.settings_layout.addWidget(self.analysis_result_edit, 1, 3)
+        # =========================================================
+        # ROW 1 LAYOUT
+        #
+        # Source File | Browse | Dataset Combo | Import
+        # =========================================================
+        self.settings_layout.addWidget(
+            self.source_file_edit,
+            0, 0
+        )
 
+        self.settings_layout.addWidget(
+            self.browse_button,
+            0, 1
+        )
+
+        self.settings_layout.addWidget(
+            self.dataset_combo,
+            0, 2
+        )
+
+        self.settings_layout.addWidget(
+            self.import_button,
+            0, 3
+        )
+
+        # Source file chiếm toàn bộ không gian dư
         self.settings_layout.setColumnStretch(0, 1)
-        self.settings_layout.setColumnStretch(3, 1)
+
+        # =========================================================
+        # ROW 2 LAYOUT
+        # =========================================================
+        result_layout = QHBoxLayout()
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setSpacing(8)
+
+        result_layout.addWidget(
+            self.current_limit_label
+        )
+
+        result_layout.addWidget(
+            self.current_limit_edit
+        )
+
+        result_layout.addSpacing(16)
+
+        result_layout.addWidget(
+            self.analysis_result_label
+        )
+
+        result_layout.addWidget(
+            self.analysis_result_edit
+        )
+
+        result_layout.addStretch(1)
+
+        self.settings_layout.addLayout(
+            result_layout,
+            1, 0, 1, 4
+        )
+
         return group
+
 
     def _create_information_group(self):
         group = QGroupBox("Analysis Information")
