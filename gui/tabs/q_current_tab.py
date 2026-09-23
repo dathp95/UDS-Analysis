@@ -160,7 +160,7 @@ class QCurrentTab(QWidget):
         self.import_button.setEnabled(True)
 
         self.current_limit_label = PrimaryLabel(
-            "Standard current (mA)"
+            "Sleep limit (mA)"
         )
 
         self.current_limit_edit = QDoubleSpinBox()
@@ -174,7 +174,35 @@ class QCurrentTab(QWidget):
         self.current_limit_edit.setMinimumHeight(36)
         self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
-        
+        self.wake_limit_label = PrimaryLabel(
+            "Wake Up limit (mA)"
+        )
+
+        self.wake_limit_edit = QDoubleSpinBox()
+        self.wake_limit_edit.setObjectName("wake_limit_edit")
+        self.wake_limit_edit.setDecimals(2)
+        self.wake_limit_edit.setMinimum(0.0)
+        self.wake_limit_edit.setMaximum(1000000.0)
+        self.wake_limit_edit.setSingleStep(0.10)
+        self.wake_limit_edit.setValue(300.00)
+        self.wake_limit_edit.setFixedWidth(110)
+        self.wake_limit_edit.setMinimumHeight(36)
+        self.wake_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        self.wake_duration_label = PrimaryLabel(
+            "Wake duration (s)"
+        )
+
+        self.wake_duration_edit = QDoubleSpinBox()
+        self.wake_duration_edit.setObjectName("wake_duration_edit")
+        self.wake_duration_edit.setDecimals(1)
+        self.wake_duration_edit.setMinimum(0.1)
+        self.wake_duration_edit.setMaximum(3600.0)
+        self.wake_duration_edit.setSingleStep(0.5)
+        self.wake_duration_edit.setValue(2.0)
+        self.wake_duration_edit.setFixedWidth(90)
+        self.wake_duration_edit.setMinimumHeight(36)
+        self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
         self.analysis_result_label = PrimaryLabel(
             "Analysis result:"
@@ -199,6 +227,12 @@ class QCurrentTab(QWidget):
         result_layout.setSpacing(8)
         result_layout.addWidget(self.current_limit_label)
         result_layout.addWidget(self.current_limit_edit)
+        result_layout.addSpacing(16)
+        result_layout.addWidget(self.wake_limit_label)
+        result_layout.addWidget(self.wake_limit_edit)
+        result_layout.addSpacing(16)
+        result_layout.addWidget(self.wake_duration_label)
+        result_layout.addWidget(self.wake_duration_edit)
         result_layout.addSpacing(16)
         result_layout.addWidget(self.analysis_result_label)
         result_layout.addWidget(self.analysis_result_edit)
@@ -548,9 +582,13 @@ class QCurrentTab(QWidget):
         ):
             widget.fn_refresh_theme()
 
-        self.current_limit_edit.setStyleSheet(
-            fn_spinbox_style()
-        )
+        spinbox_style = fn_spinbox_style()
+        for spinbox in (
+            self.current_limit_edit,
+            self.wake_limit_edit,
+            self.wake_duration_edit,
+        ):
+            spinbox.setStyleSheet(spinbox_style)
 
         for label in self.findChildren(PrimaryLabel):
             label.fn_refresh_theme()

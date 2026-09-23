@@ -63,12 +63,29 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.import_button.objectName(), "import_button")
             self.assertEqual(tab.import_button.text(), "Import")
             self.assertTrue(tab.import_button.isEnabled())
-            self.assertEqual(tab.current_limit_label.text(), "Standard current (mA)")
+            self.assertEqual(tab.current_limit_label.text(), "Sleep limit (mA)")
             self.assertIsInstance(tab.current_limit_edit, QDoubleSpinBox)
+            self.assertEqual(tab.current_limit_edit.objectName(), "current_limit_edit")
             self.assertEqual(tab.current_limit_edit.minimum(), 0.0)
             self.assertEqual(tab.current_limit_edit.decimals(), 2)
             self.assertEqual(tab.current_limit_edit.value(), 30.0)
             self.assertEqual(tab.current_limit_edit.text(), "30.00")
+            self.assertEqual(tab.wake_limit_label.text(), "Wake Up limit (mA)")
+            self.assertIsInstance(tab.wake_limit_edit, QDoubleSpinBox)
+            self.assertEqual(tab.wake_limit_edit.objectName(), "wake_limit_edit")
+            self.assertEqual(tab.wake_limit_edit.minimum(), 0.0)
+            self.assertEqual(tab.wake_limit_edit.decimals(), 2)
+            self.assertEqual(tab.wake_limit_edit.value(), 300.0)
+            self.assertEqual(tab.wake_limit_edit.text(), "300.00")
+            self.assertEqual(tab.wake_duration_label.text(), "Wake duration (s)")
+            self.assertIsInstance(tab.wake_duration_edit, QDoubleSpinBox)
+            self.assertEqual(tab.wake_duration_edit.objectName(), "wake_duration_edit")
+            self.assertEqual(tab.wake_duration_edit.minimum(), 0.1)
+            self.assertEqual(tab.wake_duration_edit.maximum(), 3600.0)
+            self.assertEqual(tab.wake_duration_edit.singleStep(), 0.5)
+            self.assertEqual(tab.wake_duration_edit.decimals(), 1)
+            self.assertEqual(tab.wake_duration_edit.value(), 2.0)
+            self.assertEqual(tab.wake_duration_edit.text(), "2.0")
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
     def test_startup_keeps_dataset_combo_empty_until_user_opens_dropdown(self):
@@ -417,6 +434,15 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertNotEqual(light_style, dark_style)
             self.assertIn(ThemeManager.fn_colors().TEXT, dark_style)
+            self.assertTrue(tab.current_limit_edit.styleSheet())
+            self.assertEqual(
+                tab.current_limit_edit.styleSheet(),
+                tab.wake_limit_edit.styleSheet(),
+            )
+            self.assertEqual(
+                tab.current_limit_edit.styleSheet(),
+                tab.wake_duration_edit.styleSheet(),
+            )
 
 
 if __name__ == "__main__":
