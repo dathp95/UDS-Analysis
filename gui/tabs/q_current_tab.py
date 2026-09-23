@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFileDialog,
+    QDoubleSpinBox,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from core.q_current_import import import_q_current_file
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
+from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
@@ -92,12 +94,17 @@ class QCurrentTab(QWidget):
         self.import_button.setObjectName("import_button")
         self.import_button.setEnabled(False)
 
-        self.current_limit_label = PrimaryLabel("Current limit:")
-        self.current_limit_edit = PrimaryLineEdit()
+        self.current_limit_label = PrimaryLabel("Standard current (mA)")
+        self.current_limit_edit = QDoubleSpinBox()
         self.current_limit_edit.setObjectName("current_limit_edit")
-        self.current_limit_edit.setReadOnly(True)
-        self.current_limit_edit.setText("30.00 mA")
+        self.current_limit_edit.setDecimals(2)
+        self.current_limit_edit.setMinimum(0.0)
+        self.current_limit_edit.setMaximum(1000000.0)
+        self.current_limit_edit.setSingleStep(0.10)
+        self.current_limit_edit.setValue(30.00)
         self.current_limit_edit.setFixedWidth(110)
+        self.current_limit_edit.setMinimumHeight(36)
+        self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
         self.analysis_result_label = PrimaryLabel("Analysis result:")
         self.analysis_result_edit = PrimaryLineEdit()
@@ -291,7 +298,6 @@ class QCurrentTab(QWidget):
 
         for widget in (
             self.source_file_edit,
-            self.current_limit_edit,
             self.analysis_result_edit,
             self.browse_button,
             self.import_button,
@@ -301,6 +307,10 @@ class QCurrentTab(QWidget):
             self.btn_clear,
         ):
             widget.fn_refresh_theme()
+
+        self.current_limit_edit.setStyleSheet(
+            fn_spinbox_style()
+        )
 
         for label in self.findChildren(PrimaryLabel):
             label.fn_refresh_theme()

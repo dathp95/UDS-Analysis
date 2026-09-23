@@ -7,7 +7,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QGroupBox, QLineEdit, QSplitter
+from PySide6.QtWidgets import QApplication, QDoubleSpinBox, QGroupBox, QLineEdit, QSplitter
 
 from gui.tabs.q_current_tab import PLACEHOLDER_VALUE, QCurrentTab
 from gui.themes.theme import ThemeType
@@ -43,7 +43,12 @@ class QCurrentTabTests(unittest.TestCase):
         self.assertEqual(tab.import_button.objectName(), "import_button")
         self.assertEqual(tab.import_button.text(), "Import")
         self.assertFalse(tab.import_button.isEnabled())
-        self.assertEqual(tab.current_limit_edit.text(), "30.00 mA")
+        self.assertEqual(tab.current_limit_label.text(), "Standard current (mA)")
+        self.assertIsInstance(tab.current_limit_edit, QDoubleSpinBox)
+        self.assertEqual(tab.current_limit_edit.minimum(), 0.0)
+        self.assertEqual(tab.current_limit_edit.decimals(), 2)
+        self.assertEqual(tab.current_limit_edit.value(), 30.0)
+        self.assertEqual(tab.current_limit_edit.text(), "30.00")
         self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
     def test_browse_cancel_keeps_existing_path_and_does_not_import(self):
