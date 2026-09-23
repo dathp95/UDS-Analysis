@@ -74,11 +74,11 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             database_file = Path(tmpdir) / "sleep_current.db"
             source_file = Path(tmpdir) / "sample.csv"
-            source_file.write_text("time,current\n0,1\n", encoding="utf-8")
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
             result = import_dataset(
                 "sample",
                 source_file,
-                [("0", 1.0)],
+                [("0", 0.001, 1.0)],
                 database_file,
             )
 
@@ -110,7 +110,7 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_file = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
-            source_file.write_text("time,current\n0,1\n", encoding="utf-8")
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
 
             with patch(
                 "gui.tabs.q_current_tab.QFileDialog.getOpenFileName",
@@ -127,7 +127,7 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_file = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
-            source_file.write_text("time,current\n0,1.2\n", encoding="utf-8")
+            source_file.write_text("Trigger time,No1 Average Ch7\n0,-1.2E-03\n", encoding="utf-8")
             tab.set_source_file(source_file)
 
             with patch("gui.tabs.q_current_tab.QMessageBox.information") as info_box:
@@ -146,10 +146,10 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_file = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
-            source_file.write_text("time,current\n0,1.0\n", encoding="utf-8")
-            first = import_dataset("sample", source_file, [("0", 1.0)], database_file)
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            first = import_dataset("sample", source_file, [("0", 0.001, 1.0)], database_file)
             tab._refresh_dataset_combo()
-            source_file.write_text("time,current\n1,9.0\n", encoding="utf-8")
+            source_file.write_text("Trigger time,No1 Average Ch1\n1,0.009\n", encoding="utf-8")
             tab.set_source_file(source_file)
 
             with patch(
@@ -168,9 +168,9 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_file = self._create_tab(tmpdir)
             source_file = Path(tmpdir) / "sample.csv"
-            source_file.write_text("time,current\n0,1.0\n", encoding="utf-8")
-            first = import_dataset("sample", source_file, [("0", 1.0)], database_file)
-            source_file.write_text("time,current\n1,9.0\n2,10.0\n", encoding="utf-8")
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            first = import_dataset("sample", source_file, [("0", 0.001, 1.0)], database_file)
+            source_file.write_text("Trigger time,No1 Average Ch2\n1,0.009\n2,0.010\n", encoding="utf-8")
             tab.set_source_file(source_file)
 
             with patch(
@@ -183,7 +183,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.dataset_combo.currentData(), first.dataset.id)
             self.assertEqual(tab.current_import.dataset.id, first.dataset.id)
             self.assertEqual(
-                [(sample.time, sample.current) for sample in tab.current_samples],
+                [(sample.time, sample.current_mA) for sample in tab.current_samples],
                 [("1", 9.0), ("2", 10.0)],
             )
 

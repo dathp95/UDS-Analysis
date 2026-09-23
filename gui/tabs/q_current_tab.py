@@ -25,7 +25,7 @@ from core.sleep_current_database import (
     import_dataset,
     initialize_database,
     list_datasets,
-    read_current_rows,
+    normalize_current_data,
     replace_dataset,
     resolve_database_path,
 )
@@ -308,7 +308,7 @@ class QCurrentTab(QWidget):
         source_path = Path(self.source_file_edit.text()).expanduser()
         try:
             source_path = source_path.resolve()
-            rows = read_current_rows(source_path)
+            normalized = normalize_current_data(source_path)
             dataset_name = default_dataset_name(source_path)
             existing_dataset = get_dataset_by_name(
                 dataset_name,
@@ -338,15 +338,17 @@ class QCurrentTab(QWidget):
                     existing_dataset.id,
                     dataset_name,
                     source_path,
-                    rows,
+                    normalized.rows,
                     self._database_file,
+                    detected_channel=normalized.detected_channel,
                 )
             else:
                 result = import_dataset(
                     dataset_name,
                     source_path,
-                    rows,
+                    normalized.rows,
                     self._database_file,
+                    detected_channel=normalized.detected_channel,
                 )
         except Exception as error:
             self.analysis_result_edit.setText("IMPORT FAILED")
@@ -364,6 +366,7 @@ class QCurrentTab(QWidget):
             (
                 f"Imported {result.row_count} rows.\n"
                 f"Dataset: {result.dataset.name}\n"
+                f"Channel: {result.dataset.detected_channel}\n"
                 f"Database: {self.current_database_path}"
             ),
         )
