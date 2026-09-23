@@ -10,6 +10,7 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 
 LOG_ANALYZER_REPORT_DIR = OUTPUT_DIR / "Report_LogAnalyzer"
 CODING_VALUE_REPORT_DIR = OUTPUT_DIR / "Report_CodingValue"
+Q_CURRENT_REPORT_DIR = OUTPUT_DIR / "Report Qcurrent"
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"

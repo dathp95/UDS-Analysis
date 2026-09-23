@@ -1,25 +1,37 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFileDialog,
     QFrame,
     QGridLayout,
     QGroupBox,
     QLabel,
+    QMessageBox,
     QSizePolicy,
     QSplitter,
     QVBoxLayout,
     QWidget,
 )
 
+from core.q_current_import import import_q_current_file
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
-from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
+from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 
-PLACEHOLDER_VALUE = "â€”"
+PLACEHOLDER_VALUE = "\u2014"
+SOURCE_FILE_PLACEHOLDER = "Select current data file (*.csv, *.xlsx)"
+SUPPORTED_SOURCE_EXTENSIONS = {".csv", ".xlsx"}
+SOURCE_FILE_FILTER = (
+    "Supported Files (*.csv *.xlsx);;"
+    "CSV Files (*.csv);;"
+    "Excel Files (*.xlsx)"
+)
 
 
 class QCurrentTab(QWidget):
@@ -28,7 +40,11 @@ class QCurrentTab(QWidget):
         super().__init__()
 
         self._theme_widgets = []
+        self.current_import = None
+        self.current_samples = []
+        self.current_database_path = None
         self._setup_ui()
+        self._connect_signals()
         self.fn_refresh_theme()
 
     def _setup_ui(self):
@@ -52,33 +68,54 @@ class QCurrentTab(QWidget):
         main_layout.addWidget(self.settings_group)
         main_layout.addWidget(self.main_splitter, 1)
 
+    def _connect_signals(self):
+        self.browse_button.clicked.connect(self.browse_current_file)
+        self.import_button.clicked.connect(self.import_current_file)
+
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
-        layout = QGridLayout(group)
-        layout.setContentsMargins(12, 16, 12, 12)
-        layout.setHorizontalSpacing(12)
-        layout.setVerticalSpacing(10)
+        self.settings_layout = QGridLayout(group)
+        self.settings_layout.setContentsMargins(12, 16, 12, 12)
+        self.settings_layout.setHorizontalSpacing(8)
+        self.settings_layout.setVerticalSpacing(8)
 
-        self.vehicle_selector = PrimaryComboBox()
-        self.vehicle_selector.addItem(PLACEHOLDER_VALUE)
-        self.ecu_selector = PrimaryComboBox()
-        self.ecu_selector.addItem(PLACEHOLDER_VALUE)
-        self.channel_selector = PrimaryComboBox()
-        self.channel_selector.addItem(PLACEHOLDER_VALUE)
-        self.file_value = self._create_value_label()
+        self.source_file_edit = PrimaryLineEdit(
+            placeholder=SOURCE_FILE_PLACEHOLDER,
+        )
+        self.source_file_edit.setObjectName("source_file_edit")
+        self.source_file_edit.setReadOnly(True)
+        self.source_file_edit.setToolTip("")
 
-        layout.addWidget(PrimaryLabel("Vehicle"), 0, 0)
-        layout.addWidget(self.vehicle_selector, 0, 1)
-        layout.addWidget(PrimaryLabel("ECU"), 0, 2)
-        layout.addWidget(self.ecu_selector, 0, 3)
-        layout.addWidget(PrimaryLabel("Channel"), 0, 4)
-        layout.addWidget(self.channel_selector, 0, 5)
-        layout.addWidget(PrimaryLabel("Source"), 1, 0)
-        layout.addWidget(self.file_value, 1, 1, 1, 5)
+        self.browse_button = PrimaryButton("Browse", width=90, height=36)
+        self.browse_button.setObjectName("browse_button")
+        self.import_button = PrimaryButton("Import", width=90, height=36)
+        self.import_button.setObjectName("import_button")
+        self.import_button.setEnabled(False)
 
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(3, 1)
-        layout.setColumnStretch(5, 1)
+        self.current_limit_label = PrimaryLabel("Current limit:")
+        self.current_limit_edit = PrimaryLineEdit()
+        self.current_limit_edit.setObjectName("current_limit_edit")
+        self.current_limit_edit.setReadOnly(True)
+        self.current_limit_edit.setText("30.00 mA")
+        self.current_limit_edit.setFixedWidth(110)
+
+        self.analysis_result_label = PrimaryLabel("Analysis result:")
+        self.analysis_result_edit = PrimaryLineEdit()
+        self.analysis_result_edit.setObjectName("analysis_result_edit")
+        self.analysis_result_edit.setReadOnly(True)
+        self.analysis_result_edit.setText("NOT RUN")
+        self.analysis_result_edit.setFixedWidth(130)
+
+        self.settings_layout.addWidget(self.source_file_edit, 0, 0, 1, 4)
+        self.settings_layout.addWidget(self.browse_button, 0, 4)
+        self.settings_layout.addWidget(self.import_button, 0, 5)
+        self.settings_layout.addWidget(self.current_limit_label, 1, 0)
+        self.settings_layout.addWidget(self.current_limit_edit, 1, 1)
+        self.settings_layout.addWidget(self.analysis_result_label, 1, 2)
+        self.settings_layout.addWidget(self.analysis_result_edit, 1, 3)
+
+        self.settings_layout.setColumnStretch(0, 1)
+        self.settings_layout.setColumnStretch(3, 1)
         return group
 
     def _create_information_group(self):
@@ -192,6 +229,55 @@ class QCurrentTab(QWidget):
         self._theme_widgets.append(label)
         return label
 
+    def browse_current_file(self):
+        file_path, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Select Current Data File",
+            "",
+            SOURCE_FILE_FILTER,
+        )
+        if not file_path:
+            return
+
+        self.set_source_file(file_path)
+
+    def set_source_file(self, file_path: str | Path):
+        path = Path(file_path).expanduser().resolve()
+        path_text = str(path)
+        self.source_file_edit.setText(path_text)
+        self.source_file_edit.setToolTip(path_text)
+        self.import_button.setEnabled(self._is_valid_source_file(path))
+
+    def import_current_file(self):
+        source_path = Path(self.source_file_edit.text()).expanduser()
+        try:
+            result = import_q_current_file(source_path)
+        except Exception as error:
+            self.analysis_result_edit.setText("IMPORT FAILED")
+            QMessageBox.warning(self, "Q current Import", str(error))
+            return
+
+        self.current_import = result
+        self.current_samples = result.samples
+        self.current_database_path = result.database_path
+        self.analysis_result_edit.setText("IMPORTED")
+        QMessageBox.information(
+            self,
+            "Q current Import",
+            (
+                f"Imported {result.row_count} rows.\n"
+                f"Database: {result.database_path}"
+            ),
+        )
+
+    @staticmethod
+    def _is_valid_source_file(path: Path) -> bool:
+        return (
+            path.exists()
+            and path.is_file()
+            and path.suffix.lower() in SUPPORTED_SOURCE_EXTENSIONS
+        )
+
     def fn_refresh_theme(self):
         group_style = fn_groupbox_style()
         for group in (
@@ -204,9 +290,11 @@ class QCurrentTab(QWidget):
             group.setStyleSheet(group_style)
 
         for widget in (
-            self.vehicle_selector,
-            self.ecu_selector,
-            self.channel_selector,
+            self.source_file_edit,
+            self.current_limit_edit,
+            self.analysis_result_edit,
+            self.browse_button,
+            self.import_button,
             self.btn_run,
             self.btn_export,
             self.btn_copy_chart,
