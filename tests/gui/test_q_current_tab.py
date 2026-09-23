@@ -6,7 +6,8 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -207,6 +208,86 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.import_button.isEnabled())
             warning_box.assert_not_called()
 
+    def test_review_table_selection_clears_when_focus_leaves(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._populate_review_table([
+                type("Sample", (), {"time": "26-09-11 11:41:29.036", "current_mA": -16.9})(),
+            ])
+
+            tab.review_table.selectRow(0)
+            self.assertTrue(tab.review_table.selectedItems())
+
+            tab.review_table.focusOutEvent(QFocusEvent(QEvent.FocusOut))
+
+            self.assertFalse(tab.review_table.selectedItems())
+            self.assertEqual(tab.review_table.currentRow(), -1)
+
+    def test_loading_selected_dataset_resets_review_scrollbar_to_top(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            first_source = Path(tmpdir) / "first.csv"
+            second_source = Path(tmpdir) / "second.csv"
+            first_source.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            second_source.write_text("Trigger time,No1 Average Ch1\n0,0.002\n", encoding="utf-8")
+            first_database = database_path_for_source(first_source, database_dir)
+            second_database = database_path_for_source(second_source, database_dir)
+            import_dataset(
+                "first",
+                first_source,
+                [(str(index), 0.001, 1.0) for index in range(30)],
+                first_database,
+            )
+            import_dataset(
+                "second",
+                second_source,
+                [(str(index), 0.002, 2.0) for index in range(30)],
+                second_database,
+            )
+            tab._refresh_dataset_combo(selected_db_path=first_database)
+            tab.import_current_file()
+            scrollbar = tab.review_table.verticalScrollBar()
+            scrollbar.setRange(0, 100)
+            scrollbar.setValue(80)
+            tab.dataset_combo.setCurrentIndex(
+                tab.dataset_combo.findData(str(second_database.resolve()))
+            )
+
+            tab.import_current_file()
+
+            self.assertEqual(tab.current_database_path, second_database.resolve())
+            self.assertEqual(scrollbar.value(), scrollbar.minimum())
+
+    def test_copy_data_review_and_summary_buttons_copy_table_text(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._populate_review_table([
+                type("Sample", (), {"time": "26-09-11 11:41:29.036", "current_mA": -16.9})(),
+                type("Sample", (), {"time": "26-09-11 11:41:30.079", "current_mA": -17.3})(),
+            ])
+            tab.summary_values["sample_count"].setText("2")
+            tab.summary_values["duration"].setText("1.043 s")
+
+            tab.btn_copy_data_review.click()
+
+            self.assertEqual(
+                QApplication.clipboard().text(),
+                "No.\tTime\tCurrent (mA)\n"
+                "1\t26-09-11 11:41:29.036\t-16.90\n"
+                "2\t26-09-11 11:41:30.079\t-17.30",
+            )
+
+            tab.btn_copy_summary.click()
+
+            self.assertEqual(
+                QApplication.clipboard().text(),
+                "Samples\t2\n"
+                "Duration\t1.043 s\n"
+                f"Min Current\t{PLACEHOLDER_VALUE}\n"
+                f"Max Current\t{PLACEHOLDER_VALUE}\n"
+                f"Average Current\t{PLACEHOLDER_VALUE}",
+            )
+
     def test_import_failure_keeps_source_combo_selection_and_import_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -314,6 +395,8 @@ class QCurrentTabTests(unittest.TestCase):
                 tab.btn_run,
                 tab.btn_export,
                 tab.btn_copy_chart,
+                tab.btn_copy_data_review,
+                tab.btn_copy_summary,
                 tab.btn_clear,
             ]
             self.assertTrue(all(isinstance(button, PrimaryButton) for button in buttons))
@@ -321,8 +404,11 @@ class QCurrentTabTests(unittest.TestCase):
                 "RUN",
                 "EXPORT",
                 "COPY CHART",
+                "COPY Data Review",
+                "COPY Summary",
                 "CLEAR",
             ])
+            self.assertTrue(tab.dataset_combo.view().verticalScrollBar().styleSheet())
 
             light_style = tab.chart_placeholder.styleSheet()
             ThemeManager.fn_set_theme(ThemeType.DARK)

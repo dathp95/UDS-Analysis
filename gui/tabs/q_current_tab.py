@@ -4,6 +4,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QDoubleSpinBox,
     QFrame,
@@ -30,6 +31,7 @@ from core.sleep_current_database import (
     normalize_current_data,
 )
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
@@ -54,10 +56,27 @@ class QCurrentDatasetComboBox(PrimaryComboBox):
     def __init__(self, refresh_callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._refresh_callback = refresh_callback
+        self._refresh_popup_scrollbar()
 
     def showPopup(self):
         self._refresh_callback()
+        self._refresh_popup_scrollbar()
         super().showPopup()
+
+    def fn_refresh_theme(self):
+        super().fn_refresh_theme()
+        self._refresh_popup_scrollbar()
+
+    def _refresh_popup_scrollbar(self):
+        fn_apply_scrollbar_style(self.view())
+
+
+class QCurrentReviewTable(PrimaryTable):
+
+    def focusOutEvent(self, event):
+        self.clearSelection()
+        self.setCurrentCell(-1, -1)
+        super().focusOutEvent(event)
 
 
 class QCurrentTab(QWidget):
@@ -102,6 +121,8 @@ class QCurrentTab(QWidget):
     def _connect_signals(self):
         self.browse_button.clicked.connect(self.browse_current_file)
         self.import_button.clicked.connect(self.import_current_file)
+        self.btn_copy_data_review.clicked.connect(self.copy_data_review)
+        self.btn_copy_summary.clicked.connect(self.copy_summary)
 
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
@@ -152,6 +173,8 @@ class QCurrentTab(QWidget):
         self.current_limit_edit.setFixedWidth(110)
         self.current_limit_edit.setMinimumHeight(36)
         self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        
 
         self.analysis_result_label = PrimaryLabel(
             "Analysis result:"
@@ -212,12 +235,16 @@ class QCurrentTab(QWidget):
         self.btn_run = PrimaryButton("RUN")
         self.btn_export = PrimaryButton("EXPORT")
         self.btn_copy_chart = PrimaryButton("COPY CHART")
+        self.btn_copy_data_review = PrimaryButton("COPY Data Review")
+        self.btn_copy_summary = PrimaryButton("COPY Summary")
         self.btn_clear = PrimaryButton("CLEAR")
 
         for button in (
             self.btn_run,
             self.btn_export,
             self.btn_copy_chart,
+            self.btn_copy_data_review,
+            self.btn_copy_summary,
             self.btn_clear,
         ):
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -234,6 +261,7 @@ class QCurrentTab(QWidget):
         layout.setHorizontalSpacing(10)
         layout.setVerticalSpacing(8)
 
+        self.summary_labels = {}
         self.summary_values = {}
         rows = (
             ("sample_count", "Samples"),
@@ -243,7 +271,9 @@ class QCurrentTab(QWidget):
             ("avg_current", "Average Current"),
         )
         for row, (key, label_text) in enumerate(rows):
-            layout.addWidget(PrimaryLabel(label_text), row, 0)
+            label = PrimaryLabel(label_text)
+            self.summary_labels[key] = label
+            layout.addWidget(label, row, 0)
             value_label = self._create_value_label()
             self.summary_values[key] = value_label
             layout.addWidget(value_label, row, 1)
@@ -267,7 +297,7 @@ class QCurrentTab(QWidget):
         return label
 
     def _create_review_table(self):
-        table = PrimaryTable()
+        table = QCurrentReviewTable()
         table.setObjectName("review_table")
         table.setColumnCount(3)
         table.setHorizontalHeaderLabels(["No.", "Time", "Current (mA)"])
@@ -426,6 +456,42 @@ class QCurrentTab(QWidget):
                 ),
             )
 
+        self.review_table.scrollToTop()
+        self.review_table.verticalScrollBar().setValue(
+            self.review_table.verticalScrollBar().minimum()
+        )
+        self.review_table.horizontalScrollBar().setValue(
+            self.review_table.horizontalScrollBar().minimum()
+        )
+
+    def copy_data_review(self):
+        QApplication.clipboard().setText(self._review_table_to_text())
+
+    def copy_summary(self):
+        QApplication.clipboard().setText(self._summary_to_text())
+
+    def _review_table_to_text(self):
+        headers = [
+            self.review_table.horizontalHeaderItem(column).text()
+            for column in range(self.review_table.columnCount())
+        ]
+        rows = ["\t".join(headers)]
+        for row in range(self.review_table.rowCount()):
+            values = []
+            for column in range(self.review_table.columnCount()):
+                item = self.review_table.item(row, column)
+                values.append(item.text() if item is not None else "")
+            rows.append("\t".join(values))
+        return "\n".join(rows)
+
+    def _summary_to_text(self):
+        rows = []
+        for key, label in self.summary_labels.items():
+            rows.append(
+                f"{label.text()}\t{self.summary_values[key].text()}"
+            )
+        return "\n".join(rows)
+
     def _refresh_dataset_combo(self, selected_db_path: Path | str | None = None):
         selected_path = selected_db_path
         if selected_path is None:
@@ -476,6 +542,8 @@ class QCurrentTab(QWidget):
             self.btn_run,
             self.btn_export,
             self.btn_copy_chart,
+            self.btn_copy_data_review,
+            self.btn_copy_summary,
             self.btn_clear,
         ):
             widget.fn_refresh_theme()
