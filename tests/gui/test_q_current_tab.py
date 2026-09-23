@@ -70,13 +70,13 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.current_limit_edit.text(), "30.00")
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
-    def test_startup_populates_dataset_combo_from_sqlite(self):
+    def test_startup_keeps_dataset_combo_empty_until_user_opens_dropdown(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             database_dir = Path(tmpdir) / "database_qcurrent"
             database_file = database_dir / "sample.db"
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
-            result = import_dataset(
+            import_dataset(
                 "sample",
                 source_file,
                 [("0", 0.001, 1.0)],
@@ -86,9 +86,14 @@ class QCurrentTabTests(unittest.TestCase):
             tab = QCurrentTab(database_dir=database_dir)
             self.addCleanup(tab.deleteLater)
 
+            self.assertEqual(tab.dataset_combo.count(), 0)
+
+            tab.dataset_combo.showPopup()
+            tab.dataset_combo.hidePopup()
+
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.dataset_combo.itemText(0), "sample")
-            self.assertEqual(tab.dataset_combo.itemData(0), database_file.resolve())
+            self.assertEqual(tab.dataset_combo.itemData(0), str(database_file.resolve()))
 
     def test_browse_cancel_keeps_existing_path_and_does_not_import(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -127,6 +132,18 @@ class QCurrentTabTests(unittest.TestCase):
     def test_import_button_imports_selected_file_refreshes_combo_and_updates_header_state(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
+            existing_source = Path(tmpdir) / "VF6_Test.csv"
+            existing_source.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            existing_database = database_path_for_source(existing_source, database_dir)
+            import_dataset(
+                "VF6_Test",
+                existing_source,
+                [("0", 0.001, 1.0)],
+                existing_database,
+            )
+            tab._refresh_dataset_combo()
+            self.assertEqual(tab.dataset_combo.currentText(), "VF6_Test")
+
             source_file = Path(tmpdir) / "sample.csv"
             source_file.write_text("Trigger time,No1 Average Ch7\n0,-1.2E-03\n", encoding="utf-8")
             tab.set_source_file(source_file)
@@ -138,15 +155,49 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.current_import.row_count, 1)
             expected_database = database_path_for_source(source_file, database_dir)
             self.assertEqual(tab.current_database_path, expected_database)
-            self.assertEqual(tab.dataset_combo.count(), 1)
+            self.assertEqual(tab.dataset_combo.count(), 2)
+            self.assertEqual(
+                {tab.dataset_combo.itemText(index) for index in range(tab.dataset_combo.count())},
+                {"VF6_Test", "sample"},
+            )
             self.assertEqual(tab.dataset_combo.currentText(), "sample")
-            self.assertEqual(tab.dataset_combo.currentData(), expected_database)
+            self.assertEqual(tab.dataset_combo.currentData(), str(expected_database.resolve()))
             self.assertEqual(tab.source_file_edit.text(), "")
             self.assertEqual(tab.source_file_edit.toolTip(), "")
             self.assertTrue(tab.import_button.isEnabled())
             self.assertEqual(len(tab.current_samples), 1)
             self.assertTrue(expected_database.exists())
             info_box.assert_called_once()
+
+    def test_import_failure_keeps_source_combo_selection_and_import_enabled(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            existing_source = Path(tmpdir) / "VF6_Test.csv"
+            existing_source.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            existing_database = database_path_for_source(existing_source, database_dir)
+            import_dataset(
+                "VF6_Test",
+                existing_source,
+                [("0", 0.001, 1.0)],
+                existing_database,
+            )
+            tab._refresh_dataset_combo()
+            selected_dataset = tab.dataset_combo.currentData()
+
+            bad_source = Path(tmpdir) / "bad.txt"
+            bad_source.write_text("not,current,data\n", encoding="utf-8")
+            tab.set_source_file(bad_source)
+
+            with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
+                tab.import_current_file()
+
+            self.assertEqual(tab.analysis_result_edit.text(), "IMPORT FAILED")
+            self.assertEqual(tab.source_file_edit.text(), str(bad_source.resolve()))
+            self.assertEqual(tab.source_file_edit.toolTip(), str(bad_source.resolve()))
+            self.assertEqual(tab.dataset_combo.count(), 1)
+            self.assertEqual(tab.dataset_combo.currentData(), selected_dataset)
+            self.assertTrue(tab.import_button.isEnabled())
+            warning_box.assert_called_once()
 
     def test_duplicate_import_no_cancel_keeps_existing_dataset_unchanged(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -167,7 +218,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             tab._refresh_dataset_combo()
             self.assertEqual(tab.dataset_combo.count(), 1)
-            self.assertEqual(tab.dataset_combo.itemData(0), database_file)
+            self.assertEqual(tab.dataset_combo.itemData(0), str(database_file.resolve()))
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
             info_box.assert_not_called()
 
@@ -188,7 +239,7 @@ class QCurrentTabTests(unittest.TestCase):
                 tab.import_current_file()
 
             self.assertEqual(tab.dataset_combo.count(), 1)
-            self.assertEqual(tab.dataset_combo.currentData(), database_file)
+            self.assertEqual(tab.dataset_combo.currentData(), str(database_file.resolve()))
             self.assertEqual(tab.current_import.dataset.id, first.dataset.id)
             self.assertEqual(
                 [(sample.time, sample.current_mA) for sample in tab.current_samples],

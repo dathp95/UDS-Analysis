@@ -46,6 +46,16 @@ SOURCE_FILE_FILTER = (
 )
 
 
+class QCurrentDatasetComboBox(PrimaryComboBox):
+
+    def __init__(self, refresh_callback, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._refresh_callback = refresh_callback
+
+    def showPopup(self):
+        self._refresh_callback()
+        super().showPopup()
+
 class QCurrentTab(QWidget):
 
     def __init__(self, database_dir: str | Path | None = None):
@@ -58,7 +68,6 @@ class QCurrentTab(QWidget):
         self.current_database_path = None
         self._setup_ui()
         self._initialize_database()
-        self._refresh_dataset_combo()
         self._connect_signals()
         self.fn_refresh_theme()
 
@@ -112,7 +121,7 @@ class QCurrentTab(QWidget):
         )
         self.browse_button.setObjectName("browse_button")
 
-        self.dataset_combo = PrimaryComboBox()
+        self.dataset_combo = QCurrentDatasetComboBox(self._refresh_dataset_combo)
         self.dataset_combo.setObjectName("dataset_combo")
         self.dataset_combo.setMinimumWidth(220)
         self.dataset_combo.setFixedHeight(36)
@@ -306,6 +315,7 @@ class QCurrentTab(QWidget):
         self.source_file_edit.clear()
         self.source_file_edit.setToolTip("")
         self.import_button.setEnabled(True)
+
     def import_current_file(self):
         source_path = Path(self.source_file_edit.text()).expanduser()
         try:
@@ -351,7 +361,7 @@ class QCurrentTab(QWidget):
             result.dataset.id,
             self.current_database_path,
         )
-        self._refresh_dataset_combo(self.current_database_path)
+        self._refresh_dataset_combo(selected_db_path=self.current_database_path)
         self.clear_source_file_selection()
         self.analysis_result_edit.setText("IMPORTED")
         QMessageBox.information(
@@ -365,18 +375,21 @@ class QCurrentTab(QWidget):
             ),
         )
 
-    def _refresh_dataset_combo(self, desired_database_path: Path | None = None):
-        selected_path = desired_database_path
+    def _refresh_dataset_combo(self, selected_db_path: Path | str | None = None):
+        selected_path = selected_db_path
         if selected_path is None:
             selected_path = self.dataset_combo.currentData()
+        if selected_path is not None:
+            selected_path = str(Path(selected_path).expanduser().resolve())
 
         self.dataset_combo.clear()
         for dataset in list_datasets(self._database_dir):
             if dataset.database_path is None:
                 continue
+            db_path = dataset.database_path.resolve()
             self.dataset_combo.addItem(
-                dataset.database_path.stem,
-                dataset.database_path,
+                db_path.stem,
+                str(db_path),
             )
 
         if selected_path is not None:
