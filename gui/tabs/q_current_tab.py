@@ -110,7 +110,7 @@ class QCurrentTab(QWidget):
         self.main_splitter.addWidget(self.review_group)
         self.main_splitter.addWidget(self.chart_group)
         self.main_splitter.addWidget(self.right_panel)
-        self.main_splitter.setSizes([360, 620, 220])
+        self.main_splitter.setSizes([260, 720, 220])
 
         main_layout.addWidget(self.settings_group)
         main_layout.addWidget(self.main_splitter, 1)
