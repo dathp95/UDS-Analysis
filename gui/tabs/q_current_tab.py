@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
+import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
@@ -49,6 +51,47 @@ SOURCE_FILE_FILTER = (
     "CSV Files (*.csv);;"
     "Excel Files (*.xlsx)"
 )
+TIMESTAMP_FORMATS = (
+    "%y-%m-%d %H:%M:%S.%f",
+    "%y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+)
+
+
+def parse_timestamp(value):
+    text = str(value).strip()
+    if not text:
+        raise ValueError("empty timestamp")
+    try:
+        return float(text)
+    except ValueError:
+        pass
+    for timestamp_format in TIMESTAMP_FORMATS:
+        try:
+            return datetime.strptime(text, timestamp_format)
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError as error:
+        raise ValueError(f"Unsupported timestamp: {text}") from error
+
+
+def calculate_elapsed_seconds(samples):
+    parsed_values = [parse_timestamp(sample.time) for sample in samples]
+    if not parsed_values:
+        return []
+    first_value = parsed_values[0]
+    elapsed_seconds = []
+    for parsed_value in parsed_values:
+        if isinstance(first_value, datetime) and isinstance(parsed_value, datetime):
+            elapsed_seconds.append((parsed_value - first_value).total_seconds())
+        elif not isinstance(first_value, datetime) and not isinstance(parsed_value, datetime):
+            elapsed_seconds.append(float(parsed_value) - float(first_value))
+        else:
+            raise ValueError("Current data contains mixed timestamp formats")
+    return elapsed_seconds
 
 
 class QCurrentDatasetComboBox(PrimaryComboBox):
@@ -89,10 +132,15 @@ class QCurrentTab(QWidget):
         self.current_import = None
         self.current_samples = []
         self.current_database_path = None
+        self._chart_ready = False
+        self.current_curve = None
+        self.sleep_threshold_curve = None
+        self.wake_threshold_curve = None
         self._setup_ui()
         self._initialize_database()
         self._connect_signals()
         self.fn_refresh_theme()
+        self._update_action_states()
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -121,6 +169,8 @@ class QCurrentTab(QWidget):
     def _connect_signals(self):
         self.browse_button.clicked.connect(self.browse_current_file)
         self.import_button.clicked.connect(self.import_current_file)
+        self.btn_run.clicked.connect(self.run_current_analysis)
+        self.btn_clear.clicked.connect(self.clear_current_workspace)
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
 
@@ -263,11 +313,23 @@ class QCurrentTab(QWidget):
 
     def _create_chart_group(self):
         group = QGroupBox("Current Chart")
-        layout = QVBoxLayout(group)
-        layout.setContentsMargins(12, 16, 12, 12)
+        self.chart_layout = QVBoxLayout(group)
+        self.chart_layout.setContentsMargins(12, 16, 12, 12)
         self.chart_placeholder = self._create_placeholder_panel()
-        layout.addWidget(self.chart_placeholder, 1)
+        self.current_plot = self._create_current_plot()
+        self.current_plot.hide()
+        self.chart_layout.addWidget(self.chart_placeholder, 1)
+        self.chart_layout.addWidget(self.current_plot, 1)
         return group
+
+    def _create_current_plot(self):
+        plot = pg.PlotWidget()
+        plot.setBackground(None)
+        plot.setLabel("bottom", "Time", units="s")
+        plot.setLabel("left", "Current", units="mA")
+        plot.showGrid(x=True, y=True, alpha=0.25)
+        plot.addLegend()
+        return plot
 
     def _create_review_group(self):
         group = QGroupBox("Data Review")
@@ -437,7 +499,7 @@ class QCurrentTab(QWidget):
             result.dataset.id,
             self.current_database_path,
         )
-        self._populate_review_table(self.current_samples)
+        self._load_samples_into_workspace(self.current_samples)
         self._refresh_dataset_combo(selected_db_path=self.current_database_path)
         self.clear_source_file_selection()
         self.analysis_result_edit.setText("IMPORTED")
@@ -476,9 +538,113 @@ class QCurrentTab(QWidget):
         self.current_import = None
         self.current_database_path = dataset.database_path or database_path
         self.current_samples = get_samples(dataset.id, self.current_database_path)
-        self._populate_review_table(self.current_samples)
+        self._load_samples_into_workspace(self.current_samples)
         self.analysis_result_edit.setText("LOADED")
         self.import_button.setEnabled(True)
+
+    def _load_samples_into_workspace(self, samples):
+        self.current_samples = list(samples)
+        self._chart_ready = False
+        self._clear_current_chart()
+        self._populate_review_table(self.current_samples)
+        self._update_action_states()
+
+    def _update_action_states(self):
+        has_data = bool(self.current_samples)
+        has_chart = self._chart_ready
+        self.btn_run.setEnabled(has_data)
+        self.btn_copy_data_review.setEnabled(has_data)
+        self.btn_clear.setEnabled(has_data)
+        self.btn_export.setEnabled(has_chart)
+        self.btn_copy_chart.setEnabled(has_chart)
+        self.btn_copy_summary.setEnabled(has_chart)
+
+    def run_current_analysis(self):
+        if not self.current_samples:
+            self._update_action_states()
+            return
+        try:
+            elapsed_seconds, current_values = self._build_chart_data()
+        except ValueError as error:
+            QMessageBox.warning(self, "Q current Chart", str(error))
+            self._update_action_states()
+            return
+
+        self._update_current_chart(elapsed_seconds, current_values)
+        self._chart_ready = True
+        self._update_action_states()
+
+    def clear_current_workspace(self):
+        self.current_import = None
+        self.current_database_path = None
+        self.current_samples = []
+        self._chart_ready = False
+        self.review_table.setRowCount(0)
+        self._clear_current_chart()
+        self.analysis_result_edit.setText("NOT RUN")
+        self._update_action_states()
+
+    def _build_chart_data(self):
+        elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        if not elapsed_seconds:
+            raise ValueError("Q current data contains no valid timestamps.")
+        current_values = [float(sample.current_mA) for sample in self.current_samples]
+        if len(elapsed_seconds) != len(current_values):
+            raise ValueError("Q current chart data is not aligned.")
+        return elapsed_seconds, current_values
+
+    def _update_current_chart(self, elapsed_seconds, current_values):
+        plot_item = self.current_plot.getPlotItem()
+        plot_item.clear()
+        if plot_item.legend is None:
+            plot_item.addLegend()
+        else:
+            plot_item.legend.clear()
+
+        if len(elapsed_seconds) == 1:
+            threshold_x = [elapsed_seconds[0], elapsed_seconds[0] + 1.0]
+        else:
+            threshold_x = [min(elapsed_seconds), max(elapsed_seconds)]
+
+        self.current_curve = plot_item.plot(
+            elapsed_seconds,
+            current_values,
+            pen=pg.mkPen("#3b82f6", width=2),
+            name="Current",
+        )
+        self.current_curve.setClipToView(True)
+        self.current_curve.setDownsampling(auto=True, method="peak")
+
+        sleep_limit_ma = self.current_limit_edit.value()
+        wake_limit_ma = self.wake_limit_edit.value()
+        self.sleep_threshold_curve = plot_item.plot(
+            threshold_x,
+            [sleep_limit_ma, sleep_limit_ma],
+            pen=pg.mkPen("#22c55e", width=1.5, style=Qt.DashLine),
+            name="Sleep threshold",
+        )
+        self.wake_threshold_curve = plot_item.plot(
+            threshold_x,
+            [wake_limit_ma, wake_limit_ma],
+            pen=pg.mkPen("#f97316", width=1.5, style=Qt.DashLine),
+            name="Wake-up threshold",
+        )
+        plot_item.enableAutoRange()
+        self.chart_placeholder.hide()
+        self.current_plot.show()
+
+    def _clear_current_chart(self):
+        if not hasattr(self, "current_plot"):
+            return
+        plot_item = self.current_plot.getPlotItem()
+        plot_item.clear()
+        if plot_item.legend is not None:
+            plot_item.legend.clear()
+        self.current_curve = None
+        self.sleep_threshold_curve = None
+        self.wake_threshold_curve = None
+        self.current_plot.hide()
+        self.chart_placeholder.show()
 
     def _populate_review_table(self, samples):
         self.review_table.setSortingEnabled(False)
@@ -604,6 +770,7 @@ class QCurrentTab(QWidget):
         spinbox_style = fn_spinbox_style()
         for spinbox in (
             self.current_limit_edit,
+            self.sleep_duration_edit,
             self.wake_limit_edit,
             self.wake_duration_edit,
         ):

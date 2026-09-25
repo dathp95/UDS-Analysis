@@ -18,7 +18,11 @@ from PySide6.QtWidgets import (
 )
 
 from core.sleep_current_database import database_path_for_source, import_dataset
-from gui.tabs.q_current_tab import PLACEHOLDER_VALUE, QCurrentTab
+from gui.tabs.q_current_tab import (
+    PLACEHOLDER_VALUE,
+    QCurrentTab,
+    calculate_elapsed_seconds,
+)
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
@@ -39,6 +43,11 @@ class QCurrentTabTests(unittest.TestCase):
         tab = QCurrentTab(database_dir=database_dir)
         self.addCleanup(tab.deleteLater)
         return tab, database_dir
+
+
+    def _legend_labels(self, tab):
+        legend = tab.current_plot.getPlotItem().legend
+        return [label.text for _sample, label in legend.items]
 
     def test_analysis_settings_header_has_two_rows_and_file_controls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -67,26 +76,49 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIsInstance(tab.current_limit_edit, QDoubleSpinBox)
             self.assertEqual(tab.current_limit_edit.objectName(), "current_limit_edit")
             self.assertEqual(tab.current_limit_edit.minimum(), 0.0)
-            self.assertEqual(tab.current_limit_edit.decimals(), 2)
+            self.assertEqual(tab.current_limit_edit.decimals(), 1)
             self.assertEqual(tab.current_limit_edit.value(), 30.0)
-            self.assertEqual(tab.current_limit_edit.text(), "30.00")
+            self.assertEqual(tab.current_limit_edit.text(), "30.0")
             self.assertEqual(tab.wake_limit_label.text(), "Wake Up limit (mA)")
             self.assertIsInstance(tab.wake_limit_edit, QDoubleSpinBox)
             self.assertEqual(tab.wake_limit_edit.objectName(), "wake_limit_edit")
             self.assertEqual(tab.wake_limit_edit.minimum(), 0.0)
-            self.assertEqual(tab.wake_limit_edit.decimals(), 2)
+            self.assertEqual(tab.sleep_duration_label.text(), "Sleep duration (s)")
+            self.assertIsInstance(tab.sleep_duration_edit, QDoubleSpinBox)
+            self.assertEqual(tab.sleep_duration_edit.objectName(), "sleep_duration_edit")
+            self.assertEqual(tab.sleep_duration_edit.minimum(), 10.0)
+            self.assertEqual(tab.sleep_duration_edit.decimals(), 1)
+            self.assertEqual(tab.sleep_duration_edit.value(), 60.0)
+            self.assertEqual(tab.sleep_duration_edit.text(), "60.0")
+            self.assertEqual(tab.wake_limit_edit.decimals(), 1)
             self.assertEqual(tab.wake_limit_edit.value(), 300.0)
-            self.assertEqual(tab.wake_limit_edit.text(), "300.00")
+            self.assertEqual(tab.wake_limit_edit.text(), "300.0")
             self.assertEqual(tab.wake_duration_label.text(), "Wake duration (s)")
             self.assertIsInstance(tab.wake_duration_edit, QDoubleSpinBox)
             self.assertEqual(tab.wake_duration_edit.objectName(), "wake_duration_edit")
-            self.assertEqual(tab.wake_duration_edit.minimum(), 0.1)
+            self.assertEqual(tab.wake_duration_edit.minimum(), 1.0)
             self.assertEqual(tab.wake_duration_edit.maximum(), 3600.0)
             self.assertEqual(tab.wake_duration_edit.singleStep(), 0.5)
             self.assertEqual(tab.wake_duration_edit.decimals(), 1)
             self.assertEqual(tab.wake_duration_edit.value(), 2.0)
             self.assertEqual(tab.wake_duration_edit.text(), "2.0")
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+
+    def test_q_current_action_buttons_start_disabled_until_data_loads(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+
+            self.assertTrue(tab.browse_button.isEnabled())
+            self.assertTrue(tab.import_button.isEnabled())
+            self.assertFalse(tab.btn_run.isEnabled())
+            self.assertFalse(tab.btn_copy_data_review.isEnabled())
+            self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_copy_summary.isEnabled())
+            self.assertFalse(tab.btn_clear.isEnabled())
+            self.assertTrue(tab.current_plot.isHidden())
+            self.assertFalse(tab.chart_placeholder.isHidden())
 
     def test_startup_keeps_dataset_combo_empty_until_user_opens_dropdown(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -184,6 +216,13 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.source_file_edit.toolTip(), "")
             self.assertTrue(tab.import_button.isEnabled())
             self.assertEqual(len(tab.current_samples), 1)
+            self.assertTrue(tab.btn_run.isEnabled())
+            self.assertTrue(tab.btn_copy_data_review.isEnabled())
+            self.assertTrue(tab.btn_clear.isEnabled())
+            self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_copy_summary.isEnabled())
+            self.assertIsNone(tab.current_curve)
             self.assertTrue(expected_database.exists())
             info_box.assert_called_once()
 
@@ -223,6 +262,12 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.review_table.item(2, 0).text(), "3")
             self.assertEqual(tab.review_table.item(2, 2).text(), "-15.80")
             self.assertTrue(tab.import_button.isEnabled())
+            self.assertTrue(tab.btn_run.isEnabled())
+            self.assertTrue(tab.btn_copy_data_review.isEnabled())
+            self.assertTrue(tab.btn_clear.isEnabled())
+            self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_copy_summary.isEnabled())
             warning_box.assert_not_called()
 
     def test_review_table_selection_clears_when_focus_leaves(self):
@@ -285,7 +330,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.summary_values["sample_count"].setText("2")
             tab.summary_values["duration"].setText("1.043 s")
 
-            tab.btn_copy_data_review.click()
+            tab.copy_data_review()
 
             self.assertEqual(
                 QApplication.clipboard().text(),
@@ -294,7 +339,7 @@ class QCurrentTabTests(unittest.TestCase):
                 "2\t26-09-11 11:41:30.079\t-17.30",
             )
 
-            tab.btn_copy_summary.click()
+            tab.copy_summary()
 
             self.assertEqual(
                 QApplication.clipboard().text(),
@@ -304,6 +349,120 @@ class QCurrentTabTests(unittest.TestCase):
                 f"Max Current\t{PLACEHOLDER_VALUE}\n"
                 f"Average Current\t{PLACEHOLDER_VALUE}",
             )
+
+
+    def test_calculate_elapsed_seconds_uses_real_timestamp_differences(self):
+        samples = [
+            type("Sample", (), {"time": "26-09-11 11:41:29.036"})(),
+            type("Sample", (), {"time": "26-09-11 11:41:30.079"})(),
+            type("Sample", (), {"time": "26-09-11 11:41:31.150"})(),
+        ]
+
+        elapsed_seconds = calculate_elapsed_seconds(samples)
+
+        self.assertEqual(elapsed_seconds, [0.0, 1.043, 2.114])
+
+    def test_run_draws_current_chart_thresholds_and_enables_chart_actions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            source_file = Path(tmpdir) / "sample.csv"
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
+            import_dataset(
+                "sample",
+                source_file,
+                [
+                    ("26-09-11 11:41:29.036", -0.0169, -16.9),
+                    ("26-09-11 11:41:30.079", -0.0173, -17.3),
+                    ("26-09-11 11:41:31.150", -0.0181, -18.1),
+                ],
+                database_file,
+            )
+            tab._refresh_dataset_combo(selected_db_path=database_file)
+            tab.import_current_file()
+
+            tab.btn_run.click()
+
+            current_x, current_y = tab.current_curve.getData()
+            self.assertEqual([round(value, 3) for value in current_x.tolist()], [0.0, 1.043, 2.114])
+            self.assertEqual([round(value, 2) for value in current_y.tolist()], [-16.9, -17.3, -18.1])
+            _sleep_x, sleep_y = tab.sleep_threshold_curve.getData()
+            _wake_x, wake_y = tab.wake_threshold_curve.getData()
+            self.assertEqual(sleep_y.tolist(), [tab.current_limit_edit.value()] * 2)
+            self.assertEqual(wake_y.tolist(), [tab.wake_limit_edit.value()] * 2)
+            self.assertEqual(self._legend_labels(tab), [
+                "Current",
+                "Sleep threshold",
+                "Wake-up threshold",
+            ])
+            self.assertTrue(tab.btn_export.isEnabled())
+            self.assertTrue(tab.btn_copy_chart.isEnabled())
+            self.assertTrue(tab.btn_copy_summary.isEnabled())
+            self.assertFalse(tab.current_plot.isHidden())
+            self.assertTrue(tab.chart_placeholder.isHidden())
+
+    def test_run_again_refreshes_chart_without_duplicate_items_and_updates_thresholds(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            source_file = Path(tmpdir) / "sample.csv"
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
+            import_dataset(
+                "sample",
+                source_file,
+                [("0", 0.001, 1.0), ("1.5", 0.002, 2.0)],
+                database_file,
+            )
+            tab._refresh_dataset_combo(selected_db_path=database_file)
+            tab.import_current_file()
+
+            tab.btn_run.click()
+            tab.current_limit_edit.setValue(45.0)
+            tab.wake_limit_edit.setValue(350.0)
+            tab.btn_run.click()
+
+            self.assertEqual(len(tab.current_plot.getPlotItem().listDataItems()), 3)
+            self.assertEqual(len(self._legend_labels(tab)), 3)
+            _sleep_x, sleep_y = tab.sleep_threshold_curve.getData()
+            _wake_x, wake_y = tab.wake_threshold_curve.getData()
+            self.assertEqual(sleep_y.tolist(), [45.0, 45.0])
+            self.assertEqual(wake_y.tolist(), [350.0, 350.0])
+            current_x, current_y = tab.current_curve.getData()
+            self.assertEqual(current_x.tolist(), [0.0, 1.5])
+            self.assertEqual(current_y.tolist(), [1.0, 2.0])
+
+    def test_clear_resets_workspace_without_deleting_database_or_combo(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            source_file = Path(tmpdir) / "sample.csv"
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
+            import_dataset(
+                "sample",
+                source_file,
+                [("0", 0.001, 1.0), ("1", 0.002, 2.0)],
+                database_file,
+            )
+            tab._refresh_dataset_combo(selected_db_path=database_file)
+            tab.import_current_file()
+            tab.btn_run.click()
+
+            tab.btn_clear.click()
+
+            self.assertTrue(database_file.exists())
+            self.assertEqual(tab.dataset_combo.count(), 1)
+            self.assertEqual(tab.current_samples, [])
+            self.assertEqual(tab.review_table.rowCount(), 0)
+            self.assertIsNone(tab.current_curve)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertFalse(tab.btn_run.isEnabled())
+            self.assertFalse(tab.btn_copy_data_review.isEnabled())
+            self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_copy_summary.isEnabled())
+            self.assertFalse(tab.btn_clear.isEnabled())
+            self.assertTrue(tab.current_plot.isHidden())
+            self.assertFalse(tab.chart_placeholder.isHidden())
 
     def test_import_failure_keeps_source_combo_selection_and_import_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
