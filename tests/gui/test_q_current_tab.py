@@ -46,8 +46,7 @@ class QCurrentTabTests(unittest.TestCase):
 
 
     def _legend_labels(self, tab):
-        legend = tab.current_plot.getPlotItem().legend
-        return [label.text for _sample, label in legend.items]
+        return [item.legend_text for item in tab.legend_items]
 
     def test_analysis_settings_header_has_two_rows_and_file_controls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -119,6 +118,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
             self.assertFalse(tab.chart_placeholder.isHidden())
+            self.assertTrue(tab.chart_scrollbar.isHidden())
 
     def test_startup_keeps_dataset_combo_empty_until_user_opens_dropdown(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -222,7 +222,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_export.isEnabled())
             self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
-            self.assertIsNone(tab.current_curve)
+            self.assertIsNone(tab.current_curve.getData()[0])
             self.assertTrue(expected_database.exists())
             info_box.assert_called_once()
 
@@ -393,13 +393,50 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(self._legend_labels(tab), [
                 "Current",
                 "Sleep threshold",
-                "Wake-up threshold",
+                "Wake-up",
             ])
+            self.assertIsNone(tab.current_plot.getPlotItem().legend)
             self.assertTrue(tab.btn_export.isEnabled())
             self.assertTrue(tab.btn_copy_chart.isEnabled())
             self.assertTrue(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
+            self.assertTrue(tab.chart_scrollbar.isHidden())
+            bottom_axis = tab.current_plot.getPlotItem().getAxis("bottom")
+            left_axis = tab.current_plot.getPlotItem().getAxis("left")
+            self.assertEqual(bottom_axis.labelText, "Time (s)")
+            self.assertEqual(left_axis.labelText, "Current (mA)")
+            self.assertFalse(getattr(bottom_axis, "autoSIPrefix", True))
+            self.assertFalse(getattr(left_axis, "autoSIPrefix", True))
+
+    def test_long_time_range_uses_horizontal_chart_scrollbar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, database_dir = self._create_tab(tmpdir)
+            source_file = Path(tmpdir) / "long_sample.csv"
+            source_file.write_text("Trigger time,No1 Average Ch1\n0,0.001\n", encoding="utf-8")
+            database_file = database_path_for_source(source_file, database_dir)
+            import_dataset(
+                "long_sample",
+                source_file,
+                [(str(seconds), 0.001, float(index)) for index, seconds in enumerate((0, 30, 60, 90, 120))],
+                database_file,
+            )
+            tab._refresh_dataset_combo(selected_db_path=database_file)
+            tab.import_current_file()
+
+            tab.btn_run.click()
+
+            self.assertFalse(tab.chart_scrollbar.isHidden())
+            self.assertGreater(tab.chart_scrollbar.maximum(), 0)
+            start_range, end_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(start_range, 0.0, places=3)
+            self.assertAlmostEqual(end_range, 60.0, places=3)
+
+            tab.chart_scrollbar.setValue(tab.chart_scrollbar.maximum())
+
+            start_range, end_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(start_range, 60.0, places=3)
+            self.assertAlmostEqual(end_range, 120.0, places=3)
 
     def test_run_again_refreshes_chart_without_duplicate_items_and_updates_thresholds(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -453,7 +490,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.current_samples, [])
             self.assertEqual(tab.review_table.rowCount(), 0)
-            self.assertIsNone(tab.current_curve)
+            self.assertIsNone(tab.current_curve.getData()[0])
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
@@ -585,6 +622,7 @@ class QCurrentTabTests(unittest.TestCase):
                 "CLEAR",
             ])
             self.assertTrue(tab.dataset_combo.view().verticalScrollBar().styleSheet())
+            self.assertTrue(tab.chart_scrollbar.styleSheet())
 
             light_style = tab.chart_placeholder.styleSheet()
             ThemeManager.fn_set_theme(ThemeType.DARK)

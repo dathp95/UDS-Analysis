@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLabel,
     QMessageBox,
+    QScrollBar,
     QSizePolicy,
     QSplitter,
     QVBoxLayout,
@@ -33,7 +34,10 @@ from core.sleep_current_database import (
     normalize_current_data,
 )
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
-from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+    fn_scrollbar_style,
+)
 from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
@@ -51,6 +55,8 @@ SOURCE_FILE_FILTER = (
     "CSV Files (*.csv);;"
     "Excel Files (*.xlsx)"
 )
+CHART_SCROLL_VISIBLE_SECONDS = 60.0
+CHART_SCROLL_SCALE = 1000
 TIMESTAMP_FORMATS = (
     "%y-%m-%d %H:%M:%S.%f",
     "%y-%m-%d %H:%M:%S",
@@ -136,6 +142,10 @@ class QCurrentTab(QWidget):
         self.current_curve = None
         self.sleep_threshold_curve = None
         self.wake_threshold_curve = None
+        self._chart_scrollbar_updating = False
+        self._chart_x_min = 0.0
+        self._chart_x_max = 0.0
+        self._chart_visible_span = CHART_SCROLL_VISIBLE_SECONDS
         self._setup_ui()
         self._initialize_database()
         self._connect_signals()
@@ -173,6 +183,9 @@ class QCurrentTab(QWidget):
         self.btn_clear.clicked.connect(self.clear_current_workspace)
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
+        self.chart_scrollbar.valueChanged.connect(
+            self._on_chart_scrollbar_changed
+        )
 
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
@@ -315,20 +328,117 @@ class QCurrentTab(QWidget):
         group = QGroupBox("Current Chart")
         self.chart_layout = QVBoxLayout(group)
         self.chart_layout.setContentsMargins(12, 16, 12, 12)
+        self.chart_layout.setSpacing(8)
+
+        self.legend_layout = QHBoxLayout()
+        self.legend_layout.setContentsMargins(0, 0, 0, 0)
+        self.legend_layout.setSpacing(18)
+        self.legend_items = self._create_chart_legend_items()
+        for legend_item in self.legend_items:
+            self.legend_layout.addWidget(legend_item)
+        self.legend_layout.addStretch(1)
+        self.chart_coordinate_label = PrimaryLabel("")
+        self.chart_coordinate_label.setObjectName("chart_coordinate_label")
+        self.chart_coordinate_label.setMinimumWidth(160)
+        self.chart_coordinate_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.legend_layout.addWidget(self.chart_coordinate_label)
+
+        self.chart_content_layout = QVBoxLayout()
+        self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
         self.chart_placeholder = self._create_placeholder_panel()
         self.current_plot = self._create_current_plot()
         self.current_plot.hide()
-        self.chart_layout.addWidget(self.chart_placeholder, 1)
-        self.chart_layout.addWidget(self.current_plot, 1)
+        self.chart_content_layout.addWidget(self.chart_placeholder, 1)
+        self.chart_content_layout.addWidget(self.current_plot, 1)
+
+        self.chart_scrollbar = QScrollBar(Qt.Horizontal)
+        self.chart_scrollbar.setObjectName("chart_scrollbar")
+        self.chart_scrollbar.setSingleStep(CHART_SCROLL_SCALE)
+        self.chart_scrollbar.setPageStep(
+            int(CHART_SCROLL_VISIBLE_SECONDS * CHART_SCROLL_SCALE)
+        )
+        self.chart_scrollbar.hide()
+        self.chart_content_layout.addWidget(self.chart_scrollbar)
+
+        self.chart_layout.addLayout(self.legend_layout)
+        self.chart_layout.addLayout(self.chart_content_layout, 1)
         return group
+
+    def _create_chart_legend_items(self):
+        return [
+            self._create_legend_item(
+                "Current",
+                "line-solid",
+                "Gia tri dong dien thuc te",
+            ),
+            self._create_legend_item(
+                "Sleep threshold",
+                "line-dashed",
+                "Nguong dong ngu do nguoi dung cai dat",
+            ),
+            self._create_legend_item(
+                "Wake-up",
+                "dot",
+                "Nguong tham chieu wake-up",
+            ),
+        ]
+
+    def _create_legend_item(self, text, marker_type, tooltip):
+        item = QWidget()
+        item.setToolTip(tooltip)
+        layout = QHBoxLayout(item)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        marker = QLabel()
+        marker.setObjectName(f"legend_marker_{marker_type}")
+        marker.setFixedSize(34, 14)
+        marker.setToolTip(tooltip)
+        label = PrimaryLabel(text)
+        label.setToolTip(tooltip)
+        layout.addWidget(marker)
+        layout.addWidget(label)
+        item.marker = marker
+        item.label = label
+        item.marker_type = marker_type
+        item.legend_text = text
+        self._theme_widgets.append(label)
+        return item
 
     def _create_current_plot(self):
         plot = pg.PlotWidget()
         plot.setBackground(None)
-        plot.setLabel("bottom", "Time", units="s")
-        plot.setLabel("left", "Current", units="mA")
+        plot.setLabel("bottom", "Time (s)")
+        plot.setLabel("left", "Current (mA)")
+        plot_item = plot.getPlotItem()
+        plot_item.getAxis("bottom").enableAutoSIPrefix(False)
+        plot_item.getAxis("left").enableAutoSIPrefix(False)
         plot.showGrid(x=True, y=True, alpha=0.25)
-        plot.addLegend()
+        plot.setMouseEnabled(x=True, y=True)
+        plot.setMenuEnabled(True)
+
+        colors = self._chart_colors()
+        self.current_curve = plot.plot(
+            [],
+            [],
+            pen=pg.mkPen(colors["current"], width=2),
+        )
+        self.current_curve.setClipToView(True)
+        self.current_curve.setDownsampling(auto=True, method="peak")
+        self.sleep_threshold_curve = plot.plot(
+            [],
+            [],
+            pen=pg.mkPen(colors["sleep"], width=1.5, style=Qt.DashLine),
+        )
+        self.wake_threshold_curve = plot.plot(
+            [],
+            [],
+            pen=pg.mkPen(colors["wake"], width=1.5, style=Qt.DotLine),
+        )
+        self._mouse_move_proxy = pg.SignalProxy(
+            plot.scene().sigMouseMoved,
+            rateLimit=30,
+            slot=self._update_hover_coordinates,
+        )
         return plot
 
     def _create_review_group(self):
@@ -594,57 +704,164 @@ class QCurrentTab(QWidget):
         return elapsed_seconds, current_values
 
     def _update_current_chart(self, elapsed_seconds, current_values):
-        plot_item = self.current_plot.getPlotItem()
-        plot_item.clear()
-        if plot_item.legend is None:
-            plot_item.addLegend()
-        else:
-            plot_item.legend.clear()
-
         if len(elapsed_seconds) == 1:
             threshold_x = [elapsed_seconds[0], elapsed_seconds[0] + 1.0]
         else:
             threshold_x = [min(elapsed_seconds), max(elapsed_seconds)]
 
-        self.current_curve = plot_item.plot(
-            elapsed_seconds,
-            current_values,
-            pen=pg.mkPen("#3b82f6", width=2),
-            name="Current",
-        )
-        self.current_curve.setClipToView(True)
-        self.current_curve.setDownsampling(auto=True, method="peak")
-
         sleep_limit_ma = self.current_limit_edit.value()
         wake_limit_ma = self.wake_limit_edit.value()
-        self.sleep_threshold_curve = plot_item.plot(
+        self.current_curve.setData(elapsed_seconds, current_values)
+        self.sleep_threshold_curve.setData(
             threshold_x,
             [sleep_limit_ma, sleep_limit_ma],
-            pen=pg.mkPen("#22c55e", width=1.5, style=Qt.DashLine),
-            name="Sleep threshold",
         )
-        self.wake_threshold_curve = plot_item.plot(
+        self.wake_threshold_curve.setData(
             threshold_x,
             [wake_limit_ma, wake_limit_ma],
-            pen=pg.mkPen("#f97316", width=1.5, style=Qt.DashLine),
-            name="Wake-up threshold",
         )
-        plot_item.enableAutoRange()
+        self._update_chart_scrollbar(threshold_x[0], threshold_x[-1])
+        self.current_plot.enableAutoRange(axis="y")
         self.chart_placeholder.hide()
         self.current_plot.show()
+
+    def _update_chart_scrollbar(self, x_min, x_max):
+        self._chart_x_min = float(x_min)
+        self._chart_x_max = float(x_max)
+        total_span = max(0.0, self._chart_x_max - self._chart_x_min)
+        self._chart_visible_span = min(
+            CHART_SCROLL_VISIBLE_SECONDS,
+            total_span if total_span > 0.0 else CHART_SCROLL_VISIBLE_SECONDS,
+        )
+        max_scroll = max(
+            0,
+            int(round((total_span - self._chart_visible_span) * CHART_SCROLL_SCALE)),
+        )
+
+        self._chart_scrollbar_updating = True
+        self.chart_scrollbar.setRange(0, max_scroll)
+        self.chart_scrollbar.setPageStep(
+            max(1, int(round(self._chart_visible_span * CHART_SCROLL_SCALE)))
+        )
+        self.chart_scrollbar.setSingleStep(CHART_SCROLL_SCALE)
+        self.chart_scrollbar.setValue(0)
+        self.chart_scrollbar.setVisible(max_scroll > 0)
+        self._chart_scrollbar_updating = False
+        self._apply_chart_scrollbar_range()
+
+    def _on_chart_scrollbar_changed(self, _value=None):
+        if self._chart_scrollbar_updating or not self._chart_ready:
+            return
+        self._apply_chart_scrollbar_range()
+
+    def _apply_chart_scrollbar_range(self):
+        total_span = max(0.0, self._chart_x_max - self._chart_x_min)
+        if total_span <= 0.0:
+            self.current_plot.setXRange(
+                self._chart_x_min,
+                self._chart_x_min + 1.0,
+                padding=0.02,
+            )
+            return
+
+        if self.chart_scrollbar.maximum() <= 0:
+            self.current_plot.setXRange(
+                self._chart_x_min,
+                self._chart_x_max,
+                padding=0.02,
+            )
+            return
+
+        start = (
+            self._chart_x_min
+            + self.chart_scrollbar.value() / CHART_SCROLL_SCALE
+        )
+        end = min(start + self._chart_visible_span, self._chart_x_max)
+        if end <= start:
+            end = start + 1.0
+        self.current_plot.setXRange(start, end, padding=0)
 
     def _clear_current_chart(self):
         if not hasattr(self, "current_plot"):
             return
-        plot_item = self.current_plot.getPlotItem()
-        plot_item.clear()
-        if plot_item.legend is not None:
-            plot_item.legend.clear()
-        self.current_curve = None
-        self.sleep_threshold_curve = None
-        self.wake_threshold_curve = None
+        self.current_curve.setData([], [])
+        self.sleep_threshold_curve.setData([], [])
+        self.wake_threshold_curve.setData([], [])
+        self.chart_coordinate_label.setText("")
+        self._chart_scrollbar_updating = True
+        self.chart_scrollbar.setValue(self.chart_scrollbar.minimum())
+        self.chart_scrollbar.hide()
+        self._chart_scrollbar_updating = False
         self.current_plot.hide()
         self.chart_placeholder.show()
+
+    def _update_hover_coordinates(self, event):
+        if not self._chart_ready:
+            self.chart_coordinate_label.setText("")
+            return
+        position = event[0]
+        plot_item = self.current_plot.getPlotItem()
+        if not plot_item.sceneBoundingRect().contains(position):
+            return
+        point = plot_item.vb.mapSceneToView(position)
+        self.chart_coordinate_label.setText(
+            f"Time: {point.x():.3f} s | Current: {point.y():.2f} mA"
+        )
+
+    def _chart_colors(self):
+        colors = ThemeManager.fn_colors()
+        return {
+            "current": colors.PRIMARY,
+            "sleep": colors.WARNING,
+            "wake": colors.SUCCESS,
+            "background": colors.WINDOW,
+            "grid": colors.TABLE_GRID,
+            "axis": colors.TEXT,
+        }
+
+    def _refresh_chart_theme(self):
+        if not hasattr(self, "current_plot"):
+            return
+        chart_colors = self._chart_colors()
+        self.current_plot.setBackground(chart_colors["background"])
+        plot_item = self.current_plot.getPlotItem()
+        plot_item.getAxis("bottom").setPen(chart_colors["axis"])
+        plot_item.getAxis("bottom").setTextPen(chart_colors["axis"])
+        plot_item.getAxis("left").setPen(chart_colors["axis"])
+        plot_item.getAxis("left").setTextPen(chart_colors["axis"])
+        self.chart_scrollbar.setStyleSheet(fn_scrollbar_style())
+        self.current_curve.setPen(pg.mkPen(chart_colors["current"], width=2))
+        self.sleep_threshold_curve.setPen(
+            pg.mkPen(chart_colors["sleep"], width=1.5, style=Qt.DashLine)
+        )
+        self.wake_threshold_curve.setPen(
+            pg.mkPen(chart_colors["wake"], width=1.5, style=Qt.DotLine)
+        )
+        self._refresh_legend_theme()
+
+    def _refresh_legend_theme(self):
+        if not hasattr(self, "legend_items"):
+            return
+        chart_colors = self._chart_colors()
+        marker_styles = {
+            "line-solid": (
+                f"border-top: 3px solid {chart_colors['current']};"
+                "background: transparent;"
+            ),
+            "line-dashed": (
+                f"border-top: 3px dashed {chart_colors['sleep']};"
+                "background: transparent;"
+            ),
+            "dot": (
+                f"background: {chart_colors['wake']};"
+                "border-radius: 6px;"
+                "max-width: 12px; min-width: 12px;"
+                "max-height: 12px; min-height: 12px;"
+            ),
+        }
+        for item in self.legend_items:
+            item.marker.setStyleSheet(marker_styles[item.marker_type])
+        self.chart_coordinate_label.fn_refresh_theme()
 
     def _populate_review_table(self, samples):
         self.review_table.setSortingEnabled(False)
@@ -778,6 +995,8 @@ class QCurrentTab(QWidget):
 
         for label in self.findChildren(PrimaryLabel):
             label.fn_refresh_theme()
+
+        self._refresh_chart_theme()
 
         colors = ThemeManager.fn_colors()
         value_style = f"""
