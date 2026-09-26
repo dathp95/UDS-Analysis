@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -100,6 +102,78 @@ def calculate_elapsed_seconds(samples):
     return elapsed_seconds
 
 
+def detect_wake_up_intervals(
+    time_seconds,
+    current_ma,
+    wake_limit_ma,
+    wake_duration_s,
+):
+    time_array = np.asarray(time_seconds, dtype=float)
+    current_array = np.asarray(current_ma, dtype=float)
+    if time_array.size == 0 or current_array.size == 0:
+        return []
+    if time_array.size != current_array.size:
+        raise ValueError("Wake-up detection data is not aligned.")
+
+    order = np.argsort(time_array)
+    time_array = time_array[order]
+    current_array = current_array[order]
+    limit_ma = abs(float(wake_limit_ma))
+    duration_s = max(0.0, float(wake_duration_s))
+    active_mask = np.abs(current_array) >= limit_ma
+
+    intervals = []
+    start_index = None
+    for index, is_active in enumerate(active_mask):
+        if is_active and start_index is None:
+            start_index = index
+        elif not is_active and start_index is not None:
+            _append_wake_up_interval(
+                intervals,
+                time_array,
+                current_array,
+                start_index,
+                index - 1,
+                duration_s,
+            )
+            start_index = None
+
+    if start_index is not None:
+        _append_wake_up_interval(
+            intervals,
+            time_array,
+            current_array,
+            start_index,
+            len(time_array) - 1,
+            duration_s,
+        )
+    return intervals
+
+
+def _append_wake_up_interval(
+    intervals,
+    time_array,
+    current_array,
+    start_index,
+    end_index,
+    min_duration_s,
+):
+    start_s = float(time_array[start_index])
+    end_s = float(time_array[end_index])
+    duration_s = end_s - start_s
+    if duration_s < min_duration_s:
+        return
+    interval_currents = current_array[start_index : end_index + 1]
+    intervals.append(
+        {
+            "start_s": start_s,
+            "end_s": end_s,
+            "duration_s": duration_s,
+            "peak_current_ma": float(np.max(np.abs(interval_currents))),
+        }
+    )
+
+
 class QCurrentDatasetComboBox(PrimaryComboBox):
 
     def __init__(self, refresh_callback, *args, **kwargs):
@@ -140,8 +214,14 @@ class QCurrentTab(QWidget):
         self.current_database_path = None
         self._chart_ready = False
         self.current_curve = None
-        self.sleep_threshold_curve = None
-        self.wake_threshold_curve = None
+        self.upper_sleep_limit_line = None
+        self.lower_sleep_limit_line = None
+        self.hover_marker = None
+        self.hover_label = None
+        self.wake_up_regions = []
+        self.chart_time_seconds = np.array([], dtype=float)
+        self.chart_current_ma = np.array([], dtype=float)
+        self._hover_sample = None
         self._chart_scrollbar_updating = False
         self._chart_x_min = 0.0
         self._chart_x_max = 0.0
@@ -186,6 +266,11 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.valueChanged.connect(
             self._on_chart_scrollbar_changed
         )
+        self.current_limit_edit.valueChanged.connect(
+            self.update_sleep_limit_lines
+        )
+        self.wake_limit_edit.valueChanged.connect(self._mark_analysis_not_run)
+        self.wake_duration_edit.valueChanged.connect(self._mark_analysis_not_run)
 
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
@@ -417,26 +502,52 @@ class QCurrentTab(QWidget):
         plot.setMenuEnabled(True)
 
         colors = self._chart_colors()
+        self.upper_sleep_limit_line = pg.InfiniteLine(
+            pos=abs(self.current_limit_edit.value()),
+            angle=0,
+            movable=False,
+            pen=pg.mkPen(colors["sleep"], width=1.5, style=Qt.DashLine),
+        )
+        self.lower_sleep_limit_line = pg.InfiniteLine(
+            pos=-abs(self.current_limit_edit.value()),
+            angle=0,
+            movable=False,
+            pen=pg.mkPen(colors["sleep"], width=1.5, style=Qt.DashLine),
+        )
+        self.upper_sleep_limit_line.setZValue(5)
+        self.lower_sleep_limit_line.setZValue(5)
+        plot.addItem(self.upper_sleep_limit_line)
+        plot.addItem(self.lower_sleep_limit_line)
+
         self.current_curve = plot.plot(
             [],
             [],
             pen=pg.mkPen(colors["current"], width=2),
         )
+        self.current_curve.setZValue(20)
         self.current_curve.setClipToView(True)
         self.current_curve.setDownsampling(auto=True, method="peak")
-        self.sleep_threshold_curve = plot.plot(
+
+        self.hover_marker = pg.ScatterPlotItem(
             [],
             [],
-            pen=pg.mkPen(colors["sleep"], width=1.5, style=Qt.DashLine),
+            symbol="s",
+            size=8,
+            brush=pg.mkBrush(colors["hover_marker"]),
+            pen=pg.mkPen(colors["hover_marker_border"], width=1),
         )
-        self.wake_threshold_curve = plot.plot(
-            [],
-            [],
-            pen=pg.mkPen(colors["wake"], width=1.5, style=Qt.DotLine),
-        )
+        self.hover_marker.setZValue(30)
+        self.hover_marker.hide()
+        plot.addItem(self.hover_marker)
+
+        self.hover_label = pg.TextItem(anchor=(0, 1))
+        self.hover_label.setZValue(40)
+        self.hover_label.hide()
+        plot.addItem(self.hover_label)
+
         self._mouse_move_proxy = pg.SignalProxy(
             plot.scene().sigMouseMoved,
-            rateLimit=30,
+            rateLimit=60,
             slot=self._update_hover_coordinates,
         )
         return plot
@@ -682,6 +793,7 @@ class QCurrentTab(QWidget):
 
         self._update_current_chart(elapsed_seconds, current_values)
         self._chart_ready = True
+        self.analysis_result_edit.setText("RUN")
         self._update_action_states()
 
     def clear_current_workspace(self):
@@ -704,23 +816,32 @@ class QCurrentTab(QWidget):
         return elapsed_seconds, current_values
 
     def _update_current_chart(self, elapsed_seconds, current_values):
-        if len(elapsed_seconds) == 1:
-            threshold_x = [elapsed_seconds[0], elapsed_seconds[0] + 1.0]
-        else:
-            threshold_x = [min(elapsed_seconds), max(elapsed_seconds)]
+        time_array = np.asarray(elapsed_seconds, dtype=float)
+        current_array = np.asarray(current_values, dtype=float)
+        if time_array.size != current_array.size:
+            raise ValueError("Q current chart data is not aligned.")
+        order = np.argsort(time_array)
+        time_array = time_array[order]
+        current_array = current_array[order]
+        self.chart_time_seconds = time_array
+        self.chart_current_ma = current_array
 
-        sleep_limit_ma = self.current_limit_edit.value()
-        wake_limit_ma = self.wake_limit_edit.value()
-        self.current_curve.setData(elapsed_seconds, current_values)
-        self.sleep_threshold_curve.setData(
-            threshold_x,
-            [sleep_limit_ma, sleep_limit_ma],
+        x_min = float(time_array[0])
+        x_max = float(time_array[-1]) if time_array.size > 1 else x_min + 1.0
+        self.current_curve.setData(time_array, current_array)
+        self.update_sleep_limit_lines(
+            self.current_limit_edit.value(),
+            mark_not_run=False,
         )
-        self.wake_threshold_curve.setData(
-            threshold_x,
-            [wake_limit_ma, wake_limit_ma],
+        intervals = detect_wake_up_intervals(
+            time_array,
+            current_array,
+            self.wake_limit_edit.value(),
+            self.wake_duration_edit.value(),
         )
-        self._update_chart_scrollbar(threshold_x[0], threshold_x[-1])
+        self.update_wake_up_regions(intervals)
+        self.hide_hover_items()
+        self._update_chart_scrollbar(x_min, x_max)
         self.current_plot.enableAutoRange(axis="y")
         self.chart_placeholder.hide()
         self.current_plot.show()
@@ -781,39 +902,168 @@ class QCurrentTab(QWidget):
             end = start + 1.0
         self.current_plot.setXRange(start, end, padding=0)
 
+    def update_sleep_limit_lines(self, limit_ma, mark_not_run=True):
+        if self.upper_sleep_limit_line is None or self.lower_sleep_limit_line is None:
+            return
+        limit_ma = abs(float(limit_ma))
+        self.upper_sleep_limit_line.setValue(limit_ma)
+        self.lower_sleep_limit_line.setValue(-limit_ma)
+        self._update_sleep_legend_tooltip(limit_ma)
+        if mark_not_run:
+            self._mark_analysis_not_run()
+
+    def _update_sleep_legend_tooltip(self, limit_ma):
+        tooltip = f"Sleep band: -{limit_ma:.1f} mA to +{limit_ma:.1f} mA"
+        for item in getattr(self, "legend_items", []):
+            if item.legend_text == "Sleep threshold":
+                item.setToolTip(tooltip)
+                item.marker.setToolTip(tooltip)
+                item.label.setToolTip(tooltip)
+                break
+
+    def _mark_analysis_not_run(self, *_args):
+        if hasattr(self, "analysis_result_edit"):
+            self.analysis_result_edit.setText("NOT RUN")
+
+    def create_wake_up_region(self, start_s, end_s):
+        region = pg.LinearRegionItem(
+            values=(float(start_s), float(end_s)),
+            orientation="vertical",
+            movable=False,
+            brush=self._transparent_brush(
+                self._chart_colors()["wake_fill"],
+                70,
+            ),
+        )
+        region.setZValue(-10)
+        for line in getattr(region, "lines", []):
+            line.setPen(pg.mkPen(None))
+            line.setHoverPen(pg.mkPen(None))
+            line.setMovable(False)
+        return region
+
+    def update_wake_up_regions(self, intervals):
+        self.clear_wake_up_regions()
+        for interval in intervals:
+            region = self.create_wake_up_region(
+                interval["start_s"],
+                interval["end_s"],
+            )
+            self.wake_up_regions.append(region)
+            self.current_plot.addItem(region)
+
+    def clear_wake_up_regions(self):
+        if not hasattr(self, "current_plot"):
+            return
+        for region in self.wake_up_regions:
+            self.current_plot.removeItem(region)
+        self.wake_up_regions = []
+
+    def find_nearest_sample(self, mouse_time_s):
+        if self.chart_time_seconds.size == 0:
+            return None
+        index = int(np.searchsorted(self.chart_time_seconds, mouse_time_s))
+        candidates = []
+        if index < self.chart_time_seconds.size:
+            candidates.append(index)
+        if index > 0:
+            candidates.append(index - 1)
+        nearest_index = min(
+            candidates,
+            key=lambda candidate: abs(
+                self.chart_time_seconds[candidate] - mouse_time_s
+            ),
+        )
+        return (
+            float(self.chart_time_seconds[nearest_index]),
+            float(self.chart_current_ma[nearest_index]),
+        )
+
+    def update_hover_items(self, time_s, current_ma):
+        self._hover_sample = (float(time_s), float(current_ma))
+        self.hover_marker.setData([time_s], [current_ma])
+        self.hover_marker.show()
+        self.hover_label.setHtml(self._hover_label_html(time_s, current_ma))
+        self.position_hover_label(time_s, current_ma)
+        self.hover_label.show()
+        self.chart_coordinate_label.setText(
+            f"Time: {time_s:.3f} s | Current: {current_ma:.2f} mA"
+        )
+
+    def position_hover_label(self, time_s, current_ma):
+        x_range, y_range = self.current_plot.getPlotItem().viewRange()
+        x_mid = (x_range[0] + x_range[1]) / 2.0
+        y_mid = (y_range[0] + y_range[1]) / 2.0
+        anchor_x = 1 if time_s >= x_mid else 0
+        anchor_y = 0 if current_ma >= y_mid else 1
+        x_offset = (-0.02 if anchor_x else 0.02) * (x_range[1] - x_range[0])
+        y_offset = (-0.04 if anchor_y == 0 else 0.04) * (y_range[1] - y_range[0])
+        self.hover_label.setAnchor((anchor_x, anchor_y))
+        self.hover_label.setPos(time_s + x_offset, current_ma + y_offset)
+
+    def hide_hover_items(self):
+        if self.hover_marker is not None:
+            self.hover_marker.hide()
+        if self.hover_label is not None:
+            self.hover_label.hide()
+        self._hover_sample = None
+        if hasattr(self, "chart_coordinate_label"):
+            self.chart_coordinate_label.setText("")
+
+    def _hover_label_html(self, time_s, current_ma):
+        colors = self._chart_colors()
+        return (
+            f"<div style='background-color: {colors['hover_label_background']}; "
+            f"color: {colors['hover_label_text']}; padding: 4px; "
+            "white-space: nowrap;'>"
+            f"Time: {time_s:.3f} s<br/>"
+            f"Current: {current_ma:.2f} mA"
+            "</div>"
+        )
+
     def _clear_current_chart(self):
         if not hasattr(self, "current_plot"):
             return
         self.current_curve.setData([], [])
-        self.sleep_threshold_curve.setData([], [])
-        self.wake_threshold_curve.setData([], [])
-        self.chart_coordinate_label.setText("")
+        self.clear_wake_up_regions()
+        self.chart_time_seconds = np.array([], dtype=float)
+        self.chart_current_ma = np.array([], dtype=float)
+        self.hide_hover_items()
         self._chart_scrollbar_updating = True
         self.chart_scrollbar.setValue(self.chart_scrollbar.minimum())
         self.chart_scrollbar.hide()
         self._chart_scrollbar_updating = False
+        self.current_plot.getPlotItem().enableAutoRange()
         self.current_plot.hide()
         self.chart_placeholder.show()
 
     def _update_hover_coordinates(self, event):
-        if not self._chart_ready:
-            self.chart_coordinate_label.setText("")
+        if not self._chart_ready or self.chart_time_seconds.size == 0:
+            self.hide_hover_items()
             return
         position = event[0]
         plot_item = self.current_plot.getPlotItem()
         if not plot_item.sceneBoundingRect().contains(position):
+            self.hide_hover_items()
             return
         point = plot_item.vb.mapSceneToView(position)
-        self.chart_coordinate_label.setText(
-            f"Time: {point.x():.3f} s | Current: {point.y():.2f} mA"
-        )
+        nearest_sample = self.find_nearest_sample(point.x())
+        if nearest_sample is None:
+            self.hide_hover_items()
+            return
+        self.update_hover_items(*nearest_sample)
 
     def _chart_colors(self):
         colors = ThemeManager.fn_colors()
         return {
             "current": colors.PRIMARY,
             "sleep": colors.WARNING,
-            "wake": colors.SUCCESS,
+            "wake": colors.WARNING,
+            "wake_fill": colors.WARNING,
+            "hover_marker": colors.PRIMARY,
+            "hover_marker_border": colors.TEXT,
+            "hover_label_background": colors.WINDOW,
+            "hover_label_text": colors.TEXT,
             "background": colors.WINDOW,
             "grid": colors.TABLE_GRID,
             "axis": colors.TEXT,
@@ -831,13 +1081,36 @@ class QCurrentTab(QWidget):
         plot_item.getAxis("left").setTextPen(chart_colors["axis"])
         self.chart_scrollbar.setStyleSheet(fn_scrollbar_style())
         self.current_curve.setPen(pg.mkPen(chart_colors["current"], width=2))
-        self.sleep_threshold_curve.setPen(
-            pg.mkPen(chart_colors["sleep"], width=1.5, style=Qt.DashLine)
+        sleep_pen = pg.mkPen(
+            chart_colors["sleep"],
+            width=1.5,
+            style=Qt.DashLine,
         )
-        self.wake_threshold_curve.setPen(
-            pg.mkPen(chart_colors["wake"], width=1.5, style=Qt.DotLine)
+        self.upper_sleep_limit_line.setPen(sleep_pen)
+        self.lower_sleep_limit_line.setPen(sleep_pen)
+        wake_brush = self._transparent_brush(chart_colors["wake_fill"], 70)
+        for region in self.wake_up_regions:
+            region.setBrush(wake_brush)
+            for line in getattr(region, "lines", []):
+                line.setPen(pg.mkPen(None))
+                line.setHoverPen(pg.mkPen(None))
+        self.hover_marker.setBrush(pg.mkBrush(chart_colors["hover_marker"]))
+        self.hover_marker.setPen(
+            pg.mkPen(chart_colors["hover_marker_border"], width=1)
         )
+        self._refresh_visible_hover_label()
         self._refresh_legend_theme()
+
+    def _transparent_brush(self, color_value, alpha):
+        color = QColor(color_value)
+        color.setAlpha(alpha)
+        return pg.mkBrush(color)
+
+    def _refresh_visible_hover_label(self):
+        if self.hover_label is None or not self.hover_label.isVisible():
+            return
+        if self._hover_sample is not None:
+            self.hover_label.setHtml(self._hover_label_html(*self._hover_sample))
 
     def _refresh_legend_theme(self):
         if not hasattr(self, "legend_items"):

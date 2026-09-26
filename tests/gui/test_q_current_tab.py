@@ -22,6 +22,7 @@ from gui.tabs.q_current_tab import (
     PLACEHOLDER_VALUE,
     QCurrentTab,
     calculate_elapsed_seconds,
+    detect_wake_up_intervals,
 )
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
@@ -47,6 +48,9 @@ class QCurrentTabTests(unittest.TestCase):
 
     def _legend_labels(self, tab):
         return [item.legend_text for item in tab.legend_items]
+
+    def _sample(self, time, current_ma):
+        return type("Sample", (), {"time": str(time), "current_mA": current_ma})()
 
     def test_analysis_settings_header_has_two_rows_and_file_controls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -118,6 +122,13 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
             self.assertFalse(tab.chart_placeholder.isHidden())
+            self.assertEqual(tab.wake_up_regions, [])
+            self.assertEqual(tab.chart_time_seconds.tolist(), [])
+            self.assertEqual(tab.chart_current_ma.tolist(), [])
+            self.assertFalse(tab.hover_marker.isVisible())
+            self.assertFalse(tab.hover_label.isVisible())
+            self.assertIsNotNone(tab.upper_sleep_limit_line)
+            self.assertIsNotNone(tab.lower_sleep_limit_line)
             self.assertTrue(tab.chart_scrollbar.isHidden())
 
     def test_startup_keeps_dataset_combo_empty_until_user_opens_dropdown(self):
@@ -362,6 +373,20 @@ class QCurrentTabTests(unittest.TestCase):
 
         self.assertEqual(elapsed_seconds, [0.0, 1.043, 2.114])
 
+    def test_detect_wake_up_intervals_uses_absolute_current_and_duration(self):
+        intervals = detect_wake_up_intervals(
+            [0.0, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5],
+            [10.0, -310.0, -320.0, -450.0, 20.0, 400.0, 410.0],
+            wake_limit_ma=300.0,
+            wake_duration_s=2.0,
+        )
+
+        self.assertEqual(len(intervals), 1)
+        self.assertEqual(intervals[0]["start_s"], 1.0)
+        self.assertEqual(intervals[0]["end_s"], 3.5)
+        self.assertEqual(intervals[0]["duration_s"], 2.5)
+        self.assertEqual(intervals[0]["peak_current_ma"], 450.0)
+
     def test_run_draws_current_chart_thresholds_and_enables_chart_actions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -386,10 +411,11 @@ class QCurrentTabTests(unittest.TestCase):
             current_x, current_y = tab.current_curve.getData()
             self.assertEqual([round(value, 3) for value in current_x.tolist()], [0.0, 1.043, 2.114])
             self.assertEqual([round(value, 2) for value in current_y.tolist()], [-16.9, -17.3, -18.1])
-            _sleep_x, sleep_y = tab.sleep_threshold_curve.getData()
-            _wake_x, wake_y = tab.wake_threshold_curve.getData()
-            self.assertEqual(sleep_y.tolist(), [tab.current_limit_edit.value()] * 2)
-            self.assertEqual(wake_y.tolist(), [tab.wake_limit_edit.value()] * 2)
+            self.assertEqual(tab.upper_sleep_limit_line.value(), tab.current_limit_edit.value())
+            self.assertEqual(tab.lower_sleep_limit_line.value(), -tab.current_limit_edit.value())
+            self.assertFalse(tab.upper_sleep_limit_line.movable)
+            self.assertFalse(tab.lower_sleep_limit_line.movable)
+            self.assertEqual(tab.wake_up_regions, [])
             self.assertEqual(self._legend_labels(tab), [
                 "Current",
                 "Sleep threshold",
@@ -402,6 +428,9 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
             self.assertTrue(tab.chart_scrollbar.isHidden())
+            self.assertEqual(tab.analysis_result_edit.text(), "RUN")
+            self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1.043, 2.114])
+            self.assertEqual(tab.chart_current_ma.tolist(), [-16.9, -17.3, -18.1])
             bottom_axis = tab.current_plot.getPlotItem().getAxis("bottom")
             left_axis = tab.current_plot.getPlotItem().getAxis("left")
             self.assertEqual(bottom_axis.labelText, "Time (s)")
@@ -438,6 +467,86 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertAlmostEqual(start_range, 60.0, places=3)
             self.assertAlmostEqual(end_range, 120.0, places=3)
 
+    def test_run_highlights_wake_up_regions_and_keeps_signed_current_curve(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab.wake_limit_edit.setValue(300.0)
+            tab.wake_duration_edit.setValue(2.0)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, -310.0),
+                self._sample(2.0, -320.0),
+                self._sample(3.5, -450.0),
+                self._sample(5.0, 20.0),
+                self._sample(6.0, 350.0),
+                self._sample(6.5, 360.0),
+            ])
+
+            tab.btn_run.click()
+
+            current_x, current_y = tab.current_curve.getData()
+            self.assertEqual(current_x.tolist(), [0.0, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5])
+            self.assertEqual(current_y.tolist(), [10.0, -310.0, -320.0, -450.0, 20.0, 350.0, 360.0])
+            self.assertEqual(len(tab.wake_up_regions), 1)
+            self.assertEqual(tab.wake_up_regions[0].getRegion(), (1.0, 3.5))
+            self.assertEqual(tab.wake_up_regions[0].zValue(), -10)
+            self.assertFalse(tab.wake_up_regions[0].movable)
+
+            ThemeManager.fn_set_theme(ThemeType.DARK)
+            tab.fn_refresh_theme()
+
+            self.assertEqual(len(tab.wake_up_regions), 1)
+            self.assertEqual(tab.wake_up_regions[0].getRegion(), (1.0, 3.5))
+            themed_x, themed_y = tab.current_curve.getData()
+            self.assertEqual(themed_x.tolist(), current_x.tolist())
+            self.assertEqual(themed_y.tolist(), current_y.tolist())
+
+    def test_sleep_limit_change_updates_existing_lines_and_marks_not_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, -2.0),
+            ])
+            tab.btn_run.click()
+            upper_line = tab.upper_sleep_limit_line
+            lower_line = tab.lower_sleep_limit_line
+
+            tab.current_limit_edit.setValue(45.0)
+
+            self.assertIs(tab.upper_sleep_limit_line, upper_line)
+            self.assertIs(tab.lower_sleep_limit_line, lower_line)
+            self.assertEqual(tab.upper_sleep_limit_line.value(), 45.0)
+            self.assertEqual(tab.lower_sleep_limit_line.value(), -45.0)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+    def test_hover_uses_nearest_sample_without_changing_current_sign(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.5, -28.46),
+                self._sample(3.0, 12.0),
+            ])
+            tab.btn_run.click()
+
+            nearest = tab.find_nearest_sample(1.6)
+            self.assertEqual(nearest, (1.5, -28.46))
+
+            tab.update_hover_items(*nearest)
+
+            marker_x, marker_y = tab.hover_marker.getData()
+            self.assertEqual(marker_x.tolist(), [1.5])
+            self.assertEqual(marker_y.tolist(), [-28.46])
+            self.assertTrue(tab.hover_marker.isVisible())
+            self.assertEqual(
+                tab.chart_coordinate_label.text(),
+                "Time: 1.500 s | Current: -28.46 mA",
+            )
+            hover_html = tab.hover_label.toHtml().replace("\xa0", " ")
+            self.assertIn("Time: 1.500 s", hover_html)
+            self.assertIn("Current: -28.46 mA", hover_html)
+
     def test_run_again_refreshes_chart_without_duplicate_items_and_updates_thresholds(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -454,16 +563,21 @@ class QCurrentTabTests(unittest.TestCase):
             tab.import_current_file()
 
             tab.btn_run.click()
+            current_curve = tab.current_curve
+            upper_line = tab.upper_sleep_limit_line
+            lower_line = tab.lower_sleep_limit_line
+            hover_marker = tab.hover_marker
             tab.current_limit_edit.setValue(45.0)
             tab.wake_limit_edit.setValue(350.0)
             tab.btn_run.click()
 
-            self.assertEqual(len(tab.current_plot.getPlotItem().listDataItems()), 3)
+            self.assertIs(tab.current_curve, current_curve)
+            self.assertIs(tab.upper_sleep_limit_line, upper_line)
+            self.assertIs(tab.lower_sleep_limit_line, lower_line)
+            self.assertIs(tab.hover_marker, hover_marker)
             self.assertEqual(len(self._legend_labels(tab)), 3)
-            _sleep_x, sleep_y = tab.sleep_threshold_curve.getData()
-            _wake_x, wake_y = tab.wake_threshold_curve.getData()
-            self.assertEqual(sleep_y.tolist(), [45.0, 45.0])
-            self.assertEqual(wake_y.tolist(), [350.0, 350.0])
+            self.assertEqual(tab.upper_sleep_limit_line.value(), 45.0)
+            self.assertEqual(tab.lower_sleep_limit_line.value(), -45.0)
             current_x, current_y = tab.current_curve.getData()
             self.assertEqual(current_x.tolist(), [0.0, 1.5])
             self.assertEqual(current_y.tolist(), [1.0, 2.0])
@@ -500,6 +614,13 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
             self.assertFalse(tab.chart_placeholder.isHidden())
+            self.assertEqual(tab.wake_up_regions, [])
+            self.assertEqual(tab.chart_time_seconds.tolist(), [])
+            self.assertEqual(tab.chart_current_ma.tolist(), [])
+            self.assertFalse(tab.hover_marker.isVisible())
+            self.assertFalse(tab.hover_label.isVisible())
+            self.assertIsNotNone(tab.upper_sleep_limit_line)
+            self.assertIsNotNone(tab.lower_sleep_limit_line)
 
     def test_import_failure_keeps_source_combo_selection_and_import_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
