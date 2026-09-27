@@ -30,4 +30,9 @@ dist/
 # OS files
 Thumbs.db
 .DS_Store
+
+# Q Current local databases
 config/database_qcurrent/
+
+# Local third-party drivers
+driver/
