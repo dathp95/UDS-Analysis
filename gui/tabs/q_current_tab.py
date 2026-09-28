@@ -47,6 +47,7 @@ from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.controls.primary_table import PrimaryTable
+from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
 PLACEHOLDER_VALUE = "\u2014"
@@ -265,6 +266,7 @@ class QCurrentTab(QWidget):
         self.btn_copy_chart.clicked.connect(self.capture_current_chart)
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
+        self.btn_fit_all.clicked.connect(self._fit_all_current_chart)
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
         self.chart_scrollbar.valueChanged.connect(
@@ -426,21 +428,29 @@ class QCurrentTab(QWidget):
         for legend_item in self.legend_items:
             self.legend_layout.addWidget(legend_item)
         self.legend_layout.addStretch(1)
-        self.btn_invert_y_axis = PrimaryButton(
+        self.btn_invert_y_axis = QuickAccessButton(
             "Invert Y Axis",
             width=120,
             height=30,
         )
         self.btn_invert_y_axis.setObjectName("btn_invert_y_axis")
-        self.btn_capture_chart = PrimaryButton(
+        self.btn_fit_all = QuickAccessButton(
+            "Fit All",
+            width=80,
+            height=30,
+        )
+        self.btn_fit_all.setObjectName("btn_fit_all")
+        self.btn_capture_chart = QuickAccessButton(
             "Capture",
             width=90,
             height=30,
         )
         self.btn_capture_chart.setObjectName("btn_capture_chart")
         self.legend_layout.addWidget(self.btn_invert_y_axis)
+        self.legend_layout.addWidget(self.btn_fit_all)
         self.legend_layout.addWidget(self.btn_capture_chart)
-        
+       
+
 
         self.chart_content_layout = QVBoxLayout()
         self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
@@ -794,6 +804,7 @@ class QCurrentTab(QWidget):
         self.btn_copy_chart.setEnabled(has_chart)
         self.btn_capture_chart.setEnabled(has_chart)
         self.btn_invert_y_axis.setEnabled(has_chart)
+        self.btn_fit_all.setEnabled(has_chart)
         self.btn_copy_summary.setEnabled(has_chart)
 
     def run_current_analysis(self):
@@ -879,7 +890,12 @@ class QCurrentTab(QWidget):
             padding=0.02,
         )
 
-        self.current_plot.enableAutoRange(axis="y")
+        y_min = float(np.min(self.chart_current_ma))
+        y_max = float(np.max(self.chart_current_ma))
+        if y_max <= y_min:
+            y_min -= 1.0
+            y_max += 1.0
+        self.current_plot.setYRange(y_min, y_max, padding=0.08)
 
     def _update_chart_scrollbar(self, x_min, x_max):
         self._chart_x_min = float(x_min)
@@ -1045,6 +1061,7 @@ class QCurrentTab(QWidget):
         self.position_hover_label(time_s, current_ma)
         self.hover_label.show()
         
+
 
     def position_hover_label(self, time_s, current_ma):
         x_range, y_range = self.current_plot.getPlotItem().viewRange()
@@ -1308,6 +1325,7 @@ class QCurrentTab(QWidget):
             self.btn_export,
             self.btn_copy_chart,
             self.btn_invert_y_axis,
+            self.btn_fit_all,
             self.btn_capture_chart,
             self.btn_copy_data_review,
             self.btn_copy_summary,

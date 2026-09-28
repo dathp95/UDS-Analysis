@@ -28,6 +28,7 @@ from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
+from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
 class QCurrentTabTests(unittest.TestCase):
@@ -120,6 +121,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
@@ -236,6 +238,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertIsNone(tab.current_curve.getData()[0])
             self.assertTrue(expected_database.exists())
@@ -284,6 +287,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             warning_box.assert_not_called()
 
@@ -432,6 +436,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_copy_chart.isEnabled())
             self.assertTrue(tab.btn_capture_chart.isEnabled())
             self.assertTrue(tab.btn_invert_y_axis.isEnabled())
+            self.assertTrue(tab.btn_fit_all.isEnabled())
             self.assertTrue(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
@@ -585,6 +590,31 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(view_box.yInverted())
             self.assertEqual(tab.chart_current_ma.tolist(), [-25.30, 42.0])
 
+    def test_fit_all_restores_full_chart_view_without_resetting_inverted_y(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -25.0),
+                self._sample(100.0, 10.0),
+                self._sample(200.0, 80.0),
+            ])
+            tab.btn_run.click()
+            tab.btn_invert_y_axis.click()
+            tab.current_plot.setXRange(40.0, 60.0, padding=0)
+            tab.current_plot.setYRange(-5.0, 5.0, padding=0)
+
+            tab.btn_fit_all.click()
+
+            x_range, y_range = tab.current_plot.getPlotItem().viewRange()
+            self.assertLessEqual(x_range[0], 0.0)
+            self.assertGreaterEqual(x_range[1], 200.0)
+            self.assertLessEqual(y_range[0], -25.0)
+            self.assertGreaterEqual(y_range[1], 80.0)
+            self.assertTrue(tab._y_axis_inverted)
+            self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 100.0, 200.0])
+            self.assertEqual(tab.chart_current_ma.tolist(), [-25.0, 10.0, 80.0])
+
     def test_clear_and_new_dataset_reset_y_axis_orientation_and_disable_chart_actions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
@@ -604,6 +634,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab._y_axis_inverted)
             self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
 
             tab.btn_run.click()
@@ -613,6 +644,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab._y_axis_inverted)
             self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
 
     def test_capture_buttons_copy_current_chart_pixmap_to_clipboard(self):
@@ -708,6 +740,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
@@ -827,8 +860,6 @@ class QCurrentTabTests(unittest.TestCase):
                 tab.btn_run,
                 tab.btn_export,
                 tab.btn_copy_chart,
-                tab.btn_invert_y_axis,
-                tab.btn_capture_chart,
                 tab.btn_copy_data_review,
                 tab.btn_copy_summary,
                 tab.btn_clear,
@@ -838,21 +869,41 @@ class QCurrentTabTests(unittest.TestCase):
                 "RUN",
                 "EXPORT",
                 "COPY CHART",
-                "Invert Y Axis",
-                "Capture",
                 "COPY Data Review",
                 "COPY Summary",
                 "CLEAR",
             ])
+            chart_buttons = [
+                tab.btn_invert_y_axis,
+                tab.btn_fit_all,
+                tab.btn_capture_chart,
+            ]
+            self.assertTrue(all(isinstance(button, QuickAccessButton) for button in chart_buttons))
+            self.assertEqual([button.text() for button in chart_buttons], [
+                "Invert Y Axis",
+                "Fit All",
+                "Capture",
+            ])
+            self.assertLess(
+                tab.legend_layout.indexOf(tab.btn_invert_y_axis),
+                tab.legend_layout.indexOf(tab.btn_fit_all),
+            )
+            self.assertLess(
+                tab.legend_layout.indexOf(tab.btn_fit_all),
+                tab.legend_layout.indexOf(tab.btn_capture_chart),
+            )
             self.assertTrue(tab.dataset_combo.view().verticalScrollBar().styleSheet())
             self.assertTrue(tab.chart_scrollbar.styleSheet())
 
             light_style = tab.chart_placeholder.styleSheet()
+            light_quick_access_style = tab.btn_fit_all.styleSheet()
             ThemeManager.fn_set_theme(ThemeType.DARK)
             tab.fn_refresh_theme()
             dark_style = tab.chart_placeholder.styleSheet()
+            dark_quick_access_style = tab.btn_fit_all.styleSheet()
 
             self.assertNotEqual(light_style, dark_style)
+            self.assertNotEqual(light_quick_access_style, dark_quick_access_style)
             self.assertIn(ThemeManager.fn_colors().TEXT, dark_style)
             self.assertTrue(tab.current_limit_edit.styleSheet())
             self.assertEqual(
