@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QHeaderView,
+    QMenu,
 )
 
 from core.sleep_current_database import (
@@ -60,6 +62,8 @@ SOURCE_FILE_FILTER = (
 )
 CHART_SCROLL_VISIBLE_SECONDS = 400.0
 CHART_SCROLL_SCALE = 1000
+PIN_HIT_RADIUS_PX = 12.0
+SAMPLE_HIT_RADIUS_PX = 18.0
 TIMESTAMP_FORMATS = (
     "%y-%m-%d %H:%M:%S.%f",
     "%y-%m-%d %H:%M:%S",
@@ -175,6 +179,15 @@ def _append_wake_up_interval(
     )
 
 
+@dataclass
+class ChartPin:
+    sample_index: int
+    time_s: float
+    current_ma: float
+    marker: pg.ScatterPlotItem
+    label: pg.TextItem
+
+
 class QCurrentDatasetComboBox(PrimaryComboBox):
 
     def __init__(self, refresh_callback, *args, **kwargs):
@@ -220,6 +233,7 @@ class QCurrentTab(QWidget):
         self.hover_marker = None
         self.hover_label = None
         self.wake_up_regions = []
+        self.chart_pins = []
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
         self._hover_sample = None
@@ -267,6 +281,9 @@ class QCurrentTab(QWidget):
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
         self.btn_fit_all.clicked.connect(self._fit_all_current_chart)
+        self.current_plot.customContextMenuRequested.connect(
+            self.show_chart_context_menu
+        )
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
         self.chart_scrollbar.valueChanged.connect(
@@ -449,8 +466,10 @@ class QCurrentTab(QWidget):
         self.legend_layout.addWidget(self.btn_invert_y_axis)
         self.legend_layout.addWidget(self.btn_fit_all)
         self.legend_layout.addWidget(self.btn_capture_chart)
-       
-
+        self.chart_coordinate_label = PrimaryLabel(PLACEHOLDER_VALUE)
+        self.chart_coordinate_label.setObjectName("chart_coordinate_label")
+        self.chart_coordinate_label.setMinimumWidth(190)
+        self.legend_layout.addWidget(self.chart_coordinate_label)
 
         self.chart_content_layout = QVBoxLayout()
         self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
@@ -523,7 +542,8 @@ class QCurrentTab(QWidget):
         plot_item.getAxis("left").enableAutoSIPrefix(False)
         plot.showGrid(x=True, y=True, alpha=0.25)
         plot.setMouseEnabled(x=True, y=True)
-        plot.setMenuEnabled(True)
+        plot.setMenuEnabled(False)
+        plot.setContextMenuPolicy(Qt.CustomContextMenu)
 
         colors = self._chart_colors()
         self.upper_sleep_limit_line = pg.InfiniteLine(
@@ -574,6 +594,7 @@ class QCurrentTab(QWidget):
             rateLimit=60,
             slot=self._update_hover_coordinates,
         )
+        plot_item.vb.sigRangeChanged.connect(self.position_chart_pin_labels)
         return plot
 
     def _create_review_group(self):
@@ -843,6 +864,7 @@ class QCurrentTab(QWidget):
         return elapsed_seconds, current_values
 
     def _update_current_chart(self, elapsed_seconds, current_values):
+        self.clear_chart_pins()
         time_array = np.asarray(elapsed_seconds, dtype=float)
         current_array = np.asarray(current_values, dtype=float)
         if time_array.size != current_array.size:
@@ -896,6 +918,7 @@ class QCurrentTab(QWidget):
             y_min -= 1.0
             y_max += 1.0
         self.current_plot.setYRange(y_min, y_max, padding=0.08)
+        self.position_chart_pin_labels()
 
     def _update_chart_scrollbar(self, x_min, x_max):
         self._chart_x_min = float(x_min)
@@ -935,6 +958,7 @@ class QCurrentTab(QWidget):
                 self._chart_x_min + 1.0,
                 padding=0.02,
             )
+            self.position_chart_pin_labels()
             return
 
         if self.chart_scrollbar.maximum() <= 0:
@@ -943,6 +967,7 @@ class QCurrentTab(QWidget):
                 self._chart_x_max,
                 padding=0.02,
             )
+            self.position_chart_pin_labels()
             return
 
         start = (
@@ -953,6 +978,7 @@ class QCurrentTab(QWidget):
         if end <= start:
             end = start + 1.0
         self.current_plot.setXRange(start, end, padding=0)
+        self.position_chart_pin_labels()
 
     def toggle_y_axis_inversion(self):
         self._y_axis_inverted = not self._y_axis_inverted
@@ -966,6 +992,7 @@ class QCurrentTab(QWidget):
     def _apply_y_axis_orientation(self):
         view_box = self.current_plot.getPlotItem().getViewBox()
         view_box.invertY(self._y_axis_inverted)
+        self.position_chart_pin_labels()
 
     def capture_current_chart(self):
         if not self._chart_ready:
@@ -1034,6 +1061,197 @@ class QCurrentTab(QWidget):
         self.wake_up_regions = []
 
     def find_nearest_sample(self, mouse_time_s):
+        nearest_index = self.find_nearest_sample_index(mouse_time_s)
+        if nearest_index is None:
+            return None
+        return (
+            float(self.chart_time_seconds[nearest_index]),
+            float(self.chart_current_ma[nearest_index]),
+        )
+
+    def show_chart_context_menu(self, widget_position):
+        scene_position = self.current_plot.mapToScene(widget_position)
+        action_type, payload = self._chart_context_action_at_scene_position(
+            scene_position
+        )
+        if action_type is None:
+            return
+
+        menu = QMenu(self.current_plot)
+        if action_type == "delete":
+            menu_action = menu.addAction("Delete Pin")
+        else:
+            menu_action = menu.addAction("Pin")
+
+        selected_action = menu.exec(self.current_plot.mapToGlobal(widget_position))
+        if selected_action is not menu_action:
+            return
+        if action_type == "delete":
+            self.delete_chart_pin(payload)
+        elif action_type == "pin":
+            self.pin_chart_sample(payload)
+
+    def _chart_context_action_at_scene_position(self, scene_position):
+        if (
+            scene_position is None
+            or not self._chart_ready
+            or self.chart_time_seconds.size == 0
+        ):
+            return None, None
+
+        plot_item = self.current_plot.getPlotItem()
+        if not plot_item.sceneBoundingRect().contains(scene_position):
+            return None, None
+
+        pin = self._chart_pin_at_scene_position(scene_position)
+        if pin is not None:
+            return "delete", pin
+
+        sample_index = self._chart_sample_at_scene_position(scene_position)
+        if sample_index is None:
+            return None, None
+
+        pin = self._pin_for_sample_index(sample_index)
+        if pin is not None:
+            return "delete", pin
+        return "pin", sample_index
+
+    def _chart_pin_at_scene_position(self, scene_position):
+        closest_pin = None
+        closest_distance = PIN_HIT_RADIUS_PX
+        for pin in self.chart_pins:
+            pin_scene_position = self._scene_position_for_chart_value(
+                pin.time_s,
+                pin.current_ma,
+            )
+            distance = self._scene_distance(scene_position, pin_scene_position)
+            if distance <= closest_distance:
+                closest_pin = pin
+                closest_distance = distance
+        return closest_pin
+
+    def _chart_sample_at_scene_position(self, scene_position):
+        point = self.current_plot.getPlotItem().vb.mapSceneToView(scene_position)
+        sample_index = self.find_nearest_sample_index(point.x())
+        if sample_index is None:
+            return None
+        sample_scene_position = self._scene_position_for_chart_sample(sample_index)
+        distance = self._scene_distance(scene_position, sample_scene_position)
+        if distance > SAMPLE_HIT_RADIUS_PX:
+            return None
+        return sample_index
+
+    def _scene_position_for_chart_sample(self, sample_index):
+        return self._scene_position_for_chart_value(
+            float(self.chart_time_seconds[sample_index]),
+            float(self.chart_current_ma[sample_index]),
+        )
+
+    def _scene_position_for_chart_value(self, time_s, current_ma):
+        view_box = self.current_plot.getPlotItem().getViewBox()
+        return view_box.mapViewToScene(pg.Point(float(time_s), float(current_ma)))
+
+    @staticmethod
+    def _scene_distance(first_position, second_position):
+        dx = first_position.x() - second_position.x()
+        dy = first_position.y() - second_position.y()
+        return (dx * dx + dy * dy) ** 0.5
+
+    def pin_chart_sample(self, sample_index):
+        if sample_index is None:
+            return False
+        sample_index = int(sample_index)
+        if sample_index < 0 or sample_index >= self.chart_time_seconds.size:
+            return False
+        if self._pin_for_sample_index(sample_index) is not None:
+            return False
+
+        time_s = float(self.chart_time_seconds[sample_index])
+        current_ma = float(self.chart_current_ma[sample_index])
+        colors = self._chart_colors()
+        marker = pg.ScatterPlotItem(
+            [time_s],
+            [current_ma],
+            symbol="o",
+            size=10,
+            brush=pg.mkBrush(colors["pin_marker"]),
+            pen=pg.mkPen(colors["pin_marker_border"], width=1.5),
+        )
+        marker.setZValue(35)
+        label = pg.TextItem(anchor=(0, 1))
+        label.setZValue(45)
+        label.setHtml(self._pin_label_html(time_s, current_ma))
+        pin = ChartPin(
+            sample_index=sample_index,
+            time_s=time_s,
+            current_ma=current_ma,
+            marker=marker,
+            label=label,
+        )
+        self.current_plot.addItem(marker)
+        self.current_plot.addItem(label)
+        self.chart_pins.append(pin)
+        self.position_chart_pin_label(pin)
+        return True
+
+    def delete_chart_pin(self, pin):
+        if pin not in self.chart_pins:
+            return False
+        self.current_plot.removeItem(pin.marker)
+        self.current_plot.removeItem(pin.label)
+        self.chart_pins.remove(pin)
+        return True
+
+    def clear_chart_pins(self):
+        if not hasattr(self, "current_plot"):
+            self.chart_pins = []
+            return
+        for pin in list(self.chart_pins):
+            self.current_plot.removeItem(pin.marker)
+            self.current_plot.removeItem(pin.label)
+        self.chart_pins = []
+
+    def _pin_for_sample_index(self, sample_index):
+        for pin in self.chart_pins:
+            if pin.sample_index == sample_index:
+                return pin
+        return None
+
+    def position_chart_pin_labels(self, *_args):
+        for pin in self.chart_pins:
+            self.position_chart_pin_label(pin)
+
+    def position_chart_pin_label(self, pin):
+        x_range, y_range = self.current_plot.getPlotItem().viewRange()
+        x_mid = (x_range[0] + x_range[1]) / 2.0
+        y_mid = (y_range[0] + y_range[1]) / 2.0
+        anchor_x = 0 if pin.time_s <= x_mid else 1
+        anchor_y = 1 if pin.current_ma >= y_mid else 0
+        x_offset = (0.02 if anchor_x == 0 else -0.02) * (x_range[1] - x_range[0])
+        y_offset = (0.04 if anchor_y == 0 else -0.04) * (y_range[1] - y_range[0])
+        pin.label.setAnchor((anchor_x, anchor_y))
+        pin.label.setPos(pin.time_s + x_offset, pin.current_ma + y_offset)
+
+    def _pin_label_html(self, time_s, current_ma):
+        colors = self._chart_colors()
+        return (
+            f"<div style='background-color: {colors['pin_label_background']}; "
+            f"color: {colors['pin_label_text']}; padding: 4px; "
+            "white-space: nowrap;'>"
+            f"Time: {time_s:.3f} s<br/>"
+            f"Current: {current_ma:.2f} mA"
+            "</div>"
+        )
+
+    def _refresh_chart_pin_theme(self):
+        colors = self._chart_colors()
+        for pin in self.chart_pins:
+            pin.marker.setBrush(pg.mkBrush(colors["pin_marker"]))
+            pin.marker.setPen(pg.mkPen(colors["pin_marker_border"], width=1.5))
+            pin.label.setHtml(self._pin_label_html(pin.time_s, pin.current_ma))
+            self.position_chart_pin_label(pin)
+
+    def find_nearest_sample_index(self, mouse_time_s):
         if self.chart_time_seconds.size == 0:
             return None
         index = int(np.searchsorted(self.chart_time_seconds, mouse_time_s))
@@ -1042,15 +1260,13 @@ class QCurrentTab(QWidget):
             candidates.append(index)
         if index > 0:
             candidates.append(index - 1)
-        nearest_index = min(
+        if not candidates:
+            return None
+        return min(
             candidates,
             key=lambda candidate: abs(
                 self.chart_time_seconds[candidate] - mouse_time_s
             ),
-        )
-        return (
-            float(self.chart_time_seconds[nearest_index]),
-            float(self.chart_current_ma[nearest_index]),
         )
 
     def update_hover_items(self, time_s, current_ma):
@@ -1060,8 +1276,9 @@ class QCurrentTab(QWidget):
         self.hover_label.setHtml(self._hover_label_html(time_s, current_ma))
         self.position_hover_label(time_s, current_ma)
         self.hover_label.show()
-        
-
+        self.chart_coordinate_label.setText(
+            f"Time: {time_s:.3f} s | Current: {current_ma:.2f} mA"
+        )
 
     def position_hover_label(self, time_s, current_ma):
         x_range, y_range = self.current_plot.getPlotItem().viewRange()
@@ -1080,7 +1297,8 @@ class QCurrentTab(QWidget):
         if self.hover_label is not None:
             self.hover_label.hide()
         self._hover_sample = None
-        
+        if hasattr(self, "chart_coordinate_label"):
+            self.chart_coordinate_label.setText(PLACEHOLDER_VALUE)
 
     def _hover_label_html(self, time_s, current_ma):
         colors = self._chart_colors()
@@ -1098,6 +1316,7 @@ class QCurrentTab(QWidget):
             return
         self.current_curve.setData([], [])
         self.reset_y_axis_orientation()
+        self.clear_chart_pins()
         self.clear_wake_up_regions()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
@@ -1137,6 +1356,10 @@ class QCurrentTab(QWidget):
             "hover_marker_border": colors.TEXT,
             "hover_label_background": colors.WINDOW,
             "hover_label_text": colors.TEXT,
+            "pin_marker": colors.SUCCESS,
+            "pin_marker_border": colors.TEXT,
+            "pin_label_background": colors.WINDOW,
+            "pin_label_text": colors.TEXT,
             "background": colors.WINDOW,
             "grid": colors.TABLE_GRID,
             "axis": colors.TEXT,
@@ -1172,6 +1395,7 @@ class QCurrentTab(QWidget):
             pg.mkPen(chart_colors["hover_marker_border"], width=1)
         )
         self._refresh_visible_hover_label()
+        self._refresh_chart_pin_theme()
         self._refresh_legend_theme()
 
     def _transparent_brush(self, color_value, alpha):

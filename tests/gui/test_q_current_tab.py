@@ -556,6 +556,110 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIn("Time: 1.500 s", hover_html)
             self.assertIn("Current: -28.46 mA", hover_html)
 
+    def test_chart_uses_custom_pin_context_menu_without_default_pyqtgraph_menu(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            view_box = tab.current_plot.getPlotItem().getViewBox()
+
+            self.assertFalse(view_box.menuEnabled())
+            self.assertEqual(tab._chart_context_action_at_scene_position(None), (None, None))
+
+    def test_chart_pin_context_adds_multiple_pins_prevents_duplicates_and_deletes_one(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.5, -28.46),
+                self._sample(3.0, 12.0),
+            ])
+            tab.btn_run.click()
+
+            first_scene_pos = tab._scene_position_for_chart_sample(1)
+            action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
+            self.assertEqual(action, "pin")
+            self.assertEqual(payload, 1)
+
+            self.assertTrue(tab.pin_chart_sample(payload))
+            self.assertEqual(len(tab.chart_pins), 1)
+            self.assertEqual(tab.chart_pins[0].sample_index, 1)
+            self.assertEqual(tab.chart_pins[0].time_s, 1.5)
+            self.assertEqual(tab.chart_pins[0].current_ma, -28.46)
+            pin_html = tab.chart_pins[0].label.toHtml().replace("\xa0", " ")
+            self.assertIn("Time: 1.500 s", pin_html)
+            self.assertIn("Current: -28.46 mA", pin_html)
+
+            action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
+            self.assertEqual(action, "delete")
+            self.assertIs(payload, tab.chart_pins[0])
+            self.assertFalse(tab.pin_chart_sample(1))
+            self.assertEqual(len(tab.chart_pins), 1)
+
+            self.assertTrue(tab.pin_chart_sample(2))
+            self.assertEqual(len(tab.chart_pins), 2)
+            tab.hide_hover_items()
+            self.assertEqual(len(tab.chart_pins), 2)
+
+            tab.delete_chart_pin(payload)
+
+            self.assertEqual(len(tab.chart_pins), 1)
+            self.assertEqual(tab.chart_pins[0].sample_index, 2)
+            self.assertEqual(tab.chart_current_ma.tolist(), [10.0, -28.46, 12.0])
+            self.assertEqual(
+                [sample.current_mA for sample in tab.current_samples],
+                [10.0, -28.46, 12.0],
+            )
+
+    def test_chart_pins_survive_view_actions_and_clear_with_workspace(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -25.0),
+                self._sample(100.0, 10.0),
+                self._sample(200.0, 80.0),
+            ])
+            tab.btn_run.click()
+            tab.pin_chart_sample(0)
+            tab.pin_chart_sample(2)
+
+            tab.btn_invert_y_axis.click()
+            tab.current_plot.setXRange(40.0, 60.0, padding=0)
+            tab.btn_fit_all.click()
+
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [0, 2])
+            self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            first_pin_html = tab.chart_pins[0].label.toHtml().replace("\xa0", " ")
+            self.assertIn("Current: -25.00 mA", first_pin_html)
+
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, 2.0),
+            ])
+            self.assertEqual(tab.chart_pins, [])
+
+            tab.btn_run.click()
+            tab.pin_chart_sample(1)
+            self.assertEqual(len(tab.chart_pins), 1)
+            tab.btn_clear.click()
+            self.assertEqual(tab.chart_pins, [])
+
+    def test_chart_pin_theme_refresh_updates_existing_pin_label(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, 2.0),
+            ])
+            tab.btn_run.click()
+            tab.pin_chart_sample(1)
+            light_html = tab.chart_pins[0].label.toHtml()
+
+            ThemeManager.fn_set_theme(ThemeType.DARK)
+            tab.fn_refresh_theme()
+            dark_html = tab.chart_pins[0].label.toHtml()
+
+            self.assertNotEqual(light_html, dark_html)
+            self.assertIn(ThemeManager.fn_colors().TEXT.lower(), dark_html.lower())
+
     def test_invert_y_axis_toggles_viewbox_without_changing_chart_data_or_hover(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
