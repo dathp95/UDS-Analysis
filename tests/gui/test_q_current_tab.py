@@ -548,10 +548,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(marker_x.tolist(), [1.5])
             self.assertEqual(marker_y.tolist(), [-28.46])
             self.assertTrue(tab.hover_marker.isVisible())
-            self.assertEqual(
-                tab.chart_coordinate_label.text(),
-                "Time: 1.500 s | Current: -28.46 mA",
-            )
+            self.assertFalse(hasattr(tab, "chart_coordinate_label"))
             hover_html = tab.hover_label.toHtml().replace("\xa0", " ")
             self.assertIn("Time: 1.500 s", hover_html)
             self.assertIn("Current: -28.46 mA", hover_html)
@@ -578,6 +575,12 @@ class QCurrentTabTests(unittest.TestCase):
             action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
             self.assertEqual(action, "pin")
             self.assertEqual(payload, 1)
+            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            self.assertEqual(
+                [item.text() for item in menu.actions() if not item.isSeparator()],
+                ["Pin"],
+            )
+            self.assertIsNone(clear_action)
 
             self.assertTrue(tab.pin_chart_sample(payload))
             self.assertEqual(len(tab.chart_pins), 1)
@@ -591,8 +594,25 @@ class QCurrentTabTests(unittest.TestCase):
             action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
             self.assertEqual(action, "delete")
             self.assertIs(payload, tab.chart_pins[0])
+            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            self.assertEqual(
+                ["---" if item.isSeparator() else item.text() for item in menu.actions()],
+                ["Delete Pin", "---", "Clear All Pins"],
+            )
+            self.assertIsNotNone(clear_action)
             self.assertFalse(tab.pin_chart_sample(1))
             self.assertEqual(len(tab.chart_pins), 1)
+
+            normal_scene_pos = tab._scene_position_for_chart_sample(0)
+            action, normal_payload = tab._chart_context_action_at_scene_position(normal_scene_pos)
+            self.assertEqual(action, "pin")
+            self.assertEqual(normal_payload, 0)
+            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            self.assertEqual(
+                ["---" if item.isSeparator() else item.text() for item in menu.actions()],
+                ["Pin", "---", "Clear All Pins"],
+            )
+            self.assertIsNotNone(clear_action)
 
             self.assertTrue(tab.pin_chart_sample(2))
             self.assertEqual(len(tab.chart_pins), 2)
@@ -629,6 +649,27 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
             first_pin_html = tab.chart_pins[0].label.toHtml().replace("\xa0", " ")
             self.assertIn("Current: -25.00 mA", first_pin_html)
+
+            menu, primary_action, clear_action = tab._create_chart_context_menu("pin")
+            tab._apply_chart_context_menu_selection(
+                clear_action,
+                primary_action,
+                clear_action,
+                "pin",
+                1,
+            )
+            self.assertEqual(tab.chart_pins, [])
+            self.assertFalse(tab.current_plot.isHidden())
+            self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 100.0, 200.0])
+            self.assertEqual(tab.chart_current_ma.tolist(), [-25.0, 10.0, 80.0])
+            tab.update_hover_items(100.0, 10.0)
+            self.assertTrue(tab.hover_label.isVisible())
+            tab.btn_fit_all.click()
+            tab.btn_invert_y_axis.click()
+            self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertTrue(tab.capture_current_chart())
+            self.assertTrue(tab.pin_chart_sample(1))
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1])
 
             tab._load_samples_into_workspace([
                 self._sample(0.0, 1.0),
@@ -683,10 +724,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.current_plot.getPlotItem().viewRange()[0], x_range_before)
 
             tab.update_hover_items(0.0, -25.30)
-            self.assertEqual(
-                tab.chart_coordinate_label.text(),
-                "Time: 0.000 s | Current: -25.30 mA",
-            )
+            hover_html = tab.hover_label.toHtml().replace("\xa0", " ")
+            self.assertIn("Current: -25.30 mA", hover_html)
 
             tab.btn_invert_y_axis.click()
 

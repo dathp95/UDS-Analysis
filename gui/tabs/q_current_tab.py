@@ -1073,14 +1073,45 @@ class QCurrentTab(QWidget):
         if action_type is None:
             return
 
+        menu, primary_action, clear_action = self._create_chart_context_menu(
+            action_type
+        )
+        selected_action = menu.exec(self.current_plot.mapToGlobal(widget_position))
+        self._apply_chart_context_menu_selection(
+            selected_action,
+            primary_action,
+            clear_action,
+            action_type,
+            payload,
+        )
+
+    def _create_chart_context_menu(self, action_type):
         menu = QMenu(self.current_plot)
         if action_type == "delete":
-            menu_action = menu.addAction("Delete Pin")
+            primary_action = menu.addAction("Delete Pin")
         else:
-            menu_action = menu.addAction("Pin")
+            primary_action = menu.addAction("Pin")
 
-        selected_action = menu.exec(self.current_plot.mapToGlobal(widget_position))
-        if selected_action is not menu_action:
+        clear_action = None
+        if self.chart_pins:
+            menu.addSeparator()
+            clear_action = menu.addAction("Clear All Pins")
+        return menu, primary_action, clear_action
+
+    def _apply_chart_context_menu_selection(
+        self,
+        selected_action,
+        primary_action,
+        clear_action,
+        action_type,
+        payload,
+    ):
+        if selected_action is None:
+            return
+        if clear_action is not None and selected_action is clear_action:
+            self.clear_chart_pins()
+            return
+        if selected_action is not primary_action:
             return
         if action_type == "delete":
             self.delete_chart_pin(payload)
