@@ -118,6 +118,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
             self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
@@ -232,6 +234,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
             self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertIsNone(tab.current_curve.getData()[0])
             self.assertTrue(expected_database.exists())
@@ -278,6 +282,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
             self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             warning_box.assert_not_called()
 
@@ -424,6 +430,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIsNone(tab.current_plot.getPlotItem().legend)
             self.assertTrue(tab.btn_export.isEnabled())
             self.assertTrue(tab.btn_copy_chart.isEnabled())
+            self.assertTrue(tab.btn_capture_chart.isEnabled())
+            self.assertTrue(tab.btn_invert_y_axis.isEnabled())
             self.assertTrue(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
@@ -447,7 +455,7 @@ class QCurrentTabTests(unittest.TestCase):
             import_dataset(
                 "long_sample",
                 source_file,
-                [(str(seconds), 0.001, float(index)) for index, seconds in enumerate((0, 30, 60, 90, 120))],
+                [(str(seconds), 0.001, float(index)) for index, seconds in enumerate((0, 200, 400, 600, 800))],
                 database_file,
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
@@ -457,15 +465,11 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertFalse(tab.chart_scrollbar.isHidden())
             self.assertGreater(tab.chart_scrollbar.maximum(), 0)
-            start_range, end_range = tab.current_plot.getPlotItem().viewRange()[0]
-            self.assertAlmostEqual(start_range, 0.0, places=3)
-            self.assertAlmostEqual(end_range, 60.0, places=3)
-
             tab.chart_scrollbar.setValue(tab.chart_scrollbar.maximum())
 
             start_range, end_range = tab.current_plot.getPlotItem().viewRange()[0]
-            self.assertAlmostEqual(start_range, 60.0, places=3)
-            self.assertAlmostEqual(end_range, 120.0, places=3)
+            self.assertAlmostEqual(start_range, 400.0, places=3)
+            self.assertAlmostEqual(end_range, 800.0, places=3)
 
     def test_run_highlights_wake_up_regions_and_keeps_signed_current_curve(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -547,6 +551,98 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIn("Time: 1.500 s", hover_html)
             self.assertIn("Current: -28.46 mA", hover_html)
 
+    def test_invert_y_axis_toggles_viewbox_without_changing_chart_data_or_hover(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -25.30),
+                self._sample(1.0, 42.0),
+            ])
+            tab.btn_run.click()
+            view_box = tab.current_plot.getPlotItem().getViewBox()
+            x_range_before = tab.current_plot.getPlotItem().viewRange()[0]
+            current_x, current_y = tab.current_curve.getData()
+
+            tab.btn_invert_y_axis.click()
+
+            self.assertTrue(tab._y_axis_inverted)
+            self.assertTrue(view_box.yInverted())
+            self.assertEqual(tab.current_curve.getData()[0].tolist(), current_x.tolist())
+            self.assertEqual(tab.current_curve.getData()[1].tolist(), current_y.tolist())
+            self.assertEqual(tab.chart_current_ma.tolist(), [-25.30, 42.0])
+            self.assertEqual(tab.current_samples[0].current_mA, -25.30)
+            self.assertEqual(tab.current_plot.getPlotItem().viewRange()[0], x_range_before)
+
+            tab.update_hover_items(0.0, -25.30)
+            self.assertEqual(
+                tab.chart_coordinate_label.text(),
+                "Time: 0.000 s | Current: -25.30 mA",
+            )
+
+            tab.btn_invert_y_axis.click()
+
+            self.assertFalse(tab._y_axis_inverted)
+            self.assertFalse(view_box.yInverted())
+            self.assertEqual(tab.chart_current_ma.tolist(), [-25.30, 42.0])
+
+    def test_clear_and_new_dataset_reset_y_axis_orientation_and_disable_chart_actions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, 2.0),
+            ])
+            tab.btn_run.click()
+            tab.btn_invert_y_axis.click()
+            self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
+
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -3.0),
+                self._sample(1.0, -4.0),
+            ])
+
+            self.assertFalse(tab._y_axis_inverted)
+            self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+
+            tab.btn_run.click()
+            tab.btn_invert_y_axis.click()
+            tab.btn_clear.click()
+
+            self.assertFalse(tab._y_axis_inverted)
+            self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+
+    def test_capture_buttons_copy_current_chart_pixmap_to_clipboard(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, -2.0),
+            ])
+            self.assertFalse(tab.capture_current_chart())
+
+            tab.btn_run.click()
+            tab.btn_invert_y_axis.click()
+
+            self.assertTrue(tab.capture_current_chart())
+            first_pixmap = QApplication.clipboard().pixmap()
+            self.assertFalse(first_pixmap.isNull())
+
+            QApplication.clipboard().clear()
+            tab.btn_capture_chart.click()
+            capture_pixmap = QApplication.clipboard().pixmap()
+            self.assertFalse(capture_pixmap.isNull())
+
+            QApplication.clipboard().clear()
+            tab.btn_copy_chart.click()
+            copy_pixmap = QApplication.clipboard().pixmap()
+            self.assertFalse(copy_pixmap.isNull())
+            self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertEqual(tab.chart_current_ma.tolist(), [1.0, -2.0])
+
     def test_run_again_refreshes_chart_without_duplicate_items_and_updates_thresholds(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -610,6 +706,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
             self.assertFalse(tab.btn_copy_chart.isEnabled())
+            self.assertFalse(tab.btn_capture_chart.isEnabled())
+            self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
             self.assertTrue(tab.current_plot.isHidden())
@@ -729,6 +827,8 @@ class QCurrentTabTests(unittest.TestCase):
                 tab.btn_run,
                 tab.btn_export,
                 tab.btn_copy_chart,
+                tab.btn_invert_y_axis,
+                tab.btn_capture_chart,
                 tab.btn_copy_data_review,
                 tab.btn_copy_summary,
                 tab.btn_clear,
@@ -738,6 +838,8 @@ class QCurrentTabTests(unittest.TestCase):
                 "RUN",
                 "EXPORT",
                 "COPY CHART",
+                "Invert Y Axis",
+                "Capture",
                 "COPY Data Review",
                 "COPY Summary",
                 "CLEAR",

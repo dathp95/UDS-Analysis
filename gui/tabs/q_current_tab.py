@@ -222,6 +222,7 @@ class QCurrentTab(QWidget):
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
         self._hover_sample = None
+        self._y_axis_inverted = False
         self._chart_scrollbar_updating = False
         self._chart_x_min = 0.0
         self._chart_x_max = 0.0
@@ -261,6 +262,9 @@ class QCurrentTab(QWidget):
         self.import_button.clicked.connect(self.import_current_file)
         self.btn_run.clicked.connect(self.run_current_analysis)
         self.btn_clear.clicked.connect(self.clear_current_workspace)
+        self.btn_copy_chart.clicked.connect(self.capture_current_chart)
+        self.btn_capture_chart.clicked.connect(self.capture_current_chart)
+        self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
         self.chart_scrollbar.valueChanged.connect(
@@ -422,6 +426,20 @@ class QCurrentTab(QWidget):
         for legend_item in self.legend_items:
             self.legend_layout.addWidget(legend_item)
         self.legend_layout.addStretch(1)
+        self.btn_invert_y_axis = PrimaryButton(
+            "Invert Y Axis",
+            width=120,
+            height=30,
+        )
+        self.btn_invert_y_axis.setObjectName("btn_invert_y_axis")
+        self.btn_capture_chart = PrimaryButton(
+            "Capture",
+            width=90,
+            height=30,
+        )
+        self.btn_capture_chart.setObjectName("btn_capture_chart")
+        self.legend_layout.addWidget(self.btn_invert_y_axis)
+        self.legend_layout.addWidget(self.btn_capture_chart)
         self.chart_coordinate_label = PrimaryLabel("")
         self.chart_coordinate_label.setObjectName("chart_coordinate_label")
         self.chart_coordinate_label.setMinimumWidth(160)
@@ -778,6 +796,8 @@ class QCurrentTab(QWidget):
         self.btn_clear.setEnabled(has_data)
         self.btn_export.setEnabled(has_chart)
         self.btn_copy_chart.setEnabled(has_chart)
+        self.btn_capture_chart.setEnabled(has_chart)
+        self.btn_invert_y_axis.setEnabled(has_chart)
         self.btn_copy_summary.setEnabled(has_chart)
 
     def run_current_analysis(self):
@@ -864,7 +884,7 @@ class QCurrentTab(QWidget):
         )
 
         self.current_plot.enableAutoRange(axis="y")
-    
+
     def _update_chart_scrollbar(self, x_min, x_max):
         self._chart_x_min = float(x_min)
         self._chart_x_max = float(x_max)
@@ -887,7 +907,7 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.setValue(0)
         self.chart_scrollbar.setVisible(max_scroll > 0)
         self._chart_scrollbar_updating = False
-        
+
         self._apply_chart_scrollbar_range()
 
     def _on_chart_scrollbar_changed(self, _value=None):
@@ -921,6 +941,28 @@ class QCurrentTab(QWidget):
         if end <= start:
             end = start + 1.0
         self.current_plot.setXRange(start, end, padding=0)
+
+    def toggle_y_axis_inversion(self):
+        self._y_axis_inverted = not self._y_axis_inverted
+        self._apply_y_axis_orientation()
+
+    def reset_y_axis_orientation(self):
+        self._y_axis_inverted = False
+        if hasattr(self, "current_plot"):
+            self._apply_y_axis_orientation()
+
+    def _apply_y_axis_orientation(self):
+        view_box = self.current_plot.getPlotItem().getViewBox()
+        view_box.invertY(self._y_axis_inverted)
+
+    def capture_current_chart(self):
+        if not self._chart_ready:
+            return False
+        pixmap = self.current_plot.grab()
+        if pixmap.isNull():
+            return False
+        QApplication.clipboard().setPixmap(pixmap)
+        return True
 
     def update_sleep_limit_lines(self, limit_ma, mark_not_run=True):
         if self.upper_sleep_limit_line is None or self.lower_sleep_limit_line is None:
@@ -1045,6 +1087,7 @@ class QCurrentTab(QWidget):
         if not hasattr(self, "current_plot"):
             return
         self.current_curve.setData([], [])
+        self.reset_y_axis_orientation()
         self.clear_wake_up_regions()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
@@ -1271,6 +1314,8 @@ class QCurrentTab(QWidget):
             self.btn_run,
             self.btn_export,
             self.btn_copy_chart,
+            self.btn_invert_y_axis,
+            self.btn_capture_chart,
             self.btn_copy_data_review,
             self.btn_copy_summary,
             self.btn_clear,
