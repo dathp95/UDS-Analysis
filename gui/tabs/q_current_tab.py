@@ -440,11 +440,7 @@ class QCurrentTab(QWidget):
         self.btn_capture_chart.setObjectName("btn_capture_chart")
         self.legend_layout.addWidget(self.btn_invert_y_axis)
         self.legend_layout.addWidget(self.btn_capture_chart)
-        self.chart_coordinate_label = PrimaryLabel("")
-        self.chart_coordinate_label.setObjectName("chart_coordinate_label")
-        self.chart_coordinate_label.setMinimumWidth(160)
-        self.chart_coordinate_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.legend_layout.addWidget(self.chart_coordinate_label)
+        
 
         self.chart_content_layout = QVBoxLayout()
         self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
@@ -1048,9 +1044,7 @@ class QCurrentTab(QWidget):
         self.hover_label.setHtml(self._hover_label_html(time_s, current_ma))
         self.position_hover_label(time_s, current_ma)
         self.hover_label.show()
-        self.chart_coordinate_label.setText(
-            f"Time: {time_s:.3f} s | Current: {current_ma:.2f} mA"
-        )
+        
 
     def position_hover_label(self, time_s, current_ma):
         x_range, y_range = self.current_plot.getPlotItem().viewRange()
@@ -1069,8 +1063,7 @@ class QCurrentTab(QWidget):
         if self.hover_label is not None:
             self.hover_label.hide()
         self._hover_sample = None
-        if hasattr(self, "chart_coordinate_label"):
-            self.chart_coordinate_label.setText("")
+        
 
     def _hover_label_html(self, time_s, current_ma):
         colors = self._chart_colors()
@@ -1197,7 +1190,7 @@ class QCurrentTab(QWidget):
         }
         for item in self.legend_items:
             item.marker.setStyleSheet(marker_styles[item.marker_type])
-        self.chart_coordinate_label.fn_refresh_theme()
+        
 
     def _populate_review_table(self, samples):
         self.review_table.setSortingEnabled(False)
