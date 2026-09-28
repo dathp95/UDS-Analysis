@@ -57,7 +57,7 @@ SOURCE_FILE_FILTER = (
     "CSV Files (*.csv);;"
     "Excel Files (*.xlsx)"
 )
-CHART_SCROLL_VISIBLE_SECONDS = 60.0
+CHART_SCROLL_VISIBLE_SECONDS = 400.0
 CHART_SCROLL_SCALE = 1000
 TIMESTAMP_FORMATS = (
     "%y-%m-%d %H:%M:%S.%f",
@@ -842,10 +842,29 @@ class QCurrentTab(QWidget):
         self.update_wake_up_regions(intervals)
         self.hide_hover_items()
         self._update_chart_scrollbar(x_min, x_max)
-        self.current_plot.enableAutoRange(axis="y")
+        self._fit_all_current_chart()
+
         self.chart_placeholder.hide()
         self.current_plot.show()
 
+    def _fit_all_current_chart(self):
+        if self.chart_time_seconds.size == 0:
+            return
+
+        x_min = float(self.chart_time_seconds[0])
+        x_max = float(self.chart_time_seconds[-1])
+
+        if x_max <= x_min:
+            x_max = x_min + 1.0
+
+        self.current_plot.setXRange(
+            x_min,
+            x_max,
+            padding=0.02,
+        )
+
+        self.current_plot.enableAutoRange(axis="y")
+    
     def _update_chart_scrollbar(self, x_min, x_max):
         self._chart_x_min = float(x_min)
         self._chart_x_max = float(x_max)
@@ -868,6 +887,7 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.setValue(0)
         self.chart_scrollbar.setVisible(max_scroll > 0)
         self._chart_scrollbar_updating = False
+        
         self._apply_chart_scrollbar_range()
 
     def _on_chart_scrollbar_changed(self, _value=None):
