@@ -219,16 +219,16 @@ class QCurrentSummaryWidget(QGroupBox):
     def _format_time(value: float | None) -> str:
         if value is None:
             return NOT_AVAILABLE_VALUE
-        return f"{value:.3f} s"
+        return f"{value:.1f} (s)"
 
     @staticmethod
     def _format_duration(value: float | None) -> str:
         if value is None:
             return NOT_AVAILABLE_VALUE
         if value < 60.0:
-            return f"{value:.3f} s"
+            return f"{value:.1f} (s)"
         minutes, seconds = divmod(value, 60.0)
         if minutes < 60.0:
-            return f"{int(minutes)} min {seconds:.3f} s"
+            return f"{int(minutes)} min {seconds:.1f} (s)"
         hours, minutes = divmod(minutes, 60.0)
-        return f"{int(hours)} h {int(minutes)} min {seconds:.3f} s"
+        return f"{int(hours)} h {int(minutes)} min {seconds:.1f} (s)"
