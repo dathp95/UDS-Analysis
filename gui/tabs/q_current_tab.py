@@ -159,9 +159,12 @@ class QCurrentTab(QWidget):
         self.chart_pins = []
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
+        self._chart_user_zoomed = False
         self._hover_sample = None
         self._y_axis_inverted = False
         self._chart_scrollbar_updating = False
+        self._chart_xrange_updating = False
+        self._chart_user_zoomed = False
         self._chart_x_min = 0.0
         self._chart_x_max = 0.0
         self._chart_visible_span = CHART_SCROLL_VISIBLE_SECONDS
@@ -214,6 +217,9 @@ class QCurrentTab(QWidget):
             self._on_chart_scrollbar_changed
         )
         self.review_table.cellClicked.connect(self._on_review_row_selected)
+        self.current_plot.getPlotItem().getViewBox().sigXRangeChanged.connect(
+            self._on_chart_x_range_changed
+        )
         self.current_limit_edit.valueChanged.connect(
             self.update_sleep_limit_lines
         )
@@ -823,7 +829,10 @@ class QCurrentTab(QWidget):
         if x_max <= x_min:
             x_max = x_min + 1.0
 
-        self.current_plot.setXRange(
+        self._chart_user_zoomed = False
+        self._chart_visible_span = self._chart_scroll_window_seconds()
+        self._sync_chart_scrollbar_to_range(self._chart_x_min, self._chart_visible_span)
+        self._set_chart_x_range(
             x_min,
             x_max,
             padding=0.02,
@@ -871,7 +880,7 @@ class QCurrentTab(QWidget):
         if total_span <= 0.0:
             return
 
-        window_seconds = self._chart_scroll_window_seconds()
+        window_seconds = self._active_chart_window_seconds()
         if window_seconds >= total_span:
             new_x_min = data_min
             new_x_max = data_max
@@ -886,18 +895,16 @@ class QCurrentTab(QWidget):
                 new_x_max = data_max
                 new_x_min = data_max - window_seconds
 
-        if self.chart_scrollbar.maximum() > 0:
-            scroll_value = int(round((new_x_min - data_min) * CHART_SCROLL_SCALE))
-            scroll_value = max(
-                self.chart_scrollbar.minimum(),
-                min(self.chart_scrollbar.maximum(), scroll_value),
-            )
-            self._chart_scrollbar_updating = True
-            self.chart_scrollbar.setValue(scroll_value)
-            self._chart_scrollbar_updating = False
-
-        self.current_plot.setXRange(new_x_min, new_x_max, padding=0)
+        self._sync_chart_scrollbar_to_range(new_x_min, window_seconds)
+        self._set_chart_x_range(new_x_min, new_x_max, padding=0)
         self.position_chart_pin_labels()
+
+    def _set_chart_x_range(self, x_min, x_max, padding=0):
+        self._chart_xrange_updating = True
+        try:
+            self.current_plot.setXRange(x_min, x_max, padding=padding)
+        finally:
+            self._chart_xrange_updating = False
 
     def _chart_scroll_window_seconds(self):
         total_span = max(0.0, self._chart_x_max - self._chart_x_min)
@@ -906,27 +913,57 @@ class QCurrentTab(QWidget):
             total_span if total_span > 0.0 else CHART_SCROLL_VISIBLE_SECONDS,
         )
 
-    def _update_chart_scrollbar(self, x_min, x_max):
-        self._chart_x_min = float(x_min)
-        self._chart_x_max = float(x_max)
+    def _active_chart_window_seconds(self):
         total_span = max(0.0, self._chart_x_max - self._chart_x_min)
-        self._chart_visible_span = self._chart_scroll_window_seconds()
+        if total_span <= 0.0:
+            return CHART_SCROLL_VISIBLE_SECONDS
+        if self._chart_user_zoomed:
+            x_range, _y_range = self.current_plot.getPlotItem().viewRange()
+            current_width = max(float(x_range[1]) - float(x_range[0]), 1e-9)
+            return min(current_width, total_span)
+        return self._chart_scroll_window_seconds()
+
+    def _sync_chart_scrollbar_to_range(self, x_min, window_seconds):
+        total_span = max(0.0, self._chart_x_max - self._chart_x_min)
+        window_seconds = min(max(float(window_seconds), 0.0), total_span)
         max_scroll = max(
             0,
-            int(round((total_span - self._chart_visible_span) * CHART_SCROLL_SCALE)),
+            int(round((total_span - window_seconds) * CHART_SCROLL_SCALE)),
         )
+        scroll_value = int(round((float(x_min) - self._chart_x_min) * CHART_SCROLL_SCALE))
+        scroll_value = max(0, min(max_scroll, scroll_value))
 
         self._chart_scrollbar_updating = True
         self.chart_scrollbar.setRange(0, max_scroll)
         self.chart_scrollbar.setPageStep(
-            max(1, int(round(self._chart_visible_span * CHART_SCROLL_SCALE)))
+            max(1, int(round(window_seconds * CHART_SCROLL_SCALE)))
         )
         self.chart_scrollbar.setSingleStep(CHART_SCROLL_SCALE)
-        self.chart_scrollbar.setValue(0)
+        self.chart_scrollbar.setValue(scroll_value)
         self.chart_scrollbar.setVisible(max_scroll > 0)
         self._chart_scrollbar_updating = False
 
+    def _update_chart_scrollbar(self, x_min, x_max):
+        self._chart_x_min = float(x_min)
+        self._chart_x_max = float(x_max)
+        self._chart_user_zoomed = False
+        self._chart_visible_span = self._chart_scroll_window_seconds()
+        self._sync_chart_scrollbar_to_range(self._chart_x_min, self._chart_visible_span)
         self._apply_chart_scrollbar_range()
+
+    def _on_chart_x_range_changed(self, *_args):
+        if self._chart_xrange_updating or not self._chart_ready:
+            return
+        if self.chart_time_seconds.size == 0:
+            return
+        x_range, _y_range = self.current_plot.getPlotItem().viewRange()
+        current_width = float(x_range[1]) - float(x_range[0])
+        total_span = max(0.0, self._chart_x_max - self._chart_x_min)
+        if current_width <= 0.0 or total_span <= 0.0:
+            return
+        self._chart_user_zoomed = True
+        self._sync_chart_scrollbar_to_range(float(x_range[0]), min(current_width, total_span))
+        self.position_chart_pin_labels()
     def _on_chart_scrollbar_changed(self, _value=None):
         if self._chart_scrollbar_updating or not self._chart_ready:
             return
@@ -935,7 +972,7 @@ class QCurrentTab(QWidget):
     def _apply_chart_scrollbar_range(self):
         total_span = max(0.0, self._chart_x_max - self._chart_x_min)
         if total_span <= 0.0:
-            self.current_plot.setXRange(
+            self._set_chart_x_range(
                 self._chart_x_min,
                 self._chart_x_min + 1.0,
                 padding=0.02,
@@ -943,8 +980,9 @@ class QCurrentTab(QWidget):
             self.position_chart_pin_labels()
             return
 
-        if self.chart_scrollbar.maximum() <= 0:
-            self.current_plot.setXRange(
+        window_seconds = self._active_chart_window_seconds()
+        if self.chart_scrollbar.maximum() <= 0 or window_seconds >= total_span:
+            self._set_chart_x_range(
                 self._chart_x_min,
                 self._chart_x_max,
                 padding=0.02,
@@ -956,12 +994,15 @@ class QCurrentTab(QWidget):
             self._chart_x_min
             + self.chart_scrollbar.value() / CHART_SCROLL_SCALE
         )
-        end = min(start + self._chart_visible_span, self._chart_x_max)
-        if end <= start:
-            end = start + 1.0
-        self.current_plot.setXRange(start, end, padding=0)
+        end = start + window_seconds
+        if end > self._chart_x_max:
+            end = self._chart_x_max
+            start = end - window_seconds
+        if start < self._chart_x_min:
+            start = self._chart_x_min
+            end = min(start + window_seconds, self._chart_x_max)
+        self._set_chart_x_range(start, end, padding=0)
         self.position_chart_pin_labels()
-
     def toggle_y_axis_inversion(self):
         self._y_axis_inverted = not self._y_axis_inverted
         self._apply_y_axis_orientation()
@@ -1391,6 +1432,7 @@ class QCurrentTab(QWidget):
         self.clear_wake_up_regions()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
+        self._chart_user_zoomed = False
         self.hide_hover_items()
         self._chart_scrollbar_updating = True
         self.chart_scrollbar.setValue(self.chart_scrollbar.minimum())
@@ -1423,7 +1465,7 @@ class QCurrentTab(QWidget):
             "sleep": colors.WARNING,
             "wake": colors.WARNING,
             "wake_fill": colors.WARNING,
-            "hover_marker": colors.PRIMARY,
+            "hover_marker": "#E8F531",
             "hover_marker_border": colors.TEXT,
             "hover_label_background": colors.WINDOW,
             "hover_label_text": colors.TEXT,

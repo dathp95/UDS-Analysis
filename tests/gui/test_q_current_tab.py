@@ -896,7 +896,7 @@ class QCurrentTabTests(unittest.TestCase):
             scroll_value = int(round((600.0 - tab._chart_visible_span / 2.0) * CHART_SCROLL_SCALE))
             tab.chart_scrollbar.setValue(scroll_value)
             scrollbar_range = tab.current_plot.getPlotItem().viewRange()[0]
-            tab.current_plot.setXRange(0.0, 20.0, padding=0)
+            tab._set_chart_x_range(0.0, 20.0, padding=0)
 
             tab.review_table.cellClicked.emit(2, 2)
 
@@ -941,7 +941,6 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(200.0, 3.0),
             ])
             tab.btn_run.click()
-            tab.current_plot.setXRange(50.0, 60.0, padding=0)
 
             tab.review_table.cellClicked.emit(1, 0)
 
@@ -950,6 +949,73 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertAlmostEqual(x_range[1], 200.0, places=3)
             self.assertTrue(tab.chart_scrollbar.isHidden())
 
+    def test_review_row_click_preserves_user_zoom_width_for_repeated_selection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(200.0, 2.0),
+                self._sample(600.0, 3.0),
+                self._sample(1000.0, 4.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(100.0, 200.0, padding=0)
+            self.assertTrue(tab._chart_user_zoomed)
+
+            tab.review_table.cellClicked.emit(2, 0)
+            first_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(first_range[0], 550.0, places=3)
+            self.assertAlmostEqual(first_range[1], 650.0, places=3)
+            self.assertAlmostEqual(first_range[1] - first_range[0], 100.0, places=3)
+
+            tab.review_table.cellClicked.emit(3, 0)
+            second_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(second_range[0], 900.0, places=3)
+            self.assertAlmostEqual(second_range[1], 1000.0, places=3)
+            self.assertAlmostEqual(second_range[1] - second_range[0], 100.0, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.maximum())
+
+    def test_scrollbar_preserves_user_zoom_width_after_manual_zoom(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(200.0, 2.0),
+                self._sample(600.0, 3.0),
+                self._sample(1000.0, 4.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(100.0, 200.0, padding=0)
+            self.assertTrue(tab._chart_user_zoomed)
+
+            tab.chart_scrollbar.setValue(400 * CHART_SCROLL_SCALE)
+
+            x_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(x_range[0], 400.0, places=3)
+            self.assertAlmostEqual(x_range[1], 500.0, places=3)
+            self.assertAlmostEqual(x_range[1] - x_range[0], 100.0, places=3)
+
+    def test_fit_all_resets_user_zoom_for_review_row_navigation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(200.0, 2.0),
+                self._sample(600.0, 3.0),
+                self._sample(1000.0, 4.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(100.0, 200.0, padding=0)
+            self.assertTrue(tab._chart_user_zoomed)
+
+            tab.btn_fit_all.click()
+            self.assertFalse(tab._chart_user_zoomed)
+            tab.review_table.cellClicked.emit(2, 0)
+
+            x_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(x_range[0], 400.0, places=3)
+            self.assertAlmostEqual(x_range[1], 800.0, places=3)
+            self.assertAlmostEqual(x_range[1] - x_range[0], tab._chart_visible_span, places=3)
     def test_review_row_click_preserves_inverted_y_and_pins(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
