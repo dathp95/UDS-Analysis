@@ -1,0 +1,220 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Sequence
+
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as WorkbookImage
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+from core.q_current_analysis import QCurrentAnalysisResult, parse_q_current_timestamp
+
+
+@dataclass(frozen=True)
+class QCurrentReportSettings:
+    standard_current_ma: float
+    wake_up_limit_ma: float
+    wake_duration_s: float
+
+
+@dataclass(frozen=True)
+class QCurrentReportData:
+    dataset_name: str
+    samples: Sequence[object]
+    analysis_result: QCurrentAnalysisResult
+    settings: QCurrentReportSettings
+    chart_png: bytes | None = None
+
+
+_HEADER_FILL = PatternFill("solid", fgColor="D9EAF7")
+_SECTION_FILL = PatternFill("solid", fgColor="1F4E78")
+_PASS_FILL = PatternFill("solid", fgColor="C6EFCE")
+_FAIL_FILL = PatternFill("solid", fgColor="FFC7CE")
+_THIN_BORDER = Border(
+    left=Side(style="thin", color="B7B7B7"),
+    right=Side(style="thin", color="B7B7B7"),
+    top=Side(style="thin", color="B7B7B7"),
+    bottom=Side(style="thin", color="B7B7B7"),
+)
+
+
+def export_q_current_report(report_data: QCurrentReportData, output_file: str | Path) -> bool:
+    workbook = Workbook()
+    data_sheet = workbook.active
+    data_sheet.title = "Data Review"
+    report_sheet = workbook.create_sheet("Report")
+
+    workbook.properties.creator = "Dat Tran"
+    workbook.properties.title = "Q Current Analysis Report"
+    workbook.properties.subject = "Vehicle Sleep Current Analysis"
+
+    _populate_data_review_sheet(data_sheet, report_data.samples)
+    temporary_chart_path = None
+    try:
+        if report_data.chart_png:
+            temporary_chart_path = _write_temporary_chart(report_data.chart_png)
+        _populate_report_sheet(report_sheet, report_data, temporary_chart_path)
+        workbook.save(output_file)
+    except PermissionError:
+        return False
+    finally:
+        if temporary_chart_path is not None:
+            temporary_chart_path.unlink(missing_ok=True)
+    return True
+
+
+def _populate_data_review_sheet(sheet, samples: Sequence[object]) -> None:
+    sheet.append(["Time", "Current (mA)"])
+    for sample in samples:
+        sheet.append([str(getattr(sample, "time")), float(getattr(sample, "current_mA"))])
+
+    sheet.freeze_panes = "A2"
+    max_row = max(sheet.max_row, 1)
+    sheet.auto_filter.ref = f"A1:B{max_row}"
+    sheet.column_dimensions["A"].width = 28
+    sheet.column_dimensions["B"].width = 16
+
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        cell.fill = _HEADER_FILL
+        cell.border = _THIN_BORDER
+
+    for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=2):
+        for cell in row:
+            cell.border = _THIN_BORDER
+        row[1].number_format = "0.00"
+
+
+def _populate_report_sheet(
+    sheet,
+    report_data: QCurrentReportData,
+    chart_path: Path | None,
+) -> None:
+    result = report_data.analysis_result
+    settings = report_data.settings
+
+    sheet.title = "Report"
+    sheet.column_dimensions["A"].width = 30
+    sheet.column_dimensions["B"].width = 24
+    sheet.column_dimensions["C"].width = 18
+    sheet.column_dimensions["D"].width = 18
+
+    sheet.merge_cells("A1:D1")
+    sheet["A1"] = "Q CURRENT ANALYSIS REPORT"
+    sheet["A1"].font = Font(bold=True, size=18, color="1F4E78")
+    sheet["A1"].alignment = Alignment(horizontal="center")
+
+    sheet.merge_cells("A2:D2")
+    sheet["A2"] = "by Dat Tran"
+    sheet["A2"].alignment = Alignment(horizontal="center")
+
+    sheet.merge_cells("A3:D3")
+    sheet["A3"] = f"Dataset: {report_data.dataset_name or 'Dataset'}"
+    sheet["A3"].font = Font(bold=True)
+
+    row = 5
+    row = _write_section(sheet, row, "TEST SETTINGS")
+    row = _write_metric(sheet, row, "Standard Current (mA)", settings.standard_current_ma, "0.00")
+    row = _write_metric(sheet, row, "Wake Up Limit (mA)", settings.wake_up_limit_ma, "0.00")
+    row = _write_metric(sheet, row, "Wake Duration (s)", settings.wake_duration_s, "0.0")
+
+    row += 1
+    row = _write_section(sheet, row, "RESULT")
+    sheet.cell(row=row, column=1, value="Analysis Result")
+    result_cell = sheet.cell(row=row, column=2, value=result.result_status)
+    result_cell.font = Font(bold=True)
+    if result.result_status == "PASSED":
+        result_cell.fill = _PASS_FILL
+    elif result.result_status == "FAILED":
+        result_cell.fill = _FAIL_FILL
+    _style_metric_row(sheet, row)
+    row += 1
+
+    row += 1
+    row = _write_section(sheet, row, "CURRENT STATISTICS")
+    row = _write_metric(sheet, row, "Average Sleep Current (mA)", result.average_sleep_current_ma, "0.00")
+    row = _write_metric(sheet, row, "Minimum Sleep Current (mA)", result.minimum_sleep_current_ma, "0.00")
+    row = _write_metric(sheet, row, "Maximum Sleep Current (mA)", result.maximum_sleep_current_ma, "0.00")
+
+    row += 1
+    row = _write_section(sheet, row, "WAKE-UP STATISTICS")
+    row = _write_metric(sheet, row, "Wake-up Event Count", result.wake_up_event_count)
+    row = _write_metric(sheet, row, "Total Wake-up Duration (s)", result.total_wake_up_duration_s, "0.000")
+    row = _write_metric(sheet, row, "Average Wake-up Duration (s)", result.average_wake_up_duration_s, "0.000")
+    row = _write_metric(sheet, row, "Maximum Wake-up Duration (s)", result.maximum_wake_up_duration_s, "0.000")
+    row = _write_metric(sheet, row, "Average Wake-up Interval (s)", result.average_wake_up_interval_s, "0.000")
+    row = _write_metric(sheet, row, "Minimum Wake-up Interval (s)", result.minimum_wake_up_interval_s, "0.000")
+    row = _write_metric(sheet, row, "Maximum Wake-up Interval (s)", result.maximum_wake_up_interval_s, "0.000")
+    row = _write_metric(sheet, row, "Longest Continuous Sleep (s)", result.longest_continuous_sleep_s, "0.000")
+
+    row += 1
+    row = _write_section(sheet, row, "TEST INFORMATION")
+    row = _write_metric(sheet, row, "Start Time", _format_source_time(result.source_start_time))
+    row = _write_metric(sheet, row, "End Time", _format_source_time(result.source_end_time))
+    row = _write_metric(sheet, row, "Duration (s)", result.duration_s, "0.000")
+    row = _write_metric(sheet, row, "Total Samples", result.total_samples)
+    row = _write_metric(sheet, row, "Sample Interval (s)", result.sample_interval_s, "0.000")
+
+    row += 1
+    row = _write_section(sheet, row, "CURRENT CHART")
+    if chart_path is not None:
+        image = WorkbookImage(str(chart_path))
+        image.width = 760
+        image.height = 360
+        sheet.add_image(image, f"A{row}")
+    else:
+        sheet.cell(row=row, column=1, value="N/A")
+
+
+def _write_section(sheet, row: int, title: str) -> int:
+    sheet.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
+    cell = sheet.cell(row=row, column=1, value=title)
+    cell.font = Font(bold=True, color="FFFFFF")
+    cell.fill = _SECTION_FILL
+    cell.alignment = Alignment(horizontal="left")
+    return row + 1
+
+
+def _write_metric(sheet, row: int, label: str, value, number_format: str | None = None) -> int:
+    sheet.cell(row=row, column=1, value=label)
+    value_cell = sheet.cell(row=row, column=2, value=_excel_value(value))
+    if value is not None and number_format is not None:
+        value_cell.number_format = number_format
+    _style_metric_row(sheet, row)
+    return row + 1
+
+
+def _style_metric_row(sheet, row: int) -> None:
+    for column in range(1, 3):
+        cell = sheet.cell(row=row, column=column)
+        cell.border = _THIN_BORDER
+        if column == 1:
+            cell.font = Font(bold=True)
+
+
+def _excel_value(value):
+    if value is None:
+        return "N/A"
+    return value
+
+
+def _format_source_time(value: str | None) -> str:
+    if value is None:
+        return "N/A"
+    try:
+        parsed_value = parse_q_current_timestamp(value)
+    except ValueError:
+        return str(value)
+    if isinstance(parsed_value, datetime):
+        return parsed_value.strftime("%H:%M:%S")
+    return str(value)
+
+
+def _write_temporary_chart(chart_png: bytes) -> Path:
+    with NamedTemporaryFile(delete=False, suffix=".png") as temporary_file:
+        temporary_file.write(chart_png)
+        return Path(temporary_file.name)

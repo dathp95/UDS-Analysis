@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -29,6 +29,8 @@ from PySide6.QtWidgets import (
 )
 
 from core.q_current_analysis import analyze_q_current, parse_q_current_timestamp
+from core.q_current_report_export import QCurrentReportData, QCurrentReportSettings
+from core.services.q_current_report_service import QCurrentReportService
 from core.sleep_current_database import (
     database_path_for_source,
     default_dataset_name,
@@ -137,6 +139,9 @@ class QCurrentTab(QWidget):
         self.current_import = None
         self.current_samples = []
         self.current_database_path = None
+        self.current_analysis_result = None
+        self.current_analysis_settings = None
+        self.q_current_report_service = QCurrentReportService()
         self._chart_ready = False
         self.current_curve = None
         self.upper_sleep_limit_line = None
@@ -187,6 +192,7 @@ class QCurrentTab(QWidget):
         self.browse_button.clicked.connect(self.browse_current_file)
         self.import_button.clicked.connect(self.import_current_file)
         self.btn_run.clicked.connect(self.run_current_analysis)
+        self.btn_export.clicked.connect(self.export_q_current_report)
         self.btn_clear.clicked.connect(self.clear_current_workspace)
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
@@ -695,14 +701,15 @@ class QCurrentTab(QWidget):
     def _update_action_states(self):
         has_data = bool(self.current_samples)
         has_chart = self._chart_ready
+        has_analysis = self.current_analysis_result is not None
         self.btn_run.setEnabled(has_data)
         self.btn_copy_data_review.setEnabled(has_data)
         self.btn_clear.setEnabled(has_data)
-        self.btn_export.setEnabled(has_chart)
+        self.btn_export.setEnabled(has_analysis)
         self.btn_capture_chart.setEnabled(has_chart)
         self.btn_invert_y_axis.setEnabled(has_chart)
         self.btn_fit_all.setEnabled(has_chart)
-        self.btn_copy_summary.setEnabled(has_chart)
+        self.btn_copy_summary.setEnabled(has_analysis)
 
     def run_current_analysis(self):
         if not self.current_samples:
@@ -729,6 +736,12 @@ class QCurrentTab(QWidget):
             analysis_result.wake_up_intervals,
         )
         self.summary_widget.set_result(analysis_result)
+        self.current_analysis_result = analysis_result
+        self.current_analysis_settings = QCurrentReportSettings(
+            standard_current_ma=self.current_limit_edit.value(),
+            wake_up_limit_ma=self.wake_limit_edit.value(),
+            wake_duration_s=self.wake_duration_edit.value(),
+        )
         self._chart_ready = True
         self._set_analysis_result(analysis_result.result_status)
         self._update_action_states()
@@ -737,6 +750,8 @@ class QCurrentTab(QWidget):
         self.current_import = None
         self.current_database_path = None
         self.current_samples = []
+        self.current_analysis_result = None
+        self.current_analysis_settings = None
         self._chart_ready = False
         self.review_table.setRowCount(0)
         self._clear_current_chart()
@@ -887,6 +902,45 @@ class QCurrentTab(QWidget):
         QApplication.clipboard().setPixmap(pixmap)
         return True
 
+    def export_q_current_report(self):
+        if self.current_analysis_result is None or self.current_analysis_settings is None:
+            return None
+        report_data = QCurrentReportData(
+            dataset_name=self.dataset_combo.currentText(),
+            samples=list(self.current_samples),
+            analysis_result=self.current_analysis_result,
+            settings=self.current_analysis_settings,
+            chart_png=self._grab_current_chart_png(),
+        )
+        try:
+            output_file = self.q_current_report_service.fn_export(self, report_data)
+        except Exception as error:
+            QMessageBox.critical(self, "Export Error", str(error))
+            return None
+        if output_file is not None:
+            QMessageBox.information(
+                self,
+                "Export",
+                f"Excel report saved:\n\n{output_file}",
+            )
+        return output_file
+
+    def _grab_current_chart_png(self):
+        if not self._chart_ready:
+            return None
+        pixmap = self.current_plot.grab()
+        if pixmap.isNull():
+            return None
+        byte_array = QByteArray()
+        buffer = QBuffer(byte_array)
+        if not buffer.open(QIODevice.WriteOnly):
+            return None
+        if not pixmap.save(buffer, "PNG"):
+            buffer.close()
+            return None
+        buffer.close()
+        return bytes(byte_array)
+
     def update_sleep_limit_lines(self, limit_ma, mark_not_run=True):
         if self.upper_sleep_limit_line is None or self.lower_sleep_limit_line is None:
             return
@@ -907,10 +961,14 @@ class QCurrentTab(QWidget):
                 break
 
     def _mark_analysis_not_run(self, *_args):
+        self.current_analysis_result = None
+        self.current_analysis_settings = None
         if hasattr(self, "analysis_result_edit"):
             self._set_analysis_result("NOT RUN")
         if hasattr(self, "summary_widget"):
             self.summary_widget.clear_result()
+        if hasattr(self, "btn_export"):
+            self._update_action_states()
 
     def create_wake_up_region(self, start_s, end_s):
         region = pg.LinearRegionItem(

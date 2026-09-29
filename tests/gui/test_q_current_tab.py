@@ -449,6 +449,91 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(getattr(bottom_axis, "autoSIPrefix", True))
             self.assertFalse(getattr(left_axis, "autoSIPrefix", True))
 
+    def test_export_button_exports_completed_analysis_report(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab.dataset_combo.addItem("VF8_Sleep_Current")
+            tab.dataset_combo.setCurrentText("VF8_Sleep_Current")
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, -20.0),
+            ])
+            tab.current_limit_edit.setValue(30.0)
+            tab.wake_limit_edit.setValue(300.0)
+            tab.wake_duration_edit.setValue(2.0)
+            tab.btn_run.click()
+
+            output_file = Path(tmpdir) / "report.xlsx"
+            with patch.object(
+                tab.q_current_report_service,
+                "fn_export",
+                return_value=output_file,
+            ) as export_report, patch.object(
+                QMessageBox,
+                "information",
+            ) as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                tab.btn_export.click()
+
+            export_report.assert_called_once()
+            report_data = export_report.call_args.args[1]
+            self.assertEqual(report_data.dataset_name, "VF8_Sleep_Current")
+            self.assertEqual(len(report_data.samples), 2)
+            self.assertEqual(report_data.analysis_result.result_status, "PASSED")
+            self.assertEqual(report_data.settings.standard_current_ma, 30.0)
+            self.assertEqual(report_data.settings.wake_up_limit_ma, 300.0)
+            self.assertEqual(report_data.settings.wake_duration_s, 2.0)
+            self.assertIsInstance(report_data.chart_png, bytes)
+            self.assertGreater(len(report_data.chart_png), 0)
+            information.assert_called_once()
+            critical.assert_not_called()
+
+    def test_export_cancel_does_not_show_message(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
+            tab.btn_run.click()
+
+            with patch.object(
+                tab.q_current_report_service,
+                "fn_export",
+                return_value=None,
+            ) as export_report, patch.object(
+                QMessageBox,
+                "information",
+            ) as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                tab.btn_export.click()
+
+            export_report.assert_called_once()
+            information.assert_not_called()
+            critical.assert_not_called()
+
+    def test_export_error_shows_critical_message(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
+            tab.btn_run.click()
+
+            with patch.object(
+                tab.q_current_report_service,
+                "fn_export",
+                side_effect=PermissionError("locked"),
+            ), patch.object(
+                QMessageBox,
+                "information",
+            ) as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                tab.btn_export.click()
+
+            information.assert_not_called()
+            critical.assert_called_once()
     def test_run_populates_summary_status_and_resets_on_clear(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
