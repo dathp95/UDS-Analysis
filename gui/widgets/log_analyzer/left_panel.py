@@ -14,9 +14,13 @@ class LeftPanel(QWidget):
 
         layout = QVBoxLayout(self)
 
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
         self.quick_access = QuickAccessWidget()
 
         layout.addWidget(self.quick_access, 1)
+        
         self._connect_signals()
     
     

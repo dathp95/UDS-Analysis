@@ -49,7 +49,7 @@ class QuickAccessWidget(QWidget):
 
         root_layout = QVBoxLayout(self)
 
-        root_layout.setContentsMargins(8, 8, 8, 8)
+        root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(8)
 
         self.edit_search = PrimaryLineEdit(
@@ -83,10 +83,10 @@ class QuickAccessWidget(QWidget):
         )
 
         self.button_layout.setContentsMargins(
-            8,
-            8,
-            8,
-            8,
+            6,
+            6,
+            6,
+            6,
         )
 
         self.button_layout.setSpacing(4)

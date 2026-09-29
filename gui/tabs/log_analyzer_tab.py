@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QMessageBox,
+    QGridLayout,
+
 )
 
 from gui.controllers.analysis_controller import AnalysisController
@@ -48,23 +50,30 @@ class LogAnalyzerTab(QWidget):
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
-
         input_layout = QHBoxLayout()
-        self.content_layout = QHBoxLayout()
 
+        # ==========================================================
+        # Main layout
+        # ==========================================================
         main_layout.setSpacing(8)
+
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(8)
 
+        # ==========================================================
+        # Vehicle selector
+        # ==========================================================
         self.vehicle_selector = VehicleSelectorWidget()
 
+        # ==========================================================
+        # Log selector
+        # ==========================================================
         self.log_selector = PathSelectorWidget(
             "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...",
             "Log Files (*.blf *.asc)",
         )
 
+        # Keep Vehicle / Log File labels at the same height
         input_label_height = max(
             self.vehicle_selector.lbl_vehicle.sizeHint().height(),
             self.log_selector.label.sizeHint().height(),
@@ -78,36 +87,24 @@ class LogAnalyzerTab(QWidget):
             input_label_height
         )
 
+        # ==========================================================
+        # Main widgets
+        # ==========================================================
         self.filter_box = FilterBox()
 
         self.left_panel = LeftPanel()
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
 
+        # Quick Filter search is created inside QuickAccessWidget
+        # but displayed in the main grid.
         self.quick_filter_search = (
-                self.left_panel.quick_access.edit_search
-            )
-
-        search_layout = QHBoxLayout()
-
-        search_layout.setContentsMargins(0, 0, 0, 0)
-        search_layout.setSpacing(8)
-
-        search_layout.addWidget(
-            self.quick_filter_search,
-            5,
+            self.left_panel.quick_access.edit_search
         )
 
-        search_layout.addWidget(
-            self.filter_box,
-            18,
-        )
-        search_layout.addStretch(4)
-
-        self.content_layout.addWidget(self.left_panel, 5)
-        self.content_layout.addWidget(self.tbl_result, 18)
-        self.content_layout.addWidget(self.right_panel, 4)
-
+        # ==========================================================
+        # Top input layout
+        # ==========================================================
         input_layout.addWidget(
             self.vehicle_selector,
             2,
@@ -120,9 +117,91 @@ class LogAnalyzerTab(QWidget):
             Qt.AlignTop,
         )
 
-        main_layout.addLayout(input_layout)
-        main_layout.addLayout(search_layout)
-        main_layout.addLayout(self.content_layout)
+        # ==========================================================
+        # Search + Content Grid
+        #
+        # Column 0 = Quick Filter
+        # Column 1 = Result Table
+        # Column 2 = Right Panel
+        #
+        # Using the SAME grid guarantees vertical alignment.
+        # ==========================================================
+        content_grid = QGridLayout()
+
+        content_grid.setContentsMargins(
+            0,
+            0,
+            0,
+            0,
+        )
+
+        content_grid.setHorizontalSpacing(8)
+        content_grid.setVerticalSpacing(8)
+
+        # ----------------------------------------------------------
+        # Column ratio
+        # Left : Table : Right
+        #   5  :  18   :   4
+        # ----------------------------------------------------------
+        content_grid.setColumnStretch(0, 6)
+        content_grid.setColumnStretch(1, 16)
+        content_grid.setColumnStretch(2, 5)
+
+        # ==========================================================
+        # Row 0 - Search
+        # ==========================================================
+        content_grid.addWidget(
+            self.quick_filter_search,
+            0,
+            0,
+        )
+
+        content_grid.addWidget(
+            self.filter_box,
+            0,
+            1,
+        )
+
+        # Column 2 intentionally empty.
+        # This keeps Search ECU aligned exactly with Result Table.
+
+        # ==========================================================
+        # Row 1 - Main content
+        # ==========================================================
+        content_grid.addWidget(
+            self.left_panel,
+            1,
+            0,
+        )
+
+        content_grid.addWidget(
+            self.tbl_result,
+            1,
+            1,
+        )
+
+        content_grid.addWidget(
+            self.right_panel,
+            1,
+            2,
+        )
+
+        # Search row only uses required height.
+        # Main content consumes remaining vertical space.
+        content_grid.setRowStretch(0, 0)
+        content_grid.setRowStretch(1, 1)
+
+        # ==========================================================
+        # Add everything to main layout
+        # ==========================================================
+        main_layout.addLayout(
+            input_layout
+        )
+
+        main_layout.addLayout(
+            content_grid,
+            1,
+        )
 
     def _create_controllers(self):
         self.analysis_controller = AnalysisController()

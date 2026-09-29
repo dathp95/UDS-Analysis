@@ -381,7 +381,7 @@ class ActionPanel (QWidget):
     def _fn_format_details(
             details: dict,
         ) -> str:
-        return "\n".join(
+        return "\n\n".join(
             f"{key}: {value}"
             for key, value in details.items()
         )
