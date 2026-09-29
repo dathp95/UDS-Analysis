@@ -56,9 +56,10 @@ class QuickAccessWidget(QWidget):
             placeholder="Search Quick Filter..."
         )
 
-        root_layout.addWidget(
-            self.edit_search
-        )
+        # root_layout.addWidget(
+
+        #     self.edit_search
+        # )
 
         # --------------------------
         # Quick Filter

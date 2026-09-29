@@ -84,9 +84,29 @@ class LogAnalyzerTab(QWidget):
         self.tbl_result = ResultTable()
         self.right_panel = RightPanel()
 
-        self.content_layout.addWidget(self.left_panel, 2)
-        self.content_layout.addWidget(self.tbl_result, 9)
-        self.content_layout.addWidget(self.right_panel, 2)
+        self.quick_filter_search = (
+                self.left_panel.quick_access.edit_search
+            )
+
+        search_layout = QHBoxLayout()
+
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        search_layout.setSpacing(8)
+
+        search_layout.addWidget(
+            self.quick_filter_search,
+            5,
+        )
+
+        search_layout.addWidget(
+            self.filter_box,
+            18,
+        )
+        search_layout.addStretch(4)
+
+        self.content_layout.addWidget(self.left_panel, 5)
+        self.content_layout.addWidget(self.tbl_result, 18)
+        self.content_layout.addWidget(self.right_panel, 4)
 
         input_layout.addWidget(
             self.vehicle_selector,
@@ -101,7 +121,7 @@ class LogAnalyzerTab(QWidget):
         )
 
         main_layout.addLayout(input_layout)
-        main_layout.addWidget(self.filter_box)
+        main_layout.addLayout(search_layout)
         main_layout.addLayout(self.content_layout)
 
     def _create_controllers(self):
