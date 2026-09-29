@@ -1121,6 +1121,77 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(view_box.menuEnabled())
             self.assertEqual(tab._chart_context_action_at_scene_position(None), (None, None))
 
+    def test_chart_ab_cursors_measure_real_elapsed_time_and_signed_current(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 20.0),
+                self._sample(0.4, 182.30),
+                self._sample(1.6, 10.0),
+                self._sample(6.1, 179.80),
+            ])
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: — | —")
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: — | —")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: —")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: —")
+
+            tab.btn_run.click()
+            scene_pos = tab._scene_position_for_chart_sample(1)
+            action, payload = tab._chart_context_action_at_scene_position(scene_pos)
+            self.assertEqual(action, "pin")
+            self.assertEqual(payload, 1)
+            menu, actions = tab._create_chart_context_menu(action)
+            self.assertEqual(
+                [item.text() for item in menu.actions() if not item.isSeparator()],
+                ["Pin", "Set Cursor A", "Set Cursor B"],
+            )
+
+            tab.set_cursor_a(1)
+            self.assertEqual(tab.cursor_a_index, 1)
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: 0.400 s | 182.30 mA")
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: — | —")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: —")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: —")
+            self.assertTrue(tab.cursor_a_marker.isVisible())
+            self.assertTrue(tab.cursor_a_line.isVisible())
+            self.assertTrue(tab.cursor_a_label.isVisible())
+
+            tab.set_cursor_b(3)
+            self.assertEqual(tab.cursor_b_index, 3)
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: 6.100 s | 179.80 mA")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: 5.700 s")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: -2.50 mA")
+            self.assertTrue(tab.cursor_b_marker.isVisible())
+            self.assertTrue(tab.cursor_b_line.isVisible())
+            self.assertTrue(tab.cursor_b_label.isVisible())
+
+            tab.set_cursor_a(0)
+            self.assertEqual(tab.cursor_a_index, 0)
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: 0.000 s | 20.00 mA")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: 6.100 s")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: +159.80 mA")
+
+            tab.current_plot.setXRange(1.0, 2.0, padding=0)
+            x_range_before_pin_clear = tab.current_plot.getPlotItem().viewRange()[0]
+            tab.pin_chart_sample(2)
+            self.assertEqual(len(tab.chart_pins), 1)
+            tab.clear_chart_pins()
+            self.assertEqual(tab.chart_pins, [])
+            self.assertEqual(tab.cursor_a_index, 0)
+            self.assertEqual(tab.cursor_b_index, 3)
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: +159.80 mA")
+            self.assertEqual(tab.current_plot.getPlotItem().viewRange()[0], x_range_before_pin_clear)
+
+            tab.clear_ab_cursors()
+            self.assertIsNone(tab.cursor_a_index)
+            self.assertIsNone(tab.cursor_b_index)
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: — | —")
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: — | —")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: —")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: —")
+            self.assertFalse(tab.cursor_a_marker.isVisible())
+            self.assertFalse(tab.cursor_b_marker.isVisible())
+
     def test_chart_pin_context_adds_multiple_pins_prevents_duplicates_and_deletes_one(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
@@ -1135,12 +1206,12 @@ class QCurrentTabTests(unittest.TestCase):
             action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
             self.assertEqual(action, "pin")
             self.assertEqual(payload, 1)
-            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 [item.text() for item in menu.actions() if not item.isSeparator()],
-                ["Pin"],
+                ["Pin", "Set Cursor A", "Set Cursor B"],
             )
-            self.assertIsNone(clear_action)
+            self.assertIsNone(actions["clear_all_pins"])
 
             self.assertTrue(tab.pin_chart_sample(payload))
             self.assertEqual(len(tab.chart_pins), 1)
@@ -1154,12 +1225,12 @@ class QCurrentTabTests(unittest.TestCase):
             action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
             self.assertEqual(action, "delete")
             self.assertIs(payload, tab.chart_pins[0])
-            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 ["---" if item.isSeparator() else item.text() for item in menu.actions()],
-                ["Delete Pin", "---", "Clear All Pins"],
+                ["Delete Pin", "Set Cursor A", "Set Cursor B", "---", "Clear All Pins"],
             )
-            self.assertIsNotNone(clear_action)
+            self.assertIsNotNone(actions["clear_all_pins"])
             self.assertFalse(tab.pin_chart_sample(1))
             self.assertEqual(len(tab.chart_pins), 1)
 
@@ -1167,12 +1238,12 @@ class QCurrentTabTests(unittest.TestCase):
             action, normal_payload = tab._chart_context_action_at_scene_position(normal_scene_pos)
             self.assertEqual(action, "pin")
             self.assertEqual(normal_payload, 0)
-            menu, _primary_action, clear_action = tab._create_chart_context_menu(action)
+            menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 ["---" if item.isSeparator() else item.text() for item in menu.actions()],
-                ["Pin", "---", "Clear All Pins"],
+                ["Pin", "Set Cursor A", "Set Cursor B", "---", "Clear All Pins"],
             )
-            self.assertIsNotNone(clear_action)
+            self.assertIsNotNone(actions["clear_all_pins"])
 
             self.assertTrue(tab.pin_chart_sample(2))
             self.assertEqual(len(tab.chart_pins), 2)
@@ -1210,11 +1281,10 @@ class QCurrentTabTests(unittest.TestCase):
             first_pin_html = tab.chart_pins[0].label.toHtml().replace("\xa0", " ")
             self.assertIn("Current: -25.00 mA", first_pin_html)
 
-            menu, primary_action, clear_action = tab._create_chart_context_menu("pin")
+            menu, actions = tab._create_chart_context_menu("pin")
             tab._apply_chart_context_menu_selection(
-                clear_action,
-                primary_action,
-                clear_action,
+                actions["clear_all_pins"],
+                actions,
                 "pin",
                 1,
             )
@@ -1608,6 +1678,10 @@ class QCurrentTabTests(unittest.TestCase):
                 "Sleep threshold",
                 "Wake-up",
             ])
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: — | —")
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: — | —")
+            self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: —")
+            self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: —")
             self.assertTrue(tab.dataset_combo.view().verticalScrollBar().styleSheet())
             self.assertTrue(tab.chart_scrollbar.styleSheet())
 

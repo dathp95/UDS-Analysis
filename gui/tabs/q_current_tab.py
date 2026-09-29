@@ -157,6 +157,14 @@ class QCurrentTab(QWidget):
         self.hover_label = None
         self.wake_up_regions = []
         self.chart_pins = []
+        self.cursor_a_index = None
+        self.cursor_b_index = None
+        self.cursor_a_line = None
+        self.cursor_b_line = None
+        self.cursor_a_marker = None
+        self.cursor_b_marker = None
+        self.cursor_a_label = None
+        self.cursor_b_label = None
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
         self._chart_user_zoomed = False
@@ -363,6 +371,11 @@ class QCurrentTab(QWidget):
         self.chart_layout.setContentsMargins(12, 16, 12, 12)
         self.chart_layout.setSpacing(8)
 
+        self.chart_header_layout = QGridLayout()
+        self.chart_header_layout.setContentsMargins(0, 0, 0, 0)
+        self.chart_header_layout.setHorizontalSpacing(16)
+        self.chart_header_layout.setVerticalSpacing(4)
+
         self.chart_toolbar_layout = QHBoxLayout()
         self.chart_toolbar_layout.setContentsMargins(0, 0, 0, 0)
         self.chart_toolbar_layout.setSpacing(8)
@@ -404,6 +417,40 @@ class QCurrentTab(QWidget):
             self.legend_layout.addWidget(legend_item)
         self.legend_layout.addStretch(1)
 
+        self.cursor_values_layout = QHBoxLayout()
+        self.cursor_values_layout.setContentsMargins(0, 0, 0, 0)
+        self.cursor_values_layout.setSpacing(18)
+        self.cursor_a_value_label = PrimaryLabel("A: — | —")
+        self.cursor_b_value_label = PrimaryLabel("B: — | —")
+        self.cursor_values_layout.addWidget(self.cursor_a_value_label)
+        self.cursor_values_layout.addWidget(self.cursor_b_value_label)
+        self.cursor_values_layout.addStretch(1)
+        self._theme_widgets.extend([
+            self.cursor_a_value_label,
+            self.cursor_b_value_label,
+        ])
+
+        self.cursor_delta_layout = QHBoxLayout()
+        self.cursor_delta_layout.setContentsMargins(0, 0, 0, 0)
+        self.cursor_delta_layout.setSpacing(12)
+        self.cursor_delta_time_label = PrimaryLabel("Δt: —")
+        self.cursor_delta_current_label = PrimaryLabel("ΔI: —")
+        self.cursor_delta_layout.addWidget(self.cursor_delta_time_label)
+        self.cursor_delta_layout.addWidget(self.cursor_delta_current_label)
+        self.cursor_delta_layout.addStretch(1)
+        self._theme_widgets.extend([
+            self.cursor_delta_time_label,
+            self.cursor_delta_current_label,
+        ])
+
+        self.chart_header_layout.addLayout(self.chart_toolbar_layout, 0, 0)
+        self.chart_header_layout.addLayout(self.legend_layout, 0, 2)
+        self.chart_header_layout.addLayout(self.cursor_values_layout, 1, 0)
+        self.chart_header_layout.addLayout(self.cursor_delta_layout, 1, 2)
+        self.chart_header_layout.setColumnStretch(0, 0)
+        self.chart_header_layout.setColumnStretch(1, 1)
+        self.chart_header_layout.setColumnStretch(2, 0)
+
         self.chart_content_layout = QVBoxLayout()
         self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
         self.chart_placeholder = self._create_placeholder_panel()
@@ -421,8 +468,7 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.hide()
         self.chart_content_layout.addWidget(self.chart_scrollbar)
 
-        self.chart_layout.addLayout(self.chart_toolbar_layout)
-        self.chart_layout.addLayout(self.legend_layout)
+        self.chart_layout.addLayout(self.chart_header_layout)
         self.chart_layout.addLayout(self.chart_content_layout, 1)
         return group
 
@@ -522,6 +568,9 @@ class QCurrentTab(QWidget):
         self.hover_label.setZValue(40)
         self.hover_label.hide()
         plot.addItem(self.hover_label)
+
+        self._create_cursor_graphics(plot, "a")
+        self._create_cursor_graphics(plot, "b")
 
         self._mouse_move_proxy = pg.SignalProxy(
             plot.scene().sigMouseMoved,
@@ -758,6 +807,7 @@ class QCurrentTab(QWidget):
             self._update_action_states()
             return
         self._selected_review_chart_index = None
+        self.clear_ab_cursors()
         try:
             elapsed_seconds, current_values = self._build_chart_data()
             analysis_result = analyze_q_current(
@@ -1193,50 +1243,87 @@ class QCurrentTab(QWidget):
         if action_type is None:
             return
 
-        menu, primary_action, clear_action = self._create_chart_context_menu(
-            action_type
-        )
+        menu, actions = self._create_chart_context_menu(action_type)
         selected_action = menu.exec(self.current_plot.mapToGlobal(widget_position))
         self._apply_chart_context_menu_selection(
             selected_action,
-            primary_action,
-            clear_action,
+            actions,
             action_type,
             payload,
         )
 
     def _create_chart_context_menu(self, action_type):
         menu = QMenu(self.current_plot)
+        actions = {
+            "primary": None,
+            "set_cursor_a": None,
+            "set_cursor_b": None,
+            "clear_cursor_a": None,
+            "clear_cursor_b": None,
+            "clear_ab": None,
+            "clear_all_pins": None,
+        }
         if action_type == "delete":
-            primary_action = menu.addAction("Delete Pin")
+            actions["primary"] = menu.addAction("Delete Pin")
         else:
-            primary_action = menu.addAction("Pin")
+            actions["primary"] = menu.addAction("Pin")
+        actions["set_cursor_a"] = menu.addAction("Set Cursor A")
+        actions["set_cursor_b"] = menu.addAction("Set Cursor B")
 
-        clear_action = None
+        has_cursor_clear = self.cursor_a_index is not None or self.cursor_b_index is not None
+        if has_cursor_clear:
+            menu.addSeparator()
+            if self.cursor_a_index is not None:
+                actions["clear_cursor_a"] = menu.addAction("Clear Cursor A")
+            if self.cursor_b_index is not None:
+                actions["clear_cursor_b"] = menu.addAction("Clear Cursor B")
+            actions["clear_ab"] = menu.addAction("Clear A/B")
+
         if self.chart_pins:
             menu.addSeparator()
-            clear_action = menu.addAction("Clear All Pins")
-        return menu, primary_action, clear_action
+            actions["clear_all_pins"] = menu.addAction("Clear All Pins")
+        return menu, actions
 
     def _apply_chart_context_menu_selection(
         self,
         selected_action,
-        primary_action,
-        clear_action,
+        actions,
         action_type,
         payload,
     ):
         if selected_action is None:
             return
-        if clear_action is not None and selected_action is clear_action:
+        if selected_action is actions.get("clear_all_pins"):
             self.clear_chart_pins()
             return
-        if selected_action is not primary_action:
+        if selected_action is actions.get("clear_cursor_a"):
+            self.clear_cursor_a()
+            return
+        if selected_action is actions.get("clear_cursor_b"):
+            self.clear_cursor_b()
+            return
+        if selected_action is actions.get("clear_ab"):
+            self.clear_ab_cursors()
+            return
+
+        sample_index = self._context_sample_index(action_type, payload)
+        if selected_action is actions.get("set_cursor_a"):
+            self.set_cursor_a(sample_index)
+            return
+        if selected_action is actions.get("set_cursor_b"):
+            self.set_cursor_b(sample_index)
+            return
+        if selected_action is not actions.get("primary"):
             return
         if action_type == "delete":
             self.delete_chart_pin(payload)
         elif action_type == "pin":
             self.pin_chart_sample(payload)
+
+    def _context_sample_index(self, action_type, payload):
+        if action_type == "delete" and payload is not None:
+            return payload.sample_index
+        return payload
 
     def _chart_context_action_at_scene_position(self, scene_position):
         if (
@@ -1340,6 +1427,145 @@ class QCurrentTab(QWidget):
         self.chart_pins.append(pin)
         self.position_chart_pin_label(pin)
         return True
+
+    def _create_cursor_graphics(self, plot, cursor_name):
+        colors = self._chart_colors()
+        color_key = f"cursor_{cursor_name}"
+        line = pg.InfiniteLine(
+            pos=0.0,
+            angle=90,
+            movable=False,
+            pen=pg.mkPen(colors[color_key], width=1.5),
+        )
+        line.setZValue(24)
+        line.hide()
+        marker = pg.ScatterPlotItem(
+            [],
+            [],
+            symbol="o",
+            size=10,
+            brush=pg.mkBrush(colors[color_key]),
+            pen=pg.mkPen(colors["cursor_marker_border"], width=1.2),
+        )
+        marker.setZValue(34)
+        marker.hide()
+        label = pg.TextItem(anchor=(0.5, 1.0))
+        label.setZValue(44)
+        label.setHtml(self._cursor_label_html(cursor_name.upper(), color_key))
+        label.hide()
+        plot.addItem(line)
+        plot.addItem(marker)
+        plot.addItem(label)
+        setattr(self, f"cursor_{cursor_name}_line", line)
+        setattr(self, f"cursor_{cursor_name}_marker", marker)
+        setattr(self, f"cursor_{cursor_name}_label", label)
+
+    def _valid_cursor_index(self, sample_index):
+        if sample_index is None:
+            return None
+        sample_index = int(sample_index)
+        if sample_index < 0 or sample_index >= self.chart_time_seconds.size:
+            return None
+        return sample_index
+
+    def set_cursor_a(self, sample_index):
+        sample_index = self._valid_cursor_index(sample_index)
+        if sample_index is None:
+            return False
+        self.cursor_a_index = sample_index
+        self._update_cursor_graphics("a")
+        self._update_cursor_measurement()
+        return True
+
+    def set_cursor_b(self, sample_index):
+        sample_index = self._valid_cursor_index(sample_index)
+        if sample_index is None:
+            return False
+        self.cursor_b_index = sample_index
+        self._update_cursor_graphics("b")
+        self._update_cursor_measurement()
+        return True
+
+    def clear_cursor_a(self):
+        self.cursor_a_index = None
+        self._hide_cursor_graphics("a")
+        self._update_cursor_measurement()
+
+    def clear_cursor_b(self):
+        self.cursor_b_index = None
+        self._hide_cursor_graphics("b")
+        self._update_cursor_measurement()
+
+    def clear_ab_cursors(self):
+        self.cursor_a_index = None
+        self.cursor_b_index = None
+        self._hide_cursor_graphics("a")
+        self._hide_cursor_graphics("b")
+        self._update_cursor_measurement()
+
+    def _cursor_items(self, cursor_name):
+        return (
+            getattr(self, f"cursor_{cursor_name}_line", None),
+            getattr(self, f"cursor_{cursor_name}_marker", None),
+            getattr(self, f"cursor_{cursor_name}_label", None),
+        )
+
+    def _hide_cursor_graphics(self, cursor_name):
+        for item in self._cursor_items(cursor_name):
+            if item is not None:
+                item.hide()
+
+    def _update_cursor_graphics(self, cursor_name):
+        index = self.cursor_a_index if cursor_name == "a" else self.cursor_b_index
+        index = self._valid_cursor_index(index)
+        if index is None:
+            self._hide_cursor_graphics(cursor_name)
+            return
+        time_s = float(self.chart_time_seconds[index])
+        current_ma = float(self.chart_current_ma[index])
+        line, marker, label = self._cursor_items(cursor_name)
+        if line is None or marker is None or label is None:
+            return
+        line.setPos(time_s)
+        line.show()
+        marker.setData([time_s], [current_ma])
+        marker.show()
+        label.setHtml(self._cursor_label_html(cursor_name.upper(), f"cursor_{cursor_name}"))
+        label.setPos(time_s, current_ma)
+        label.show()
+
+    def _update_cursor_measurement(self):
+        def cursor_text(name, index):
+            if index is None or self._valid_cursor_index(index) is None:
+                return f"{name}: — | —"
+            time_s = float(self.chart_time_seconds[index])
+            current_ma = float(self.chart_current_ma[index])
+            return f"{name}: {time_s:.3f} s | {current_ma:.2f} mA"
+
+        self.cursor_a_value_label.setText(cursor_text("A", self.cursor_a_index))
+        self.cursor_b_value_label.setText(cursor_text("B", self.cursor_b_index))
+        if (
+            self._valid_cursor_index(self.cursor_a_index) is None
+            or self._valid_cursor_index(self.cursor_b_index) is None
+        ):
+            self.cursor_delta_time_label.setText("Δt: —")
+            self.cursor_delta_current_label.setText("ΔI: —")
+            return
+        time_a = float(self.chart_time_seconds[self.cursor_a_index])
+        time_b = float(self.chart_time_seconds[self.cursor_b_index])
+        current_a = float(self.chart_current_ma[self.cursor_a_index])
+        current_b = float(self.chart_current_ma[self.cursor_b_index])
+        self.cursor_delta_time_label.setText(f"Δt: {abs(time_b - time_a):.3f} s")
+        self.cursor_delta_current_label.setText(f"ΔI: {current_b - current_a:+.2f} mA")
+
+    def _cursor_label_html(self, text, color_key):
+        colors = self._chart_colors()
+        return (
+            f"<div style='color: {colors[color_key]}; font-weight: bold; "
+            "white-space: nowrap;'>"
+            f"{text}"
+            "</div>"
+        )
 
     def delete_chart_pin(self, pin):
         if pin not in self.chart_pins:
@@ -1459,6 +1685,7 @@ class QCurrentTab(QWidget):
         self.current_curve.setData([], [])
         self.reset_y_axis_orientation()
         self.clear_chart_pins()
+        self.clear_ab_cursors()
         self.clear_wake_up_regions()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
@@ -1504,6 +1731,9 @@ class QCurrentTab(QWidget):
             "pin_marker_border": colors.TEXT,
             "pin_label_background": colors.WINDOW,
             "pin_label_text": colors.TEXT,
+            "cursor_a": colors.PRIMARY,
+            "cursor_b": colors.DANGER,
+            "cursor_marker_border": colors.TEXT,
             "background": colors.WINDOW,
             "grid": colors.TABLE_GRID,
             "axis": colors.TEXT,
@@ -1540,6 +1770,7 @@ class QCurrentTab(QWidget):
         )
         self._refresh_visible_hover_label()
         self._refresh_chart_pin_theme()
+        self._refresh_cursor_theme()
         self._refresh_legend_theme()
 
     def _transparent_brush(self, color_value, alpha):
@@ -1552,6 +1783,23 @@ class QCurrentTab(QWidget):
             return
         if self._hover_sample is not None:
             self.hover_label.setHtml(self._hover_label_html(*self._hover_sample))
+
+    def _refresh_cursor_theme(self):
+        if self.cursor_a_line is None or self.cursor_b_line is None:
+            return
+        colors = self._chart_colors()
+        for cursor_name in ("a", "b"):
+            line, marker, label = self._cursor_items(cursor_name)
+            color_key = f"cursor_{cursor_name}"
+            if line is not None:
+                line.setPen(pg.mkPen(colors[color_key], width=1.5))
+            if marker is not None:
+                marker.setBrush(pg.mkBrush(colors[color_key]))
+                marker.setPen(pg.mkPen(colors["cursor_marker_border"], width=1.2))
+            if label is not None:
+                label.setHtml(self._cursor_label_html(cursor_name.upper(), color_key))
+        self._update_cursor_graphics("a")
+        self._update_cursor_graphics("b")
 
     def _refresh_legend_theme(self):
         if not hasattr(self, "legend_items"):
