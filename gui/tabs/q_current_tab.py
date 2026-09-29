@@ -165,6 +165,7 @@ class QCurrentTab(QWidget):
         self._chart_scrollbar_updating = False
         self._chart_xrange_updating = False
         self._chart_user_zoomed = False
+        self._selected_review_chart_index = None
         self._chart_x_min = 0.0
         self._chart_x_max = 0.0
         self._chart_visible_span = CHART_SCROLL_VISIBLE_SECONDS
@@ -206,6 +207,7 @@ class QCurrentTab(QWidget):
         self.btn_clear.clicked.connect(self.clear_current_workspace)
         self.save_config_button.clicked.connect(self.save_current_config)
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
+        self.btn_pin.clicked.connect(self.pin_selected_review_sample)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
         self.btn_fit_all.clicked.connect(self._fit_all_current_chart)
         self.current_plot.customContextMenuRequested.connect(
@@ -361,13 +363,15 @@ class QCurrentTab(QWidget):
         self.chart_layout.setContentsMargins(12, 16, 12, 12)
         self.chart_layout.setSpacing(8)
 
-        self.legend_layout = QHBoxLayout()
-        self.legend_layout.setContentsMargins(0, 0, 0, 0)
-        self.legend_layout.setSpacing(18)
-        self.legend_items = self._create_chart_legend_items()
-        for legend_item in self.legend_items:
-            self.legend_layout.addWidget(legend_item)
-        self.legend_layout.addStretch(1)
+        self.chart_toolbar_layout = QHBoxLayout()
+        self.chart_toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        self.chart_toolbar_layout.setSpacing(8)
+        self.btn_pin = QuickAccessButton(
+            "Pin",
+            width=70,
+            height=30,
+        )
+        self.btn_pin.setObjectName("btn_pin")
         self.btn_invert_y_axis = QuickAccessButton(
             "Invert Y Axis",
             width=120,
@@ -386,10 +390,20 @@ class QCurrentTab(QWidget):
             height=30,
         )
         self.btn_capture_chart.setObjectName("btn_capture_chart")
-        self.legend_layout.addWidget(self.btn_invert_y_axis)
-        self.legend_layout.addWidget(self.btn_fit_all)
-        self.legend_layout.addWidget(self.btn_capture_chart)
-       
+        self.chart_toolbar_layout.addWidget(self.btn_pin)
+        self.chart_toolbar_layout.addWidget(self.btn_invert_y_axis)
+        self.chart_toolbar_layout.addWidget(self.btn_fit_all)
+        self.chart_toolbar_layout.addWidget(self.btn_capture_chart)
+        self.chart_toolbar_layout.addStretch(1)
+
+        self.legend_layout = QHBoxLayout()
+        self.legend_layout.setContentsMargins(0, 0, 0, 0)
+        self.legend_layout.setSpacing(18)
+        self.legend_items = self._create_chart_legend_items()
+        for legend_item in self.legend_items:
+            self.legend_layout.addWidget(legend_item)
+        self.legend_layout.addStretch(1)
+
         self.chart_content_layout = QVBoxLayout()
         self.chart_content_layout.setContentsMargins(0, 0, 0, 0)
         self.chart_placeholder = self._create_placeholder_panel()
@@ -407,6 +421,7 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.hide()
         self.chart_content_layout.addWidget(self.chart_scrollbar)
 
+        self.chart_layout.addLayout(self.chart_toolbar_layout)
         self.chart_layout.addLayout(self.legend_layout)
         self.chart_layout.addLayout(self.chart_content_layout, 1)
         return group
@@ -716,6 +731,7 @@ class QCurrentTab(QWidget):
 
     def _load_samples_into_workspace(self, samples):
         self.current_samples = list(samples)
+        self._selected_review_chart_index = None
         self._chart_ready = False
         self._clear_current_chart()
         self.summary_widget.clear_result()
@@ -730,6 +746,8 @@ class QCurrentTab(QWidget):
         self.btn_copy_data_review.setEnabled(has_data)
         self.btn_clear.setEnabled(has_data)
         self.btn_export.setEnabled(has_analysis)
+        can_pin = has_chart and self._selected_review_chart_index is not None
+        self.btn_pin.setEnabled(can_pin)
         self.btn_capture_chart.setEnabled(has_chart)
         self.btn_invert_y_axis.setEnabled(has_chart)
         self.btn_fit_all.setEnabled(has_chart)
@@ -739,6 +757,7 @@ class QCurrentTab(QWidget):
         if not self.current_samples:
             self._update_action_states()
             return
+        self._selected_review_chart_index = None
         try:
             elapsed_seconds, current_values = self._build_chart_data()
             analysis_result = analyze_q_current(
@@ -776,6 +795,7 @@ class QCurrentTab(QWidget):
         self.current_samples = []
         self.current_analysis_result = None
         self.current_analysis_settings = None
+        self._selected_review_chart_index = None
         self._chart_ready = False
         self.review_table.setRowCount(0)
         self._clear_current_chart()
@@ -865,10 +885,20 @@ class QCurrentTab(QWidget):
         if chart_index is None:
             return
 
+        self._selected_review_chart_index = chart_index
         time_s = float(self.chart_time_seconds[chart_index])
         current_ma = float(self.chart_current_ma[chart_index])
         self._navigate_chart_to_time(time_s)
         self.update_hover_items(time_s, current_ma)
+        self._update_action_states()
+
+    def pin_selected_review_sample(self):
+        if not self._chart_ready:
+            return False
+        sample_index = self._selected_review_chart_index
+        if sample_index is None:
+            return False
+        return self.pin_chart_sample(sample_index)
 
     def _navigate_chart_to_time(self, time_s):
         if self.chart_time_seconds.size == 0:
@@ -1432,6 +1462,7 @@ class QCurrentTab(QWidget):
         self.clear_wake_up_regions()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
+        self._selected_review_chart_index = None
         self._chart_user_zoomed = False
         self.hide_hover_items()
         self._chart_scrollbar_updating = True
@@ -1656,6 +1687,7 @@ class QCurrentTab(QWidget):
             self.save_config_button,
             self.btn_run,
             self.btn_export,
+            self.btn_pin,
             self.btn_invert_y_axis,
             self.btn_fit_all,
             self.btn_capture_chart,

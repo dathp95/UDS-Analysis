@@ -262,6 +262,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -379,6 +380,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_copy_data_review.isEnabled())
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -427,6 +429,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_copy_data_review.isEnabled())
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -582,6 +585,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self.assertIsNone(tab.current_plot.getPlotItem().legend)
             self.assertTrue(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertTrue(tab.btn_capture_chart.isEnabled())
             self.assertTrue(tab.btn_invert_y_axis.isEnabled())
             self.assertTrue(tab.btn_fit_all.isEnabled())
@@ -1016,6 +1020,53 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertAlmostEqual(x_range[0], 400.0, places=3)
             self.assertAlmostEqual(x_range[1], 800.0, places=3)
             self.assertAlmostEqual(x_range[1] - x_range[0], tab._chart_visible_span, places=3)
+
+    def test_pin_button_pins_selected_review_sample_without_changing_zoom(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(100.0, -20.0),
+                self._sample(300.0, 35.5),
+            ])
+            self.assertFalse(tab.btn_pin.isEnabled())
+
+            tab.btn_run.click()
+            self.assertFalse(tab.btn_pin.isEnabled())
+            tab.current_plot.setXRange(80.0, 140.0, padding=0)
+            self.assertTrue(tab._chart_user_zoomed)
+
+            tab.review_table.cellClicked.emit(1, 0)
+            x_range_before_pin = tab.current_plot.getPlotItem().viewRange()[0]
+            y_range_before_pin = tab.current_plot.getPlotItem().viewRange()[1]
+            self.assertEqual(tab._selected_review_chart_index, 1)
+            self.assertTrue(tab.btn_pin.isEnabled())
+            self.assertEqual(tab.chart_pins, [])
+
+            tab.btn_pin.click()
+
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1])
+            pin_html = tab.chart_pins[0].label.toHtml().replace("\xa0", " ")
+            self.assertIn("Time: 100.000 s", pin_html)
+            self.assertIn("Current: -20.00 mA", pin_html)
+            self.assertEqual(tab.current_plot.getPlotItem().viewRange()[0], x_range_before_pin)
+            self.assertEqual(tab.current_plot.getPlotItem().viewRange()[1], y_range_before_pin)
+
+            tab.btn_pin.click()
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1])
+
+            tab.review_table.cellClicked.emit(2, 0)
+            self.assertEqual(tab._selected_review_chart_index, 2)
+            tab.btn_pin.click()
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1, 2])
+
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(1.0, 2.0),
+            ])
+            self.assertIsNone(tab._selected_review_chart_index)
+            self.assertFalse(tab.btn_pin.isEnabled())
+
     def test_review_row_click_preserves_inverted_y_and_pins(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
@@ -1287,6 +1338,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
 
             tab.btn_run.click()
@@ -1297,6 +1349,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
 
     def test_capture_buttons_copy_current_chart_pixmap_to_clipboard(self):
@@ -1386,6 +1439,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
+            self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -1524,24 +1578,36 @@ class QCurrentTabTests(unittest.TestCase):
                 "CLEAR",
             ])
             chart_buttons = [
+                tab.btn_pin,
                 tab.btn_invert_y_axis,
                 tab.btn_fit_all,
                 tab.btn_capture_chart,
             ]
             self.assertTrue(all(isinstance(button, QuickAccessButton) for button in chart_buttons))
             self.assertEqual([button.text() for button in chart_buttons], [
+                "Pin",
                 "Invert Y Axis",
                 "Fit All",
                 "Capture",
             ])
             self.assertLess(
-                tab.legend_layout.indexOf(tab.btn_invert_y_axis),
-                tab.legend_layout.indexOf(tab.btn_fit_all),
+                tab.chart_toolbar_layout.indexOf(tab.btn_pin),
+                tab.chart_toolbar_layout.indexOf(tab.btn_invert_y_axis),
             )
             self.assertLess(
-                tab.legend_layout.indexOf(tab.btn_fit_all),
-                tab.legend_layout.indexOf(tab.btn_capture_chart),
+                tab.chart_toolbar_layout.indexOf(tab.btn_invert_y_axis),
+                tab.chart_toolbar_layout.indexOf(tab.btn_fit_all),
             )
+            self.assertLess(
+                tab.chart_toolbar_layout.indexOf(tab.btn_fit_all),
+                tab.chart_toolbar_layout.indexOf(tab.btn_capture_chart),
+            )
+            self.assertEqual(tab.legend_layout.indexOf(tab.btn_pin), -1)
+            self.assertEqual(self._legend_labels(tab), [
+                "Current",
+                "Sleep threshold",
+                "Wake-up",
+            ])
             self.assertTrue(tab.dataset_combo.view().verticalScrollBar().styleSheet())
             self.assertTrue(tab.chart_scrollbar.styleSheet())
 
