@@ -31,6 +31,63 @@ class ResultTableQuickFilterTests(unittest.TestCase):
             QHeaderView.Interactive,
         )
 
+    def test_header_sorting_is_disabled_without_changing_resize_mode(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+
+        table.set_data([
+            {
+                "ECU": "ZCU",
+                "Time": "2.000",
+                "Activity": "Second",
+                "Request": "22 F1 91",
+                "Response": "62 F1 91",
+                "RT (ms)": "20",
+                "Status": "OK",
+            },
+            {
+                "ECU": "ACU",
+                "Time": "1.000",
+                "Activity": "First",
+                "Request": "22 F1 90",
+                "Response": "62 F1 90",
+                "RT (ms)": "10",
+                "Status": "OK",
+            },
+        ])
+
+        header = table.horizontalHeader()
+        ecu_column = table._fn_column_index("ECU")
+        before = [table.item(row, ecu_column).text() for row in range(table.rowCount())]
+
+        header.sectionClicked.emit(ecu_column)
+        after = [table.item(row, ecu_column).text() for row in range(table.rowCount())]
+
+        self.assertFalse(table.isSortingEnabled())
+        self.assertFalse(header.isSortIndicatorShown())
+        self.assertEqual(after, before)
+        self.assertEqual(
+            header.sectionResizeMode(ecu_column),
+            QHeaderView.Interactive,
+        )
+
+    def test_row_data_returns_displayed_selected_row_values(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+
+        row_data = {
+            "ECU": "VCU",
+            "Time": "125.320",
+            "Activity": "Read VIN",
+            "Request": "22 F1 90",
+            "Response": "62 F1 90",
+            "RT (ms)": "15.20",
+            "Status": "Positive",
+        }
+        table.set_data([row_data])
+
+        self.assertEqual(table.fn_row_data(0), row_data)
+        self.assertEqual(table.fn_row_data(-1), {})
     def test_apply_quick_filter_clears_previous_row_selection(self):
         table = ResultTable()
         self.addCleanup(table.deleteLater)
@@ -87,3 +144,4 @@ class ResultTableQuickFilterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

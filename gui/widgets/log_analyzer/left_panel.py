@@ -7,6 +7,7 @@ from gui.widgets.log_analyzer.quick_access import QuickAccessWidget
 
 class LeftPanel(QWidget):
     quick_filter_selected = Signal(dict)
+    quick_filter_cleared = Signal()
 
     def __init__(self):
         super().__init__()
@@ -29,6 +30,12 @@ class LeftPanel(QWidget):
             self.quick_filter_selected.emit
 
         )
+        self.quick_access.quick_filter_cleared.connect(
+
+            self.quick_filter_cleared.emit
+
+        )
+
     def fn_enable_quick_access(self):
 
         self.quick_access.fn_set_enabled()

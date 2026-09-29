@@ -1,4 +1,3 @@
-
 from copy import deepcopy
 
 from PySide6.QtCore import Qt, Signal
@@ -16,6 +15,8 @@ from gui.dialogs.quick_filter_dialog import QuickFilterDialog
 from gui.dialogs.import_quick_filters_dialog import ImportQuickFiltersDialog
 from gui.dialogs.export_quick_filters_dialog import ExportQuickFiltersDialog
 from gui.widgets.controls.quick_access_button import QuickAccessButton
+from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.utils.payload_format import format_payload_input
 
 
 from gui.widgets.controls.secondary_button import SecondaryButton
@@ -27,6 +28,7 @@ from gui.themes.styles.controls.scrollbar_style import (
 class QuickAccessWidget(QWidget):
 
     quick_filter_selected = Signal(dict)
+    quick_filter_cleared = Signal()
 
     def __init__(self):
 
@@ -49,6 +51,14 @@ class QuickAccessWidget(QWidget):
 
         root_layout.setContentsMargins(8, 8, 8, 8)
         root_layout.setSpacing(8)
+
+        self.edit_search = PrimaryLineEdit(
+            placeholder="Search Quick Filter..."
+        )
+
+        root_layout.addWidget(
+            self.edit_search
+        )
 
         # --------------------------
         # Quick Filter
@@ -90,7 +100,7 @@ class QuickAccessWidget(QWidget):
 
         self.scroll_area.setMinimumHeight(360)
 
-        # 1 = Quick Filter chiếm toàn bộ diện tích còn lại
+        # 1 = Quick Filter chiem toan bo dien tich con lai
         root_layout.addWidget(
             self.scroll_area,
             1,
@@ -138,7 +148,7 @@ class QuickAccessWidget(QWidget):
             1,
         )
 
-        # Hàng button nằm cố định dưới cùng
+        # Hang button nam co dinh duoi cung
         root_layout.addLayout(
             self.action_layout
         )
@@ -147,6 +157,9 @@ class QuickAccessWidget(QWidget):
 
     def _connect_signals(self):
 
+        self.edit_search.textChanged.connect(
+            self._fn_apply_search
+        )
         self.btn_add.clicked.connect(
             self.fn_add_filter
         )
@@ -177,11 +190,29 @@ class QuickAccessWidget(QWidget):
         Reload all quick filter buttons.
         """
 
+        previous_selected_id = None
+
+        if isinstance(self.selected_filter, dict):
+            previous_selected_id = self.selected_filter.get("id")
+
         self._fn_clear_buttons()
 
         self._fn_load_filters()
 
         self._fn_build_buttons()
+
+        self._fn_apply_search(self.edit_search.text())
+
+        if previous_selected_id is not None:
+            selected_exists = any(
+                item.get("id") == previous_selected_id
+                for item in self.quick_filters
+                if isinstance(item, dict)
+            )
+
+            if not selected_exists:
+                self.selected_filter = None
+                self.quick_filter_cleared.emit()
     
     
     def _fn_load_filters(self):         
@@ -225,6 +256,7 @@ class QuickAccessWidget(QWidget):
 
             )
 
+            button._quick_filter_data = item
             self.buttons.append(button)
 
 
@@ -275,6 +307,51 @@ class QuickAccessWidget(QWidget):
                 widget.deleteLater()
 
             del item
+
+    def _fn_apply_search(
+            self,
+            text: str,
+        ):
+        keyword = self._fn_search_text(text)
+
+        for button in self.buttons:
+            filter_data = getattr(button, "_quick_filter_data", {})
+            button.setVisible(
+                not keyword
+                or keyword in self._fn_filter_search_blob(filter_data)
+            )
+
+    def _fn_filter_search_blob(
+            self,
+            filter_data: dict,
+        ) -> str:
+        if not isinstance(filter_data, dict):
+            return ""
+
+        filters = filter_data.get("filters", {})
+
+        if not isinstance(filters, dict):
+            filters = {}
+
+        values = [
+            filter_data.get("name", ""),
+            filters.get("ecu", ""),
+            filters.get("request", ""),
+            filters.get("response", ""),
+        ]
+
+        return " ".join(
+            self._fn_search_text(str(value))
+            for value in values
+            if value is not None
+        )
+
+    @staticmethod
+    def _fn_search_text(
+            value: str,
+        ) -> str:
+        value = format_payload_input(value.strip())
+        return " ".join(value.split()).lower()
     
     
     def _fn_button_clicked(
@@ -355,7 +432,7 @@ class QuickAccessWidget(QWidget):
 
             "Delete Quick Filter",
 
-            f"Are you sure you want to delete the quick filter '{quick_filter['name']}' ?\n\nThis action cannot be undone.👻",
+            f"Are you sure you want to delete the quick filter '{quick_filter['name']}' ?\n\nThis action cannot be undone.??",
 
             QMessageBox.Yes | QMessageBox.No,
 
@@ -445,7 +522,9 @@ class QuickAccessWidget(QWidget):
     
     def fn_refresh_theme(self):
 
+        self.edit_search.fn_refresh_theme()
         fn_apply_scrollbar_style(self.scroll_area)
         self.btn_add.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
+

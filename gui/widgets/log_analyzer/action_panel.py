@@ -3,7 +3,8 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QPlainTextEdit
+    QPlainTextEdit,
+    QGroupBox,
 )
 
 from gui.widgets.controls.primary_button import PrimaryButton
@@ -17,10 +18,27 @@ class ActionPanel (QWidget):
     copy_clicked = Signal()
     clear_clicked = Signal()
 
+    QUICK_FILTER_PLACEHOLDER = {
+        "Name": "-",
+        "ECU": "-",
+        "Request": "-",
+        "Response": "-",
+    }
+    TRANSACTION_PLACEHOLDER = {
+        "ECU": "-",
+        "Time": "-",
+        "Activity": "-",
+        "Request": "-",
+        "Response": "-",
+        "RT (ms)": "-",
+        "Status": "-",
+    }
+
     def __init__(self):
         super().__init__()
         self._setup_ui()
         self._connect_signals()
+        self.fn_clear_detail_panels()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -54,23 +72,23 @@ class ActionPanel (QWidget):
             height=50,
         )
 
-        # --------------------------
-        # Working Log
-        # --------------------------
-
-        self.txt_working_log = QPlainTextEdit()
-
-        self.txt_working_log.setPlaceholderText(
-            "Working log"
+        self.grp_quick_filter_info = self._fn_create_detail_group(
+            "Quick Filter"
+        )
+        self.txt_quick_filter_info = QPlainTextEdit()
+        self._fn_setup_detail_text(self.txt_quick_filter_info)
+        self.grp_quick_filter_info.layout().addWidget(
+            self.txt_quick_filter_info
         )
 
-        self.txt_working_log.setReadOnly(True)
-
-        self.txt_working_log.setLineWrapMode(
-            QPlainTextEdit.WidgetWidth
+        self.grp_transaction_info = self._fn_create_detail_group(
+            "Transaction"
         )
-
-        self.txt_working_log.setMinimumHeight(120)
+        self.txt_transaction_info = QPlainTextEdit()
+        self._fn_setup_detail_text(self.txt_transaction_info)
+        self.grp_transaction_info.layout().addWidget(
+            self.txt_transaction_info
+        )
 
         # --------------------------
         # Layout
@@ -85,10 +103,33 @@ class ActionPanel (QWidget):
         layout.addWidget(self.btn_clear)
 
         layout.addWidget(
-            self.txt_working_log,
-            1,
+            self.grp_quick_filter_info,
+            2,
+        )
+        layout.addWidget(
+            self.grp_transaction_info,
+            3,
         )
 
+    def _fn_create_detail_group(
+            self,
+            title: str,
+        ) -> QGroupBox:
+        group = QGroupBox(title)
+        group_layout = QVBoxLayout(group)
+        group_layout.setContentsMargins(8, 8, 8, 8)
+        group_layout.setSpacing(6)
+        return group
+
+    @staticmethod
+    def _fn_setup_detail_text(
+            text_edit: QPlainTextEdit,
+        ) -> None:
+        text_edit.setReadOnly(True)
+        text_edit.setLineWrapMode(
+            QPlainTextEdit.WidgetWidth
+        )
+        text_edit.setMinimumHeight(80)
 
     def _connect_signals (self):
         self.btn_run.clicked.connect(
@@ -132,7 +173,7 @@ class ActionPanel (QWidget):
 
         )   
 
-    # ==========================================================================
+    # ===========================================================================
     # Function: fn_set_file_loaded_state
     #
     # Purpose:
@@ -163,7 +204,7 @@ class ActionPanel (QWidget):
     #     - Clear table data.
     #     - Change selected file path.
     #
-    # ==========================================================================
+    # ===========================================================================
     def fn_set_file_loaded_state(self) -> None:
         """Update action buttons after the user selects a log file."""
 
@@ -176,7 +217,7 @@ class ActionPanel (QWidget):
 
         ) 
     
-    # ==========================================================================
+    # ===========================================================================
     # Function: fn_set_analyzed_state
     #
     # Purpose:
@@ -207,7 +248,7 @@ class ActionPanel (QWidget):
     #     - Modify result table data.
     #     - Change selected file path.
     #
-    # ==========================================================================
+    # ===========================================================================
     def fn_set_analyzed_state(self) -> None:
         """Update action buttons after analysis is complete."""
 
@@ -218,7 +259,7 @@ class ActionPanel (QWidget):
             clear = True
         )
     
-    # ==========================================================================
+    # ===========================================================================
     # Function: fn_set_empty_state
     #
     # Purpose:
@@ -249,7 +290,7 @@ class ActionPanel (QWidget):
     #     - Export Excel.
     #     - Run analysis.
     #
-    # ==========================================================================
+    # ===========================================================================
     def fn_set_empty_state(self) -> None:
         """Update action buttons for an empty result table state."""
         self._fn_enable_buttons(
@@ -259,14 +300,14 @@ class ActionPanel (QWidget):
             clear= False 
         )
 
-    def fn_set_quick_filter_log(
+    def fn_set_quick_filter_info(
             self,
             filter_data: dict
         ) -> None:
-        """Show the selected quick filter details in the working log."""
+        """Show selected quick filter details."""
 
         if not isinstance(filter_data, dict):
-            self.txt_working_log.clear()
+            self.fn_clear_quick_filter_info()
             return
 
         filters = filter_data.get("filters", {})
@@ -274,21 +315,76 @@ class ActionPanel (QWidget):
         if not isinstance(filters, dict):
             filters = {}
 
-        self.txt_working_log.setPlainText(
-            "\n".join(
-                [
-                    f"Name: {self._fn_text_value(filter_data, 'name')}",
-                    f"ECU: {self._fn_text_value(filters, 'ecu')}",
-                    f"Request: {self._fn_text_value(filters, 'request')}",
-                    f"Response: {self._fn_text_value(filters, 'response')}",
-                ]
+        self.txt_quick_filter_info.setPlainText(
+            self._fn_format_details(
+                {
+                    "Name": self._fn_text_value(filter_data, "name"),
+                    "ECU": self._fn_text_value(filters, "ecu"),
+                    "Request": self._fn_text_value(filters, "request"),
+                    "Response": self._fn_text_value(filters, "response"),
+                }
             )
         )
 
-    def fn_clear_working_log(self) -> None:
-        """Clear the quick filter working log."""
+    def fn_set_quick_filter_log(
+            self,
+            filter_data: dict
+        ) -> None:
+        """Backward-compatible wrapper for quick filter info."""
 
-        self.txt_working_log.clear()
+        self.fn_set_quick_filter_info(filter_data)
+
+    def fn_set_transaction_info(
+            self,
+            row_data: dict,
+        ) -> None:
+        """Show selected result table row details."""
+
+        if not isinstance(row_data, dict) or not row_data:
+            self.fn_clear_transaction_info()
+            return
+
+        self.txt_transaction_info.setPlainText(
+            self._fn_format_details(
+                {
+                    "ECU": self._fn_text_value(row_data, "ECU"),
+                    "Time": self._fn_text_value(row_data, "Time"),
+                    "Activity": self._fn_text_value(row_data, "Activity"),
+                    "Request": self._fn_text_value(row_data, "Request"),
+                    "Response": self._fn_text_value(row_data, "Response"),
+                    "RT (ms)": self._fn_text_value(row_data, "RT (ms)"),
+                    "Status": self._fn_text_value(row_data, "Status"),
+                }
+            )
+        )
+
+    def fn_clear_quick_filter_info(self) -> None:
+        self.txt_quick_filter_info.setPlainText(
+            self._fn_format_details(self.QUICK_FILTER_PLACEHOLDER)
+        )
+
+    def fn_clear_transaction_info(self) -> None:
+        self.txt_transaction_info.setPlainText(
+            self._fn_format_details(self.TRANSACTION_PLACEHOLDER)
+        )
+
+    def fn_clear_detail_panels(self) -> None:
+        self.fn_clear_quick_filter_info()
+        self.fn_clear_transaction_info()
+
+    def fn_clear_working_log(self) -> None:
+        """Backward-compatible wrapper for detail reset."""
+
+        self.fn_clear_detail_panels()
+
+    @staticmethod
+    def _fn_format_details(
+            details: dict,
+        ) -> str:
+        return "\n".join(
+            f"{key}: {value}"
+            for key, value in details.items()
+        )
 
     @staticmethod
     def _fn_text_value(
@@ -298,8 +394,8 @@ class ActionPanel (QWidget):
 
         value = data.get(key, "")
 
-        if value is None:
-            return ""
+        if value is None or value == "":
+            return "-"
 
         return str(value)
     
@@ -315,7 +411,25 @@ class ActionPanel (QWidget):
 
         colors = ThemeManager.fn_colors()
 
-        self.txt_working_log.setStyleSheet(
+        group_style = (
+            f"""
+            QGroupBox {{
+                color: {colors.TEXT};
+                border: 1px solid {colors.BORDER};
+                border-radius: 6px;
+                margin-top: 8px;
+                font-weight: bold;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 4px;
+                background: {colors.WINDOW};
+            }}
+            """
+        )
+
+        text_style = (
             f"""
             QPlainTextEdit {{
                 background: {colors.WINDOW};
@@ -329,5 +443,13 @@ class ActionPanel (QWidget):
             """
         )
 
-        fn_apply_scrollbar_style(self.txt_working_log)
-                                              
+        self.grp_quick_filter_info.setStyleSheet(group_style)
+        self.grp_transaction_info.setStyleSheet(group_style)
+        self.txt_quick_filter_info.setStyleSheet(text_style)
+        self.txt_transaction_info.setStyleSheet(text_style)
+
+        fn_apply_scrollbar_style(self.txt_quick_filter_info)
+        fn_apply_scrollbar_style(self.txt_transaction_info)
+
+
+

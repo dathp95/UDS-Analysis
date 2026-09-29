@@ -6,25 +6,46 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPlainTextEdit
+from PySide6.QtWidgets import QApplication, QGroupBox, QPlainTextEdit
 
 
-class LogAnalyzerWorkingLogTests(unittest.TestCase):
+class LogAnalyzerDetailPanelTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
-    def test_action_panel_shows_selected_quick_filter_details(self):
+    def test_action_panel_has_independent_detail_areas(self):
         from gui.widgets.log_analyzer.action_panel import ActionPanel
 
         panel = ActionPanel()
         self.addCleanup(panel.deleteLater)
 
-        self.assertIsInstance(panel.txt_working_log, QPlainTextEdit)
-        self.assertTrue(panel.txt_working_log.isReadOnly())
+        self.assertIsInstance(panel.grp_quick_filter_info, QGroupBox)
+        self.assertIsInstance(panel.grp_transaction_info, QGroupBox)
+        self.assertEqual(panel.grp_quick_filter_info.title(), "Quick Filter")
+        self.assertEqual(panel.grp_transaction_info.title(), "Transaction")
+        self.assertIsInstance(panel.txt_quick_filter_info, QPlainTextEdit)
+        self.assertIsInstance(panel.txt_transaction_info, QPlainTextEdit)
+        self.assertTrue(panel.txt_quick_filter_info.isReadOnly())
+        self.assertTrue(panel.txt_transaction_info.isReadOnly())
 
-        panel.fn_set_quick_filter_log(
+        self.assertEqual(
+            panel.txt_quick_filter_info.toPlainText(),
+            "Name: -\nECU: -\nRequest: -\nResponse: -",
+        )
+        self.assertEqual(
+            panel.txt_transaction_info.toPlainText(),
+            "ECU: -\nTime: -\nActivity: -\nRequest: -\nResponse: -\nRT (ms): -\nStatus: -",
+        )
+
+    def test_action_panel_keeps_quick_filter_and_transaction_details_separate(self):
+        from gui.widgets.log_analyzer.action_panel import ActionPanel
+
+        panel = ActionPanel()
+        self.addCleanup(panel.deleteLater)
+
+        panel.fn_set_quick_filter_info(
             {
                 "name": "Filter 22 F1 90",
                 "filters": {
@@ -34,16 +55,61 @@ class LogAnalyzerWorkingLogTests(unittest.TestCase):
                 },
             }
         )
+        panel.fn_set_transaction_info(
+            {
+                "ECU": "VCU",
+                "Time": "125.320",
+                "Activity": "Read VIN",
+                "Request": "22 F1 90",
+                "Response": "7F 22 31",
+                "RT (ms)": "18.50",
+                "Status": "Negative",
+            }
+        )
 
         self.assertEqual(
-            panel.txt_working_log.toPlainText(),
+            panel.txt_quick_filter_info.toPlainText(),
             "Name: Filter 22 F1 90\n"
             "ECU: MHU\n"
             "Request: 22 F1 90\n"
             "Response: 62 F1 90",
         )
+        self.assertEqual(
+            panel.txt_transaction_info.toPlainText(),
+            "ECU: VCU\n"
+            "Time: 125.320\n"
+            "Activity: Read VIN\n"
+            "Request: 22 F1 90\n"
+            "Response: 7F 22 31\n"
+            "RT (ms): 18.50\n"
+            "Status: Negative",
+        )
 
-    def test_right_panel_gives_remaining_height_to_working_log(self):
+        panel.fn_set_quick_filter_info(
+            {
+                "name": "Filter 19 02",
+                "filters": {
+                    "ecu": "ECU2",
+                    "request": "19 02",
+                    "response": "59 02",
+                },
+            }
+        )
+
+        self.assertIn("Name: Filter 19 02", panel.txt_quick_filter_info.toPlainText())
+        self.assertIn("ECU: VCU", panel.txt_transaction_info.toPlainText())
+
+        panel.fn_clear_detail_panels()
+        self.assertEqual(
+            panel.txt_quick_filter_info.toPlainText(),
+            "Name: -\nECU: -\nRequest: -\nResponse: -",
+        )
+        self.assertEqual(
+            panel.txt_transaction_info.toPlainText(),
+            "ECU: -\nTime: -\nActivity: -\nRequest: -\nResponse: -\nRT (ms): -\nStatus: -",
+        )
+
+    def test_right_panel_shares_remaining_height_between_detail_areas(self):
         from gui.widgets.log_analyzer.right_panel import RightPanel
 
         panel = RightPanel()
@@ -51,17 +117,22 @@ class LogAnalyzerWorkingLogTests(unittest.TestCase):
 
         right_layout = panel.layout()
         action_layout = panel.action_panel.layout()
-        working_log_index = action_layout.indexOf(
-            panel.action_panel.txt_working_log
+        quick_filter_index = action_layout.indexOf(
+            panel.action_panel.grp_quick_filter_info
+        )
+        transaction_index = action_layout.indexOf(
+            panel.action_panel.grp_transaction_info
         )
 
         self.assertEqual(right_layout.count(), 1)
         self.assertIs(right_layout.itemAt(0).widget(), panel.action_panel)
         self.assertEqual(right_layout.stretch(0), 1)
-        self.assertGreaterEqual(working_log_index, 0)
-        self.assertEqual(action_layout.stretch(working_log_index), 1)
+        self.assertGreaterEqual(quick_filter_index, 0)
+        self.assertGreaterEqual(transaction_index, 0)
+        self.assertEqual(action_layout.stretch(quick_filter_index), 2)
+        self.assertEqual(action_layout.stretch(transaction_index), 3)
 
-    def test_log_analyzer_replaces_working_log_when_quick_filter_changes(self):
+    def test_log_analyzer_updates_details_independently_and_clears_stale_data(self):
         with patch.dict(
             sys.modules,
             {
@@ -86,31 +157,37 @@ class LogAnalyzerWorkingLogTests(unittest.TestCase):
                 },
             }
         )
-        tab.fn_quick_filter(
+
+        tab.tbl_result.set_data([
             {
-                "name": "Filter 2",
-                "filters": {
-                    "ecu": "ECU2",
-                    "request": "22 F1 91",
-                    "response": "62 F1 91",
-                },
+                "ECU": "VCU",
+                "Time": "125.320",
+                "Activity": "Read VIN",
+                "Request": "22 F1 90",
+                "Response": "7F 22 31",
+                "RT (ms)": "18.50",
+                "Status": "Negative",
             }
-        )
+        ])
+        tab._fn_result_row_selected(0, 0)
 
-        working_log = tab.right_panel.action_panel.txt_working_log.toPlainText()
+        quick_filter_info = tab.right_panel.action_panel.txt_quick_filter_info.toPlainText()
+        transaction_info = tab.right_panel.action_panel.txt_transaction_info.toPlainText()
 
-        self.assertIn("Name: Filter 2", working_log)
-        self.assertIn("ECU: ECU2", working_log)
-        self.assertIn("Request: 22 F1 91", working_log)
-        self.assertIn("Response: 62 F1 91", working_log)
-        self.assertNotIn("Filter 1", working_log)
-        self.assertNotIn("ECU1", working_log)
+        self.assertIn("Name: Filter 1", quick_filter_info)
+        self.assertIn("ECU: ECU1", quick_filter_info)
+        self.assertIn("ECU: VCU", transaction_info)
+        self.assertIn("Status: Negative", transaction_info)
 
         tab.fn_clear_clicked()
 
         self.assertEqual(
-            tab.right_panel.action_panel.txt_working_log.toPlainText(),
-            "",
+            tab.right_panel.action_panel.txt_quick_filter_info.toPlainText(),
+            "Name: -\nECU: -\nRequest: -\nResponse: -",
+        )
+        self.assertEqual(
+            tab.right_panel.action_panel.txt_transaction_info.toPlainText(),
+            "ECU: -\nTime: -\nActivity: -\nRequest: -\nResponse: -\nRT (ms): -\nStatus: -",
         )
 
     @staticmethod

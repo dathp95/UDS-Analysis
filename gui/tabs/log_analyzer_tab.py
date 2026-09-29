@@ -143,6 +143,14 @@ class LogAnalyzerTab(QWidget):
             self.fn_quick_filter
         )
 
+        self.left_panel.quick_filter_cleared.connect(
+            self.right_panel.action_panel.fn_clear_quick_filter_info
+        )
+
+        self.tbl_result.cellClicked.connect(
+            self._fn_result_row_selected
+        )
+
     def _load_vehicles(self):
         self.fn_refresh_vehicles()
 
@@ -254,6 +262,9 @@ class LogAnalyzerTab(QWidget):
         )
 
         self.tbl_result.set_data(rows)
+        self.tbl_result.clearSelection()
+        self.tbl_result.setCurrentCell(-1, -1)
+        self.right_panel.action_panel.fn_clear_transaction_info()
 
         self.right_panel.action_panel.fn_set_analyzed_state()
         self.left_panel.fn_enable_quick_access()
@@ -278,7 +289,7 @@ class LogAnalyzerTab(QWidget):
         self.pipeline_result = None
         self.analysis_controller.pipeline_result = None
         self.right_panel.action_panel.fn_set_empty_state()
-        self.right_panel.action_panel.fn_clear_working_log()
+        self.right_panel.action_panel.fn_clear_detail_panels()
         self.left_panel.fn_disable_quick_access()
         self._update_analyze_state()
 
@@ -286,8 +297,17 @@ class LogAnalyzerTab(QWidget):
         self.tbl_result.fn_search(keyword)
 
     def fn_quick_filter(self, filter_data: dict):
-        self.right_panel.action_panel.fn_set_quick_filter_log(filter_data)
+        self.right_panel.action_panel.fn_set_quick_filter_info(filter_data)
         self.tbl_result.fn_apply_quick_filter(filter_data)
+
+    def _fn_result_row_selected(
+        self,
+        row: int,
+        column: int,
+    ):
+        self.right_panel.action_panel.fn_set_transaction_info(
+            self.tbl_result.fn_row_data(row)
+        )
 
     def fn_refresh_theme(self):
         self.vehicle_selector.fn_refresh_theme()

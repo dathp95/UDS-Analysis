@@ -1,5 +1,4 @@
 
-
 from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
@@ -35,8 +34,11 @@ class ResultTable(PrimaryTable):
 
         self.setColumnCount(len(headers))
         self.setHorizontalHeaderLabels(headers)
+        self.setSortingEnabled(False)
 
         header = self.horizontalHeader()
+        header.setSortIndicatorShown(False)
+        header.setSectionsClickable(False)
 
         header.setSectionResizeMode(
             QHeaderView.Interactive
@@ -55,6 +57,8 @@ class ResultTable(PrimaryTable):
 
 
     def set_data(self, data):
+
+        self.setSortingEnabled(False)
 
         self.clear_data()     
 
@@ -172,6 +176,29 @@ class ResultTable(PrimaryTable):
                 row,
                 not matched
             )
+
+  
+    def fn_row_data(
+            self,
+            row: int,
+        ) -> dict:
+        """Return displayed table values for a row."""
+
+        if row < 0 or row >= self.rowCount():
+            return {}
+
+        data = {}
+
+        for column in range(self.columnCount()):
+            header_item = self.horizontalHeaderItem(column)
+
+            if header_item is None:
+                continue
+
+            item = self.item(row, column)
+            data[header_item.text()] = "" if item is None else item.text()
+
+        return data
 
   
     def _fn_column_index(
