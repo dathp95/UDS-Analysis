@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.q_current_analysis import analyze_q_current, parse_q_current_timestamp
+from core.q_current_config import QCurrentConfig, load_q_current_config, save_q_current_config
 from core.q_current_report_export import QCurrentReportData, QCurrentReportSettings
 from core.services.q_current_report_service import QCurrentReportService
 from core.sleep_current_database import (
@@ -131,11 +132,17 @@ class QCurrentReviewTable(PrimaryTable):
 
 class QCurrentTab(QWidget):
 
-    def __init__(self, database_dir: str | Path | None = None):
+    def __init__(
+        self,
+        database_dir: str | Path | None = None,
+        config_file: str | Path | None = None,
+    ):
         super().__init__()
 
         self._theme_widgets = []
         self._database_dir = database_dir
+        self._config_file = config_file
+        self.q_current_config = load_q_current_config(config_file)
         self.current_import = None
         self.current_samples = []
         self.current_database_path = None
@@ -194,6 +201,7 @@ class QCurrentTab(QWidget):
         self.btn_run.clicked.connect(self.run_current_analysis)
         self.btn_export.clicked.connect(self.export_q_current_report)
         self.btn_clear.clicked.connect(self.clear_current_workspace)
+        self.save_config_button.clicked.connect(self.save_current_config)
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
         self.btn_fit_all.clicked.connect(self._fit_all_current_chart)
@@ -256,7 +264,7 @@ class QCurrentTab(QWidget):
         self.current_limit_edit.setMinimum(0.0)
         self.current_limit_edit.setMaximum(1000000.0)
         self.current_limit_edit.setSingleStep(0.5)
-        self.current_limit_edit.setValue(30.0)
+        self.current_limit_edit.setValue(self.q_current_config.standard_current_ma)
         self.current_limit_edit.setFixedWidth(110)
         self.current_limit_edit.setMinimumHeight(36)
         self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
@@ -272,7 +280,7 @@ class QCurrentTab(QWidget):
         self.wake_limit_edit.setMinimum(0.0)
         self.wake_limit_edit.setMaximum(1000000.0)
         self.wake_limit_edit.setSingleStep(0.5)
-        self.wake_limit_edit.setValue(300.0)
+        self.wake_limit_edit.setValue(self.q_current_config.wake_up_limit_ma)
         self.wake_limit_edit.setFixedWidth(110)
         self.wake_limit_edit.setMinimumHeight(36)
         self.wake_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
@@ -287,10 +295,17 @@ class QCurrentTab(QWidget):
         self.wake_duration_edit.setMinimum(0.1)
         self.wake_duration_edit.setMaximum(3600.0)
         self.wake_duration_edit.setSingleStep(0.5)
-        self.wake_duration_edit.setValue(2.0)
+        self.wake_duration_edit.setValue(self.q_current_config.wake_duration_s)
         self.wake_duration_edit.setFixedWidth(90)
         self.wake_duration_edit.setMinimumHeight(36)
         self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        self.save_config_button = PrimaryButton(
+            "SAVE CONFIG",
+            width=120,
+            height=36,
+        )
+        self.save_config_button.setObjectName("save_config_button")
 
         self.analysis_result_label = PrimaryLabel(
             "Analysis result:"
@@ -322,6 +337,8 @@ class QCurrentTab(QWidget):
         result_layout.addSpacing(16)
         result_layout.addWidget(self.wake_duration_label)
         result_layout.addWidget(self.wake_duration_edit)
+        result_layout.addSpacing(16)
+        result_layout.addWidget(self.save_config_button)
         result_layout.addSpacing(16)
         result_layout.addWidget(self.analysis_result_label)
         result_layout.addWidget(self.analysis_result_edit)
@@ -893,6 +910,24 @@ class QCurrentTab(QWidget):
         view_box.invertY(self._y_axis_inverted)
         self.position_chart_pin_labels()
 
+    def save_current_config(self):
+        config = QCurrentConfig(
+            standard_current_ma=self.current_limit_edit.value(),
+            wake_up_limit_ma=self.wake_limit_edit.value(),
+            wake_duration_s=self.wake_duration_edit.value(),
+        )
+        try:
+            save_q_current_config(config, self._config_file)
+        except Exception as error:
+            QMessageBox.critical(self, "Save Config Error", str(error))
+            return False
+        self.q_current_config = config
+        QMessageBox.information(
+            self,
+            "Save Config",
+            "Q Current configuration saved successfully.",
+        )
+        return True
     def capture_current_chart(self):
         if not self._chart_ready:
             return False
@@ -1510,6 +1545,7 @@ class QCurrentTab(QWidget):
             self.review_table,
             self.browse_button,
             self.import_button,
+            self.save_config_button,
             self.btn_run,
             self.btn_export,
             self.btn_invert_y_axis,

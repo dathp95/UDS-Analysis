@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "standard_current_ma": 30.0,
+    "wake_up_limit_ma": 1000.0,
+    "wake_duration_s": 10.0
+}

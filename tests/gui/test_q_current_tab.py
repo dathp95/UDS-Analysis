@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QSplitter,
 )
 
+from core.q_current_config import QCurrentConfig, save_q_current_config
 from core.sleep_current_database import database_path_for_source, import_dataset
 from gui.tabs.q_current_tab import (
     PLACEHOLDER_VALUE,
@@ -41,7 +42,8 @@ class QCurrentTabTests(unittest.TestCase):
 
     def _create_tab(self, tmpdir: str):
         database_dir = Path(tmpdir) / "config" / "database_qcurrent"
-        tab = QCurrentTab(database_dir=database_dir)
+        config_file = Path(tmpdir) / "config" / "q_current_config.json"
+        tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
         self.addCleanup(tab.deleteLater)
         return tab, database_dir
 
@@ -98,11 +100,158 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.wake_duration_edit.decimals(), 1)
             self.assertEqual(tab.wake_duration_edit.value(), 2.0)
             self.assertEqual(tab.wake_duration_edit.text(), "2.0")
+            self.assertEqual(tab.save_config_button.objectName(), "save_config_button")
+            self.assertEqual(tab.save_config_button.text(), "SAVE CONFIG")
+            self.assertIsInstance(tab.save_config_button, PrimaryButton)
             self.assertFalse(hasattr(tab, "sleep_duration_edit"))
             self.assertFalse(hasattr(tab, "sleep_duration_label"))
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
 
+    def test_saved_q_current_config_loads_on_new_tab_startup(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            database_dir = Path(tmpdir) / "config" / "database_qcurrent"
+            config_file = Path(tmpdir) / "config" / "q_current_config.json"
+            save_q_current_config(
+                QCurrentConfig(
+                    standard_current_ma=25.0,
+                    wake_up_limit_ma=250.0,
+                    wake_duration_s=3.0,
+                ),
+                config_file,
+            )
+
+            tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
+            self.addCleanup(tab.deleteLater)
+
+            self.assertEqual(tab.current_limit_edit.value(), 25.0)
+            self.assertEqual(tab.wake_limit_edit.value(), 250.0)
+            self.assertEqual(tab.wake_duration_edit.value(), 3.0)
+
+    def test_unsaved_q_current_config_changes_do_not_survive_restart(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            database_dir = Path(tmpdir) / "config" / "database_qcurrent"
+            config_file = Path(tmpdir) / "config" / "q_current_config.json"
+            save_q_current_config(
+                QCurrentConfig(30.0, 300.0, 2.0),
+                config_file,
+            )
+            first_tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
+            self.addCleanup(first_tab.deleteLater)
+            first_tab.current_limit_edit.setValue(25.0)
+            first_tab.wake_limit_edit.setValue(250.0)
+            first_tab.wake_duration_edit.setValue(3.0)
+
+            second_tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
+            self.addCleanup(second_tab.deleteLater)
+
+            self.assertEqual(second_tab.current_limit_edit.value(), 30.0)
+            self.assertEqual(second_tab.wake_limit_edit.value(), 300.0)
+            self.assertEqual(second_tab.wake_duration_edit.value(), 2.0)
+
+    def test_save_config_writes_global_config_without_running_analysis(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            config_file = Path(tmpdir) / "config" / "q_current_config.json"
+            tab.current_limit_edit.setValue(25.0)
+            tab.wake_limit_edit.setValue(250.0)
+            tab.wake_duration_edit.setValue(3.0)
+
+            with patch("gui.tabs.q_current_tab.analyze_q_current") as analyze, patch.object(
+                QMessageBox,
+                "information",
+            ) as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                tab.save_config_button.click()
+
+            analyze.assert_not_called()
+            information.assert_called_once()
+            critical.assert_not_called()
+            self.assertTrue(config_file.exists())
+            restarted_tab = QCurrentTab(
+                database_dir=Path(tmpdir) / "config" / "database_qcurrent",
+                config_file=config_file,
+            )
+            self.addCleanup(restarted_tab.deleteLater)
+            self.assertEqual(restarted_tab.current_limit_edit.value(), 25.0)
+            self.assertEqual(restarted_tab.wake_limit_edit.value(), 250.0)
+            self.assertEqual(restarted_tab.wake_duration_edit.value(), 3.0)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertFalse(tab._chart_ready)
+
+    def test_save_config_error_does_not_report_success(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab.current_limit_edit.setValue(300.0)
+            tab.wake_limit_edit.setValue(30.0)
+
+            with patch.object(QMessageBox, "information") as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                tab.save_config_button.click()
+
+            information.assert_not_called()
+            critical.assert_called_once()
+            self.assertFalse((Path(tmpdir) / "config" / "q_current_config.json").exists())
+
+    def test_clear_and_dataset_changes_do_not_reset_q_current_config_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab.current_limit_edit.setValue(25.0)
+            tab.wake_limit_edit.setValue(250.0)
+            tab.wake_duration_edit.setValue(3.0)
+            tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
+
+            tab.btn_clear.click()
+            tab.dataset_combo.addItem("A")
+            tab.dataset_combo.addItem("B")
+            tab.dataset_combo.setCurrentText("B")
+            tab._load_samples_into_workspace([self._sample(1.0, 20.0)])
+
+            self.assertEqual(tab.current_limit_edit.value(), 25.0)
+            self.assertEqual(tab.wake_limit_edit.value(), 250.0)
+            self.assertEqual(tab.wake_duration_edit.value(), 3.0)
+
+    def test_export_uses_run_snapshot_not_saved_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = Path(tmpdir) / "config" / "q_current_config.json"
+            save_q_current_config(QCurrentConfig(30.0, 300.0, 2.0), config_file)
+            tab = QCurrentTab(
+                database_dir=Path(tmpdir) / "config" / "database_qcurrent",
+                config_file=config_file,
+            )
+            self.addCleanup(tab.deleteLater)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, 20.0),
+            ])
+            tab.current_limit_edit.setValue(25.0)
+            tab.wake_limit_edit.setValue(250.0)
+            tab.wake_duration_edit.setValue(3.0)
+            tab.btn_run.click()
+
+            with patch.object(
+                tab.q_current_report_service,
+                "fn_export",
+                return_value=None,
+            ) as export_report:
+                tab.btn_export.click()
+
+            report_data = export_report.call_args.args[1]
+            self.assertEqual(report_data.settings.standard_current_ma, 25.0)
+            self.assertEqual(report_data.settings.wake_up_limit_ma, 250.0)
+            self.assertEqual(report_data.settings.wake_duration_s, 3.0)
+            restarted_tab = QCurrentTab(
+                database_dir=Path(tmpdir) / "config" / "database_qcurrent",
+                config_file=config_file,
+            )
+            self.addCleanup(restarted_tab.deleteLater)
+            self.assertEqual(restarted_tab.current_limit_edit.value(), 30.0)
+            self.assertEqual(restarted_tab.wake_limit_edit.value(), 300.0)
+            self.assertEqual(restarted_tab.wake_duration_edit.value(), 2.0)
     def test_q_current_action_buttons_start_disabled_until_data_loads(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)

@@ -14,6 +14,7 @@ Q_CURRENT_REPORT_DIR = OUTPUT_DIR / "Report_QCurrent"
 
 CONFIG_DIR = PROJECT_ROOT / "config"
 Q_CURRENT_DATABASE_DIR = CONFIG_DIR / "database_qcurrent"
+Q_CURRENT_CONFIG_FILE = CONFIG_DIR / "q_current_config.json"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"
 DIAGNOSTIC_SEQUENCES_DIR = CONFIG_DIR / "diagnostic_sequences"
 

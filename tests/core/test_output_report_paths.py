@@ -9,6 +9,7 @@ from config.paths import (
     LOG_ANALYZER_REPORT_DIR,
     OUTPUT_DIR,
     Q_CURRENT_DATABASE_DIR,
+    Q_CURRENT_CONFIG_FILE,
     Q_CURRENT_REPORT_DIR,
 )
 from core.services.report_service import ReportService
@@ -29,6 +30,10 @@ class OutputReportPathTests(unittest.TestCase):
         self.assertEqual(
             Q_CURRENT_DATABASE_DIR,
             CONFIG_DIR / "database_qcurrent",
+        )
+        self.assertEqual(
+            Q_CURRENT_CONFIG_FILE,
+            CONFIG_DIR / "q_current_config.json",
         )
         self.assertEqual(
             Q_CURRENT_REPORT_DIR,
