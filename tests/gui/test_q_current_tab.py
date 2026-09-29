@@ -1,4 +1,4 @@
-import os
+﻿import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,7 +22,6 @@ from gui.tabs.q_current_tab import (
     PLACEHOLDER_VALUE,
     QCurrentTab,
     calculate_elapsed_seconds,
-    detect_wake_up_intervals,
 )
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
@@ -87,25 +86,20 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIsInstance(tab.wake_limit_edit, QDoubleSpinBox)
             self.assertEqual(tab.wake_limit_edit.objectName(), "wake_limit_edit")
             self.assertEqual(tab.wake_limit_edit.minimum(), 0.0)
-            self.assertEqual(tab.sleep_duration_label.text(), "Sleep duration (s)")
-            self.assertIsInstance(tab.sleep_duration_edit, QDoubleSpinBox)
-            self.assertEqual(tab.sleep_duration_edit.objectName(), "sleep_duration_edit")
-            self.assertEqual(tab.sleep_duration_edit.minimum(), 10.0)
-            self.assertEqual(tab.sleep_duration_edit.decimals(), 1)
-            self.assertEqual(tab.sleep_duration_edit.value(), 60.0)
-            self.assertEqual(tab.sleep_duration_edit.text(), "60.0")
             self.assertEqual(tab.wake_limit_edit.decimals(), 1)
             self.assertEqual(tab.wake_limit_edit.value(), 300.0)
             self.assertEqual(tab.wake_limit_edit.text(), "300.0")
             self.assertEqual(tab.wake_duration_label.text(), "Wake duration (s)")
             self.assertIsInstance(tab.wake_duration_edit, QDoubleSpinBox)
             self.assertEqual(tab.wake_duration_edit.objectName(), "wake_duration_edit")
-            self.assertEqual(tab.wake_duration_edit.minimum(), 1.0)
+            self.assertEqual(tab.wake_duration_edit.minimum(), 0.1)
             self.assertEqual(tab.wake_duration_edit.maximum(), 3600.0)
             self.assertEqual(tab.wake_duration_edit.singleStep(), 0.5)
             self.assertEqual(tab.wake_duration_edit.decimals(), 1)
             self.assertEqual(tab.wake_duration_edit.value(), 2.0)
             self.assertEqual(tab.wake_duration_edit.text(), "2.0")
+            self.assertFalse(hasattr(tab, "sleep_duration_edit"))
+            self.assertFalse(hasattr(tab, "sleep_duration_label"))
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
 
@@ -348,8 +342,9 @@ class QCurrentTabTests(unittest.TestCase):
                 type("Sample", (), {"time": "26-09-11 11:41:29.036", "current_mA": -16.9})(),
                 type("Sample", (), {"time": "26-09-11 11:41:30.079", "current_mA": -17.3})(),
             ])
-            tab.summary_values["sample_count"].setText("2")
-            tab.summary_values["duration"].setText("1.043 s")
+            tab.summary_widget.summary_values["result_status"].setText("PASSED")
+            tab.summary_widget.summary_values["average_sleep_current_ma"].setText("17.10 mA")
+            tab.summary_widget.summary_values["total_samples"].setText("2")
 
             tab.copy_data_review()
 
@@ -364,11 +359,23 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertEqual(
                 QApplication.clipboard().text(),
-                "Samples\t2\n"
-                "Duration\t1.043 s\n"
-                f"Min Current\t{PLACEHOLDER_VALUE}\n"
-                f"Max Current\t{PLACEHOLDER_VALUE}\n"
-                f"Average Current\t{PLACEHOLDER_VALUE}",
+                "Result\tPASSED\n"
+                "Average Sleep Current\t17.10 mA\n"
+                f"Min Sleep Current\t{PLACEHOLDER_VALUE}\n"
+                f"Max Sleep Current\t{PLACEHOLDER_VALUE}\n"
+                f"Wake-up Events\t{PLACEHOLDER_VALUE}\n"
+                f"Total Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
+                f"Average Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
+                f"Max Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
+                f"Average Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
+                f"Min Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
+                f"Max Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
+                f"Longest Continuous Sleep\t{PLACEHOLDER_VALUE}\n"
+                f"Start Time\t{PLACEHOLDER_VALUE}\n"
+                f"End Time\t{PLACEHOLDER_VALUE}\n"
+                f"Duration\t{PLACEHOLDER_VALUE}\n"
+                "Total Samples\t2\n"
+                f"Sample Interval\t{PLACEHOLDER_VALUE}",
             )
 
 
@@ -382,20 +389,6 @@ class QCurrentTabTests(unittest.TestCase):
         elapsed_seconds = calculate_elapsed_seconds(samples)
 
         self.assertEqual(elapsed_seconds, [0.0, 1.043, 2.114])
-
-    def test_detect_wake_up_intervals_uses_absolute_current_and_duration(self):
-        intervals = detect_wake_up_intervals(
-            [0.0, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5],
-            [10.0, -310.0, -320.0, -450.0, 20.0, 400.0, 410.0],
-            wake_limit_ma=300.0,
-            wake_duration_s=2.0,
-        )
-
-        self.assertEqual(len(intervals), 1)
-        self.assertEqual(intervals[0]["start_s"], 1.0)
-        self.assertEqual(intervals[0]["end_s"], 3.5)
-        self.assertEqual(intervals[0]["duration_s"], 2.5)
-        self.assertEqual(intervals[0]["peak_current_ma"], 450.0)
 
     def test_run_draws_current_chart_thresholds_and_enables_chart_actions(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -451,6 +444,40 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(getattr(bottom_axis, "autoSIPrefix", True))
             self.assertFalse(getattr(left_axis, "autoSIPrefix", True))
 
+    def test_run_populates_summary_status_and_resets_on_clear(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, -20.0),
+            ])
+
+            tab.btn_run.click()
+
+            self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "PASSED")
+            self.assertEqual(tab.summary_widget.summary_values["average_sleep_current_ma"].text(), "15.00 mA")
+            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.summary_widget.summary_values["result_status"].styleSheet())
+
+            tab.btn_clear.click()
+
+            self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), PLACEHOLDER_VALUE)
+            self.assertFalse(tab.btn_copy_summary.isEnabled())
+
+    def test_run_marks_summary_failed_with_danger_theme(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 40.0),
+                self._sample(1.0, -50.0),
+            ])
+
+            tab.btn_run.click()
+            ThemeManager.fn_set_theme(ThemeType.DARK)
+            tab.fn_refresh_theme()
+
+            self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "FAILED")
+            self.assertIn(ThemeManager.fn_colors().DANGER, tab.summary_widget.summary_values["result_status"].styleSheet())
+
     def test_long_time_range_uses_horizontal_chart_scrollbar(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)
@@ -483,9 +510,9 @@ class QCurrentTabTests(unittest.TestCase):
             tab.wake_duration_edit.setValue(2.0)
             tab._load_samples_into_workspace([
                 self._sample(0.0, 10.0),
-                self._sample(1.0, -310.0),
-                self._sample(2.0, -320.0),
-                self._sample(3.5, -450.0),
+                self._sample(1.0, -40.0),
+                self._sample(2.0, -50.0),
+                self._sample(3.5, -60.0),
                 self._sample(5.0, 20.0),
                 self._sample(6.0, 350.0),
                 self._sample(6.5, 360.0),
@@ -495,9 +522,10 @@ class QCurrentTabTests(unittest.TestCase):
 
             current_x, current_y = tab.current_curve.getData()
             self.assertEqual(current_x.tolist(), [0.0, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5])
-            self.assertEqual(current_y.tolist(), [10.0, -310.0, -320.0, -450.0, 20.0, 350.0, 360.0])
+            self.assertEqual(current_y.tolist(), [10.0, -40.0, -50.0, -60.0, 20.0, 350.0, 360.0])
             self.assertEqual(len(tab.wake_up_regions), 1)
             self.assertEqual(tab.wake_up_regions[0].getRegion(), (1.0, 3.5))
+            self.assertEqual(tab.summary_widget.summary_values["average_sleep_current_ma"].text(), "36.00 mA")
             self.assertEqual(tab.wake_up_regions[0].zValue(), -10)
             self.assertFalse(tab.wake_up_regions[0].movable)
 
@@ -506,6 +534,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertEqual(len(tab.wake_up_regions), 1)
             self.assertEqual(tab.wake_up_regions[0].getRegion(), (1.0, 3.5))
+            self.assertEqual(tab.summary_widget.summary_values["average_sleep_current_ma"].text(), "36.00 mA")
             themed_x, themed_y = tab.current_curve.getData()
             self.assertEqual(themed_x.tolist(), current_x.tolist())
             self.assertEqual(themed_y.tolist(), current_y.tolist())
@@ -989,11 +1018,12 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.review_table.horizontalHeaderItem(0).text(), "No.")
             self.assertEqual(tab.review_table.horizontalHeaderItem(1).text(), "Time")
             self.assertEqual(tab.review_table.horizontalHeaderItem(2).text(), "Current (mA)")
-            self.assertIn("sample_count", tab.summary_values)
-            self.assertIn("duration", tab.summary_values)
-            self.assertIn("min_current", tab.summary_values)
-            self.assertIn("max_current", tab.summary_values)
-            self.assertIn("avg_current", tab.summary_values)
+            self.assertIs(tab.summary_group, tab.summary_widget)
+            self.assertIn("result_status", tab.summary_widget.summary_values)
+            self.assertIn("average_sleep_current_ma", tab.summary_widget.summary_values)
+            self.assertIn("wake_up_event_count", tab.summary_widget.summary_values)
+            self.assertIn("longest_continuous_sleep_s", tab.summary_widget.summary_values)
+            self.assertIn("total_samples", tab.summary_widget.summary_values)
 
     def test_q_current_tab_uses_existing_controls_and_theme_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:

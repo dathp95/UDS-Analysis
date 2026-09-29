@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 
+from core.q_current_analysis import analyze_q_current
 from core.sleep_current_database import (
     database_path_for_source,
     default_dataset_name,
@@ -50,6 +51,7 @@ from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.widgets.controls.quick_access_button import QuickAccessButton
+from gui.widgets.q_current.summary_widget import QCurrentSummaryWidget
 
 
 PLACEHOLDER_VALUE = "\u2014"
@@ -106,77 +108,6 @@ def calculate_elapsed_seconds(samples):
             raise ValueError("Current data contains mixed timestamp formats")
     return elapsed_seconds
 
-
-def detect_wake_up_intervals(
-    time_seconds,
-    current_ma,
-    wake_limit_ma,
-    wake_duration_s,
-):
-    time_array = np.asarray(time_seconds, dtype=float)
-    current_array = np.asarray(current_ma, dtype=float)
-    if time_array.size == 0 or current_array.size == 0:
-        return []
-    if time_array.size != current_array.size:
-        raise ValueError("Wake-up detection data is not aligned.")
-
-    order = np.argsort(time_array)
-    time_array = time_array[order]
-    current_array = current_array[order]
-    limit_ma = abs(float(wake_limit_ma))
-    duration_s = max(0.0, float(wake_duration_s))
-    active_mask = np.abs(current_array) >= limit_ma
-
-    intervals = []
-    start_index = None
-    for index, is_active in enumerate(active_mask):
-        if is_active and start_index is None:
-            start_index = index
-        elif not is_active and start_index is not None:
-            _append_wake_up_interval(
-                intervals,
-                time_array,
-                current_array,
-                start_index,
-                index - 1,
-                duration_s,
-            )
-            start_index = None
-
-    if start_index is not None:
-        _append_wake_up_interval(
-            intervals,
-            time_array,
-            current_array,
-            start_index,
-            len(time_array) - 1,
-            duration_s,
-        )
-    return intervals
-
-
-def _append_wake_up_interval(
-    intervals,
-    time_array,
-    current_array,
-    start_index,
-    end_index,
-    min_duration_s,
-):
-    start_s = float(time_array[start_index])
-    end_s = float(time_array[end_index])
-    duration_s = end_s - start_s
-    if duration_s < min_duration_s:
-        return
-    interval_currents = current_array[start_index : end_index + 1]
-    intervals.append(
-        {
-            "start_s": start_s,
-            "end_s": end_s,
-            "duration_s": duration_s,
-            "peak_current_ma": float(np.max(np.abs(interval_currents))),
-        }
-    )
 
 
 @dataclass
@@ -345,20 +276,6 @@ class QCurrentTab(QWidget):
         self.current_limit_edit.setMinimumHeight(36)
         self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
-        self.sleep_duration_label = PrimaryLabel(
-            "Sleep duration (s)"
-        )
-
-        self.sleep_duration_edit = QDoubleSpinBox()
-        self.sleep_duration_edit.setObjectName("sleep_duration_edit")
-        self.sleep_duration_edit.setDecimals(1)
-        self.sleep_duration_edit.setMinimum(10)
-        self.sleep_duration_edit.setMaximum(1000000.0)
-        self.sleep_duration_edit.setSingleStep(1)
-        self.sleep_duration_edit.setValue(60)
-        self.sleep_duration_edit.setFixedWidth(110)
-        self.sleep_duration_edit.setMinimumHeight(36)
-        self.sleep_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
         self.wake_limit_label = PrimaryLabel(
             "Wake Up limit (mA)"
@@ -382,11 +299,11 @@ class QCurrentTab(QWidget):
         self.wake_duration_edit = QDoubleSpinBox()
         self.wake_duration_edit.setObjectName("wake_duration_edit")
         self.wake_duration_edit.setDecimals(1)
-        self.wake_duration_edit.setMinimum(1.0)
+        self.wake_duration_edit.setMinimum(0.1)
         self.wake_duration_edit.setMaximum(3600.0)
         self.wake_duration_edit.setSingleStep(0.5)
         self.wake_duration_edit.setValue(2.0)
-        self.wake_duration_edit.setFixedWidth(110)
+        self.wake_duration_edit.setFixedWidth(90)
         self.wake_duration_edit.setMinimumHeight(36)
         self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
@@ -413,9 +330,6 @@ class QCurrentTab(QWidget):
         result_layout.setSpacing(8)
         result_layout.addWidget(self.current_limit_label)
         result_layout.addWidget(self.current_limit_edit)
-        result_layout.addSpacing(16)
-        result_layout.addWidget(self.sleep_duration_label)
-        result_layout.addWidget(self.sleep_duration_edit)
         result_layout.addSpacing(16)
 
         result_layout.addWidget(self.wake_limit_label)
@@ -604,7 +518,7 @@ class QCurrentTab(QWidget):
     def _create_right_panel(self):
         panel = QWidget()
         panel.setMinimumWidth(200)
-        panel.setMaximumWidth(280)
+        panel.setMaximumWidth(360)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -627,43 +541,10 @@ class QCurrentTab(QWidget):
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             layout.addWidget(button)
 
-        self.summary_group = self._create_summary_group()
-        layout.addWidget(self.summary_group, 1)
+        self.summary_widget = QCurrentSummaryWidget()
+        self.summary_group = self.summary_widget
+        layout.addWidget(self.summary_widget, 1)
         return panel
-
-    def _create_summary_group(self):
-        group = QGroupBox("Summary")
-        layout = QGridLayout(group)
-        layout.setContentsMargins(12, 16, 12, 12)
-        layout.setHorizontalSpacing(10)
-        layout.setVerticalSpacing(8)
-
-        self.summary_labels = {}
-        self.summary_values = {}
-        rows = (
-            ("sample_count", "Samples"),
-            ("duration", "Duration"),
-            ("min_current", "Min Current"),
-            ("max_current", "Max Current"),
-            ("avg_current", "Average Current"),
-        )
-        for row, (key, label_text) in enumerate(rows):
-            label = PrimaryLabel(label_text)
-            self.summary_labels[key] = label
-            layout.addWidget(label, row, 0)
-            value_label = self._create_value_label()
-            self.summary_values[key] = value_label
-            layout.addWidget(value_label, row, 1)
-
-        layout.setColumnStretch(1, 1)
-        layout.setRowStretch(len(rows), 1)
-        return group
-
-    def _create_value_label(self):
-        label = PrimaryLabel(PLACEHOLDER_VALUE)
-        label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self._theme_widgets.append(label)
-        return label
 
     def _create_placeholder_panel(self):
         label = QLabel(PLACEHOLDER_VALUE)
@@ -808,6 +689,7 @@ class QCurrentTab(QWidget):
         self.current_samples = list(samples)
         self._chart_ready = False
         self._clear_current_chart()
+        self.summary_widget.clear_result()
         self._populate_review_table(self.current_samples)
         self._update_action_states()
 
@@ -830,12 +712,24 @@ class QCurrentTab(QWidget):
             return
         try:
             elapsed_seconds, current_values = self._build_chart_data()
+            analysis_result = analyze_q_current(
+                elapsed_seconds,
+                current_values,
+                self.current_limit_edit.value(),
+                self.wake_limit_edit.value(),
+                self.wake_duration_edit.value(),
+            )
         except ValueError as error:
             QMessageBox.warning(self, "Q current Chart", str(error))
             self._update_action_states()
             return
 
-        self._update_current_chart(elapsed_seconds, current_values)
+        self._update_current_chart(
+            elapsed_seconds,
+            current_values,
+            analysis_result.wake_up_intervals,
+        )
+        self.summary_widget.set_result(analysis_result)
         self._chart_ready = True
         self.analysis_result_edit.setText("RUN")
         self._update_action_states()
@@ -847,6 +741,7 @@ class QCurrentTab(QWidget):
         self._chart_ready = False
         self.review_table.setRowCount(0)
         self._clear_current_chart()
+        self.summary_widget.clear_result()
         self.analysis_result_edit.setText("NOT RUN")
         self._update_action_states()
 
@@ -859,7 +754,7 @@ class QCurrentTab(QWidget):
             raise ValueError("Q current chart data is not aligned.")
         return elapsed_seconds, current_values
 
-    def _update_current_chart(self, elapsed_seconds, current_values):
+    def _update_current_chart(self, elapsed_seconds, current_values, wake_up_intervals):
         self.clear_chart_pins()
         time_array = np.asarray(elapsed_seconds, dtype=float)
         current_array = np.asarray(current_values, dtype=float)
@@ -878,13 +773,7 @@ class QCurrentTab(QWidget):
             self.current_limit_edit.value(),
             mark_not_run=False,
         )
-        intervals = detect_wake_up_intervals(
-            time_array,
-            current_array,
-            self.wake_limit_edit.value(),
-            self.wake_duration_edit.value(),
-        )
-        self.update_wake_up_regions(intervals)
+        self.update_wake_up_regions(wake_up_intervals)
         self.hide_hover_items()
         self._update_chart_scrollbar(x_min, x_max)
         self._fit_all_current_chart()
@@ -1021,6 +910,8 @@ class QCurrentTab(QWidget):
     def _mark_analysis_not_run(self, *_args):
         if hasattr(self, "analysis_result_edit"):
             self.analysis_result_edit.setText("NOT RUN")
+        if hasattr(self, "summary_widget"):
+            self.summary_widget.clear_result()
 
     def create_wake_up_region(self, start_s, end_s):
         region = pg.LinearRegionItem(
@@ -1043,8 +934,8 @@ class QCurrentTab(QWidget):
         self.clear_wake_up_regions()
         for interval in intervals:
             region = self.create_wake_up_region(
-                interval["start_s"],
-                interval["end_s"],
+                interval.start_s,
+                interval.end_s,
             )
             self.wake_up_regions.append(region)
             self.current_plot.addItem(region)
@@ -1496,7 +1387,7 @@ class QCurrentTab(QWidget):
         QApplication.clipboard().setText(self._review_table_to_text())
 
     def copy_summary(self):
-        QApplication.clipboard().setText(self._summary_to_text())
+        QApplication.clipboard().setText(self.summary_widget.to_text())
 
     def _review_table_to_text(self):
         headers = [
@@ -1513,12 +1404,7 @@ class QCurrentTab(QWidget):
         return "\n".join(rows)
 
     def _summary_to_text(self):
-        rows = []
-        for key, label in self.summary_labels.items():
-            rows.append(
-                f"{label.text()}\t{self.summary_values[key].text()}"
-            )
-        return "\n".join(rows)
+        return self.summary_widget.to_text()
 
     def _refresh_dataset_combo(self, selected_db_path: Path | str | None = None):
         selected_path = selected_db_path
@@ -1582,7 +1468,6 @@ class QCurrentTab(QWidget):
         spinbox_style = fn_spinbox_style()
         for spinbox in (
             self.current_limit_edit,
-            self.sleep_duration_edit,
             self.wake_limit_edit,
             self.wake_duration_edit,
         ):
@@ -1591,6 +1476,7 @@ class QCurrentTab(QWidget):
         for label in self.findChildren(PrimaryLabel):
             label.fn_refresh_theme()
 
+        self.summary_widget.fn_refresh_theme()
         self._refresh_chart_theme()
 
         colors = ThemeManager.fn_colors()
