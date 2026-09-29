@@ -213,6 +213,7 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.valueChanged.connect(
             self._on_chart_scrollbar_changed
         )
+        self.review_table.cellClicked.connect(self._on_review_row_selected)
         self.current_limit_edit.valueChanged.connect(
             self.update_sleep_limit_lines
         )
@@ -836,6 +837,72 @@ class QCurrentTab(QWidget):
         self.current_plot.setYRange(y_min, y_max, padding=0.08)
         self.position_chart_pin_labels()
 
+    def _on_review_row_selected(self, row, _column):
+        if not self._chart_ready or self.chart_time_seconds.size == 0:
+            return
+        if not self.current_samples:
+            return
+        if row < 0 or row >= len(self.current_samples):
+            return
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        except ValueError:
+            return
+        if row >= len(elapsed_seconds):
+            return
+
+        target_time_s = float(elapsed_seconds[row])
+        chart_index = self.find_nearest_sample_index(target_time_s)
+        if chart_index is None:
+            return
+
+        time_s = float(self.chart_time_seconds[chart_index])
+        current_ma = float(self.chart_current_ma[chart_index])
+        self._navigate_chart_to_time(time_s)
+        self.update_hover_items(time_s, current_ma)
+
+    def _navigate_chart_to_time(self, time_s):
+        if self.chart_time_seconds.size == 0:
+            return
+        plot_item = self.current_plot.getPlotItem()
+        x_range, _y_range = plot_item.viewRange()
+        x_min = float(x_range[0])
+        x_max = float(x_range[1])
+        if x_min <= time_s <= x_max:
+            return
+
+        data_min = float(self.chart_time_seconds[0])
+        data_max = float(self.chart_time_seconds[-1])
+        if data_max <= data_min:
+            return
+
+        visible_width = max(x_max - x_min, 1e-9)
+        data_width = data_max - data_min
+        if visible_width >= data_width:
+            new_x_min = data_min
+            new_x_max = data_max
+        else:
+            new_x_min = float(time_s) - visible_width / 2.0
+            new_x_max = float(time_s) + visible_width / 2.0
+            if new_x_min < data_min:
+                new_x_min = data_min
+                new_x_max = data_min + visible_width
+            if new_x_max > data_max:
+                new_x_max = data_max
+                new_x_min = data_max - visible_width
+
+        if self.chart_scrollbar.maximum() > 0:
+            scroll_value = int(round((new_x_min - data_min) * CHART_SCROLL_SCALE))
+            scroll_value = max(
+                self.chart_scrollbar.minimum(),
+                min(self.chart_scrollbar.maximum(), scroll_value),
+            )
+            self._chart_scrollbar_updating = True
+            self.chart_scrollbar.setValue(scroll_value)
+            self._chart_scrollbar_updating = False
+
+        self.current_plot.setXRange(new_x_min, new_x_max, padding=0)
+        self.position_chart_pin_labels()
     def _update_chart_scrollbar(self, x_min, x_max):
         self._chart_x_min = float(x_min)
         self._chart_x_max = float(x_max)

@@ -52,13 +52,26 @@ class QCurrentSummaryWidget(QGroupBox):
         for row, (key, label_text) in enumerate(self._rows):
             label = PrimaryLabel(label_text)
             value = PrimaryLabel(PLACEHOLDER_VALUE)
+
+            label.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+            )
+
+            value.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+            )
+
             value.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             value.setWordWrap(True)
+
             self.summary_labels[key] = label
             self.summary_values[key] = value
+
             layout.addWidget(label, row, 0)
             layout.addWidget(value, row, 1)
 
+        
+        
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(len(self._rows), 1)
 

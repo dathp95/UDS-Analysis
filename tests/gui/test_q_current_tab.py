@@ -842,6 +842,132 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.lower_sleep_limit_line.value(), -45.0)
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
+    def test_review_row_click_does_nothing_before_chart_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, 20.0),
+            ])
+
+            tab.review_table.cellClicked.emit(1, 2)
+
+            self.assertFalse(tab.hover_marker.isVisible())
+            self.assertFalse(tab.hover_label.isVisible())
+            self.assertFalse(tab._chart_ready)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+    def test_review_row_click_highlights_same_sample_from_any_column(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, -28.46),
+                self._sample(2.0, 12.0),
+            ])
+            tab.btn_run.click()
+
+            tab.review_table.cellClicked.emit(1, 1)
+            first_marker_x, first_marker_y = tab.hover_marker.getData()
+            tab.review_table.cellClicked.emit(1, 2)
+            second_marker_x, second_marker_y = tab.hover_marker.getData()
+
+            self.assertEqual(first_marker_x.tolist(), [1.0])
+            self.assertEqual(first_marker_y.tolist(), [-28.46])
+            self.assertEqual(second_marker_x.tolist(), [1.0])
+            self.assertEqual(second_marker_y.tolist(), [-28.46])
+            hover_html = tab.hover_label.toHtml().replace("\xa0", " ")
+            self.assertIn("Time: 1.000 s", hover_html)
+            self.assertIn("Current: -28.46 mA", hover_html)
+            self.assertTrue(tab.hover_marker.isVisible())
+            self.assertTrue(tab.hover_label.isVisible())
+
+    def test_review_row_click_preserves_visible_range_when_sample_already_visible(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(10.0, 20.0),
+                self._sample(20.0, 30.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(5.0, 15.0, padding=0)
+            before_range = tab.current_plot.getPlotItem().viewRange()[0]
+
+            tab.review_table.cellClicked.emit(1, 0)
+
+            after_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(after_range[0], before_range[0], places=3)
+            self.assertAlmostEqual(after_range[1], before_range[1], places=3)
+            marker_x, marker_y = tab.hover_marker.getData()
+            self.assertEqual(marker_x.tolist(), [10.0])
+            self.assertEqual(marker_y.tolist(), [20.0])
+
+    def test_review_row_click_pans_to_sample_preserves_zoom_and_syncs_scrollbar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(50.0, 2.0),
+                self._sample(100.0, 3.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(0.0, 20.0, padding=0)
+            before_width = tab.current_plot.getPlotItem().viewRange()[0][1] - tab.current_plot.getPlotItem().viewRange()[0][0]
+
+            tab.review_table.cellClicked.emit(2, 2)
+
+            x_range = tab.current_plot.getPlotItem().viewRange()[0]
+            after_width = x_range[1] - x_range[0]
+            self.assertAlmostEqual(after_width, before_width, places=3)
+            self.assertGreaterEqual(100.0, x_range[0])
+            self.assertLessEqual(100.0, x_range[1])
+            self.assertAlmostEqual(x_range[1], 100.0, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.maximum())
+            marker_x, marker_y = tab.hover_marker.getData()
+            self.assertEqual(marker_x.tolist(), [100.0])
+            self.assertEqual(marker_y.tolist(), [3.0])
+
+    def test_review_row_click_clamps_to_dataset_start(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(50.0, 2.0),
+                self._sample(100.0, 3.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(80.0, 100.0, padding=0)
+
+            tab.review_table.cellClicked.emit(0, 1)
+
+            x_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(x_range[0], 0.0, places=3)
+            self.assertAlmostEqual(x_range[1] - x_range[0], 20.0, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.minimum())
+
+    def test_review_row_click_preserves_inverted_y_and_pins(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -25.0),
+                self._sample(100.0, 10.0),
+                self._sample(200.0, 80.0),
+            ])
+            tab.btn_run.click()
+            tab.pin_chart_sample(0)
+            tab.btn_invert_y_axis.click()
+            tab.current_plot.setXRange(40.0, 60.0, padding=0)
+
+            tab.review_table.cellClicked.emit(2, 0)
+
+            self.assertTrue(tab._y_axis_inverted)
+            self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [0])
+            self.assertEqual(len(tab.chart_pins), 1)
+            marker_x, marker_y = tab.hover_marker.getData()
+            self.assertEqual(marker_x.tolist(), [200.0])
+            self.assertEqual(marker_y.tolist(), [80.0])
     def test_hover_uses_nearest_sample_without_changing_current_sign(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
