@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from core.q_current_config import QCurrentConfig, save_q_current_config
 from core.sleep_current_database import database_path_for_source, import_dataset
 from gui.tabs.q_current_tab import (
+    CHART_SCROLL_SCALE,
     PLACEHOLDER_VALUE,
     QCurrentTab,
     calculate_elapsed_seconds,
@@ -882,69 +883,72 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.hover_marker.isVisible())
             self.assertTrue(tab.hover_label.isVisible())
 
-    def test_review_row_click_preserves_visible_range_when_sample_already_visible(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tab, _database_dir = self._create_tab(tmpdir)
-            tab._load_samples_into_workspace([
-                self._sample(0.0, 10.0),
-                self._sample(10.0, 20.0),
-                self._sample(20.0, 30.0),
-            ])
-            tab.btn_run.click()
-            tab.current_plot.setXRange(5.0, 15.0, padding=0)
-            before_range = tab.current_plot.getPlotItem().viewRange()[0]
-
-            tab.review_table.cellClicked.emit(1, 0)
-
-            after_range = tab.current_plot.getPlotItem().viewRange()[0]
-            self.assertAlmostEqual(after_range[0], before_range[0], places=3)
-            self.assertAlmostEqual(after_range[1], before_range[1], places=3)
-            marker_x, marker_y = tab.hover_marker.getData()
-            self.assertEqual(marker_x.tolist(), [10.0])
-            self.assertEqual(marker_y.tolist(), [20.0])
-
-    def test_review_row_click_pans_to_sample_preserves_zoom_and_syncs_scrollbar(self):
+    def test_review_row_click_uses_same_window_as_scrollbar_navigation(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
             tab._load_samples_into_workspace([
                 self._sample(0.0, 1.0),
-                self._sample(50.0, 2.0),
-                self._sample(100.0, 3.0),
+                self._sample(200.0, 2.0),
+                self._sample(600.0, 3.0),
+                self._sample(1000.0, 4.0),
             ])
             tab.btn_run.click()
+            scroll_value = int(round((600.0 - tab._chart_visible_span / 2.0) * CHART_SCROLL_SCALE))
+            tab.chart_scrollbar.setValue(scroll_value)
+            scrollbar_range = tab.current_plot.getPlotItem().viewRange()[0]
             tab.current_plot.setXRange(0.0, 20.0, padding=0)
-            before_width = tab.current_plot.getPlotItem().viewRange()[0][1] - tab.current_plot.getPlotItem().viewRange()[0][0]
 
             tab.review_table.cellClicked.emit(2, 2)
 
-            x_range = tab.current_plot.getPlotItem().viewRange()[0]
-            after_width = x_range[1] - x_range[0]
-            self.assertAlmostEqual(after_width, before_width, places=3)
-            self.assertGreaterEqual(100.0, x_range[0])
-            self.assertLessEqual(100.0, x_range[1])
-            self.assertAlmostEqual(x_range[1], 100.0, places=3)
-            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.maximum())
+            row_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(row_range[0], scrollbar_range[0], places=3)
+            self.assertAlmostEqual(row_range[1], scrollbar_range[1], places=3)
+            self.assertAlmostEqual(row_range[1] - row_range[0], tab._chart_visible_span, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), scroll_value)
             marker_x, marker_y = tab.hover_marker.getData()
-            self.assertEqual(marker_x.tolist(), [100.0])
+            self.assertEqual(marker_x.tolist(), [600.0])
             self.assertEqual(marker_y.tolist(), [3.0])
 
-    def test_review_row_click_clamps_to_dataset_start(self):
+    def test_review_row_click_clamps_to_dataset_start_and_end_with_scrollbar_window(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
             tab._load_samples_into_workspace([
                 self._sample(0.0, 1.0),
-                self._sample(50.0, 2.0),
-                self._sample(100.0, 3.0),
+                self._sample(200.0, 2.0),
+                self._sample(600.0, 3.0),
+                self._sample(1000.0, 4.0),
             ])
             tab.btn_run.click()
-            tab.current_plot.setXRange(80.0, 100.0, padding=0)
 
             tab.review_table.cellClicked.emit(0, 1)
+            start_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(start_range[0], 0.0, places=3)
+            self.assertAlmostEqual(start_range[1], tab._chart_visible_span, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.minimum())
+
+            tab.review_table.cellClicked.emit(3, 1)
+            end_range = tab.current_plot.getPlotItem().viewRange()[0]
+            self.assertAlmostEqual(end_range[1], 1000.0, places=3)
+            self.assertAlmostEqual(end_range[1] - end_range[0], tab._chart_visible_span, places=3)
+            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.maximum())
+
+    def test_review_row_click_short_dataset_shows_full_dataset(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(100.0, 2.0),
+                self._sample(200.0, 3.0),
+            ])
+            tab.btn_run.click()
+            tab.current_plot.setXRange(50.0, 60.0, padding=0)
+
+            tab.review_table.cellClicked.emit(1, 0)
 
             x_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(x_range[0], 0.0, places=3)
-            self.assertAlmostEqual(x_range[1] - x_range[0], 20.0, places=3)
-            self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.minimum())
+            self.assertAlmostEqual(x_range[1], 200.0, places=3)
+            self.assertTrue(tab.chart_scrollbar.isHidden())
 
     def test_review_row_click_preserves_inverted_y_and_pins(self):
         with tempfile.TemporaryDirectory() as tmpdir:
