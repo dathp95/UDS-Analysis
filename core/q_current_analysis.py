@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from statistics import median
 from typing import Iterable
+
+
+TIMESTAMP_FORMATS = (
+    "%y-%m-%d %H:%M:%S.%f",
+    "%y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+)
 
 
 class CurrentClassification(Enum):
@@ -36,10 +45,31 @@ class QCurrentAnalysisResult:
     longest_continuous_sleep_s: float | None
     start_time_s: float | None
     end_time_s: float | None
+    source_start_time: str | None
+    source_end_time: str | None
     duration_s: float | None
     total_samples: int
     sample_interval_s: float | None
     wake_up_intervals: tuple[QCurrentWakeUpInterval, ...]
+
+
+def parse_q_current_timestamp(value):
+    text = str(value).strip()
+    if not text:
+        raise ValueError("empty timestamp")
+    try:
+        return float(text)
+    except ValueError:
+        pass
+    for timestamp_format in TIMESTAMP_FORMATS:
+        try:
+            return datetime.strptime(text, timestamp_format)
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError as error:
+        raise ValueError(f"Unsupported timestamp: {text}") from error
 
 
 def classify_current(
@@ -64,16 +94,28 @@ def analyze_q_current(
     standard_current_ma: float,
     wake_up_limit_ma: float,
     wake_duration_s: float,
+    source_times: Iterable[str] | None = None,
 ) -> QCurrentAnalysisResult:
-    pairs = sorted(
-        (float(time_s), float(current))
-        for time_s, current in zip(time_seconds, current_ma)
-    )
+    if source_times is None:
+        pairs = sorted(
+            (float(time_s), float(current), None)
+            for time_s, current in zip(time_seconds, current_ma)
+        )
+    else:
+        pairs = sorted(
+            (float(time_s), float(current), str(source_time))
+            for time_s, current, source_time in zip(
+                time_seconds,
+                current_ma,
+                source_times,
+            )
+        )
     if not pairs:
         return _empty_result()
 
     times = [pair[0] for pair in pairs]
     currents = [pair[1] for pair in pairs]
+    source_values = [pair[2] for pair in pairs]
     magnitudes = [abs(current) for current in currents]
     standard_current_ma = abs(float(standard_current_ma))
     wake_up_limit_ma = abs(float(wake_up_limit_ma))
@@ -136,6 +178,8 @@ def analyze_q_current(
         ),
         start_time_s=times[0],
         end_time_s=times[-1],
+        source_start_time=source_values[0],
+        source_end_time=source_values[-1],
         duration_s=times[-1] - times[0],
         total_samples=len(times),
         sample_interval_s=median(deltas) if deltas else None,
@@ -263,6 +307,8 @@ def _empty_result() -> QCurrentAnalysisResult:
         longest_continuous_sleep_s=None,
         start_time_s=None,
         end_time_s=None,
+        source_start_time=None,
+        source_end_time=None,
         duration_s=None,
         total_samples=0,
         sample_interval_s=None,

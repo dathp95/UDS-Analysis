@@ -1,4 +1,4 @@
-﻿import os
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -112,12 +112,12 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
-            self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
+            self.assertFalse(hasattr(tab, "btn_copy_chart"))
             self.assertTrue(tab.current_plot.isHidden())
             self.assertFalse(tab.chart_placeholder.isHidden())
             self.assertEqual(tab.wake_up_regions, [])
@@ -229,7 +229,6 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_copy_data_review.isEnabled())
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
-            self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -278,7 +277,6 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.btn_copy_data_review.isEnabled())
             self.assertTrue(tab.btn_clear.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
-            self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
@@ -359,23 +357,31 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertEqual(
                 QApplication.clipboard().text(),
-                "Result\tPASSED\n"
-                "Average Sleep Current\t17.10 mA\n"
-                f"Min Sleep Current\t{PLACEHOLDER_VALUE}\n"
-                f"Max Sleep Current\t{PLACEHOLDER_VALUE}\n"
-                f"Wake-up Events\t{PLACEHOLDER_VALUE}\n"
-                f"Total Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
-                f"Average Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
-                f"Max Wake-up Duration\t{PLACEHOLDER_VALUE}\n"
-                f"Average Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
-                f"Min Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
-                f"Max Wake-up Interval\t{PLACEHOLDER_VALUE}\n"
-                f"Longest Continuous Sleep\t{PLACEHOLDER_VALUE}\n"
-                f"Start Time\t{PLACEHOLDER_VALUE}\n"
-                f"End Time\t{PLACEHOLDER_VALUE}\n"
-                f"Duration\t{PLACEHOLDER_VALUE}\n"
-                "Total Samples\t2\n"
-                f"Sample Interval\t{PLACEHOLDER_VALUE}",
+                "SUMMARY\n"
+                "\n"
+                "RESULT: PASSED\n"
+                "\n"
+                "CURRENT STATISTICS\n"
+                "Average Sleep Current: 17.10 mA\n"
+                "Minimum Sleep Current: N/A\n"
+                "Maximum Sleep Current: N/A\n"
+                "\n"
+                "WAKE-UP STATISTICS\n"
+                "Wake-up Events: N/A\n"
+                "Total Wake-up Duration: N/A\n"
+                "Average Wake-up Duration: N/A\n"
+                "Maximum Wake-up Duration: N/A\n"
+                "Average Wake-up Interval: N/A\n"
+                "Minimum Wake-up Interval: N/A\n"
+                "Maximum Wake-up Interval: N/A\n"
+                "Longest Continuous Sleep: N/A\n"
+                "\n"
+                "TEST INFORMATION\n"
+                "Start Time: N/A\n"
+                "End Time: N/A\n"
+                "Duration: N/A\n"
+                "Total Samples: 2\n"
+                "Sample Interval: N/A",
             )
 
 
@@ -426,7 +432,6 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self.assertIsNone(tab.current_plot.getPlotItem().legend)
             self.assertTrue(tab.btn_export.isEnabled())
-            self.assertTrue(tab.btn_copy_chart.isEnabled())
             self.assertTrue(tab.btn_capture_chart.isEnabled())
             self.assertTrue(tab.btn_invert_y_axis.isEnabled())
             self.assertTrue(tab.btn_fit_all.isEnabled())
@@ -434,7 +439,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
             self.assertTrue(tab.chart_scrollbar.isHidden())
-            self.assertEqual(tab.analysis_result_edit.text(), "RUN")
+            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
             self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1.043, 2.114])
             self.assertEqual(tab.chart_current_ma.tolist(), [-16.9, -17.3, -18.1])
             bottom_axis = tab.current_plot.getPlotItem().getAxis("bottom")
@@ -455,12 +460,18 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_run.click()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "PASSED")
+            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
             self.assertEqual(tab.summary_widget.summary_values["average_sleep_current_ma"].text(), "15.00 mA")
             self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.summary_widget.summary_values["result_status"].styleSheet())
+            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
+            self.assertIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
 
             tab.btn_clear.click()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), PLACEHOLDER_VALUE)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertNotIn(ThemeManager.fn_colors().DANGER, tab.analysis_result_edit.styleSheet())
+            self.assertNotIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
 
     def test_run_marks_summary_failed_with_danger_theme(self):
@@ -476,7 +487,46 @@ class QCurrentTabTests(unittest.TestCase):
             tab.fn_refresh_theme()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "FAILED")
+            self.assertEqual(tab.analysis_result_edit.text(), "FAILED")
             self.assertIn(ThemeManager.fn_colors().DANGER, tab.summary_widget.summary_values["result_status"].styleSheet())
+            self.assertIn(ThemeManager.fn_colors().DANGER, tab.analysis_result_edit.styleSheet())
+            self.assertIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
+
+    def test_summary_uses_database_time_only_and_preserves_elapsed_duration(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample("2026-09-29 23:58:00", 10.0),
+                self._sample("2026-09-30 00:10:00", -20.0),
+            ])
+
+            tab.btn_run.click()
+
+            self.assertEqual(tab.summary_widget.summary_values["source_start_time"].text(), "23:58:00")
+            self.assertEqual(tab.summary_widget.summary_values["source_end_time"].text(), "00:10:00")
+            self.assertEqual(tab.summary_widget.summary_values["duration_s"].text(), "12 min 0.000 s")
+            copied_text = tab.summary_widget.to_text()
+            self.assertIn("Start Time: 23:58:00", copied_text)
+            self.assertIn("End Time: 00:10:00", copied_text)
+            self.assertNotIn("2026-09-29", copied_text)
+            self.assertNotIn("0.000 s", copied_text.split("TEST INFORMATION", 1)[1].split("Duration", 1)[0])
+
+    def test_analysis_result_style_resets_after_import_state(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, 20.0),
+            ])
+            tab.btn_run.click()
+            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
+            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
+
+            tab._set_analysis_result("IMPORTED")
+
+            self.assertEqual(tab.analysis_result_edit.text(), "IMPORTED")
+            self.assertNotIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
+            self.assertNotIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
 
     def test_long_time_range_uses_horizontal_chart_scrollbar(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -841,9 +891,6 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(capture_pixmap.isNull())
 
             QApplication.clipboard().clear()
-            tab.btn_copy_chart.click()
-            copy_pixmap = QApplication.clipboard().pixmap()
-            self.assertFalse(copy_pixmap.isNull())
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertEqual(tab.chart_current_ma.tolist(), [1.0, -2.0])
 
@@ -909,12 +956,12 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
-            self.assertFalse(tab.btn_copy_chart.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
             self.assertFalse(tab.btn_invert_y_axis.isEnabled())
             self.assertFalse(tab.btn_fit_all.isEnabled())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
             self.assertFalse(tab.btn_clear.isEnabled())
+            self.assertFalse(hasattr(tab, "btn_copy_chart"))
             self.assertTrue(tab.current_plot.isHidden())
             self.assertFalse(tab.chart_placeholder.isHidden())
             self.assertEqual(tab.wake_up_regions, [])
@@ -1024,6 +1071,8 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIn("wake_up_event_count", tab.summary_widget.summary_values)
             self.assertIn("longest_continuous_sleep_s", tab.summary_widget.summary_values)
             self.assertIn("total_samples", tab.summary_widget.summary_values)
+            self.assertIn("source_start_time", tab.summary_widget.summary_values)
+            self.assertIn("source_end_time", tab.summary_widget.summary_values)
 
     def test_q_current_tab_uses_existing_controls_and_theme_refresh(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1032,7 +1081,6 @@ class QCurrentTabTests(unittest.TestCase):
             buttons = [
                 tab.btn_run,
                 tab.btn_export,
-                tab.btn_copy_chart,
                 tab.btn_copy_data_review,
                 tab.btn_copy_summary,
                 tab.btn_clear,
@@ -1041,7 +1089,6 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual([button.text() for button in buttons], [
                 "RUN",
                 "EXPORT",
-                "COPY CHART",
                 "COPY Data Review",
                 "COPY Summary",
                 "CLEAR",

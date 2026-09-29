@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QGroupBox
 
-from core.q_current_analysis import QCurrentAnalysisResult
+from core.q_current_analysis import QCurrentAnalysisResult, parse_q_current_timestamp
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_label import PrimaryLabel
 
@@ -31,8 +33,8 @@ class QCurrentSummaryWidget(QGroupBox):
             ("minimum_wake_up_interval_s", "Min Wake-up Interval"),
             ("maximum_wake_up_interval_s", "Max Wake-up Interval"),
             ("longest_continuous_sleep_s", "Longest Continuous Sleep"),
-            ("start_time_s", "Start Time"),
-            ("end_time_s", "End Time"),
+            ("source_start_time", "Start Time"),
+            ("source_end_time", "End Time"),
             ("duration_s", "Duration"),
             ("total_samples", "Total Samples"),
             ("sample_interval_s", "Sample Interval"),
@@ -95,11 +97,11 @@ class QCurrentSummaryWidget(QGroupBox):
         self.summary_values["longest_continuous_sleep_s"].setText(
             self._format_duration(result.longest_continuous_sleep_s)
         )
-        self.summary_values["start_time_s"].setText(
-            self._format_time(result.start_time_s)
+        self.summary_values["source_start_time"].setText(
+            self._format_source_time(result.source_start_time)
         )
-        self.summary_values["end_time_s"].setText(
-            self._format_time(result.end_time_s)
+        self.summary_values["source_end_time"].setText(
+            self._format_source_time(result.source_end_time)
         )
         self.summary_values["duration_s"].setText(
             self._format_duration(result.duration_s)
@@ -116,10 +118,40 @@ class QCurrentSummaryWidget(QGroupBox):
         self.fn_refresh_theme()
 
     def to_text(self) -> str:
-        rows = []
-        for key, label in self.summary_labels.items():
-            rows.append(f"{label.text()}\t{self.summary_values[key].text()}")
-        return "\n".join(rows)
+        value = self._display_value
+        return "\n".join([
+            "SUMMARY",
+            "",
+            f"RESULT: {value('result_status')}",
+            "",
+            "CURRENT STATISTICS",
+            f"Average Sleep Current: {value('average_sleep_current_ma')}",
+            f"Minimum Sleep Current: {value('minimum_sleep_current_ma')}",
+            f"Maximum Sleep Current: {value('maximum_sleep_current_ma')}",
+            "",
+            "WAKE-UP STATISTICS",
+            f"Wake-up Events: {value('wake_up_event_count')}",
+            f"Total Wake-up Duration: {value('total_wake_up_duration_s')}",
+            f"Average Wake-up Duration: {value('average_wake_up_duration_s')}",
+            f"Maximum Wake-up Duration: {value('maximum_wake_up_duration_s')}",
+            f"Average Wake-up Interval: {value('average_wake_up_interval_s')}",
+            f"Minimum Wake-up Interval: {value('minimum_wake_up_interval_s')}",
+            f"Maximum Wake-up Interval: {value('maximum_wake_up_interval_s')}",
+            f"Longest Continuous Sleep: {value('longest_continuous_sleep_s')}",
+            "",
+            "TEST INFORMATION",
+            f"Start Time: {value('source_start_time')}",
+            f"End Time: {value('source_end_time')}",
+            f"Duration: {value('duration_s')}",
+            f"Total Samples: {value('total_samples')}",
+            f"Sample Interval: {value('sample_interval_s')}",
+        ])
+
+    def _display_value(self, key: str) -> str:
+        value = self.summary_values[key].text()
+        if value == PLACEHOLDER_VALUE:
+            return NOT_AVAILABLE_VALUE
+        return value
 
     def fn_refresh_theme(self):
         colors = ThemeManager.fn_colors()
@@ -163,6 +195,25 @@ class QCurrentSummaryWidget(QGroupBox):
         if value is None:
             return NOT_AVAILABLE_VALUE
         return f"{value:.2f} mA"
+
+    @staticmethod
+    def _format_source_time(value: str | None) -> str:
+        if value is None:
+            return NOT_AVAILABLE_VALUE
+        text = str(value).strip()
+        if not text:
+            return NOT_AVAILABLE_VALUE
+        try:
+            parsed = parse_q_current_timestamp(text)
+        except ValueError:
+            parsed = None
+        if hasattr(parsed, "strftime"):
+            return parsed.strftime("%H:%M:%S")
+
+        match = re.search(r"\b(\d{1,2}:\d{2}:\d{2})(?:\.\d+)?\b", text)
+        if match:
+            return match.group(1)
+        return text
 
     @staticmethod
     def _format_time(value: float | None) -> str:

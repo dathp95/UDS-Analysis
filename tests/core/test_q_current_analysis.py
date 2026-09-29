@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from core.q_current_analysis import (
     CurrentClassification,
@@ -140,6 +140,22 @@ class QCurrentAnalysisTests(unittest.TestCase):
         self.assertEqual(result.duration_s, 7.0)
         self.assertEqual(result.total_samples, 4)
         self.assertEqual(result.sample_interval_s, 2.0)
+
+    def test_preserves_source_time_metadata_in_elapsed_sort_order(self):
+        result = analyze_q_current(
+            [10.0, 0.0],
+            [20.0, 10.0],
+            standard_current_ma=30.0,
+            wake_up_limit_ma=300.0,
+            wake_duration_s=2.0,
+            source_times=[
+                "2026-09-29 11:23:11.750",
+                "2026-09-29 10:23:22.125",
+            ],
+        )
+
+        self.assertEqual(result.source_start_time, "2026-09-29 10:23:22.125")
+        self.assertEqual(result.source_end_time, "2026-09-29 11:23:11.750")
 
     def test_sample_interval_is_none_for_single_sample(self):
         result = analyze_q_current(

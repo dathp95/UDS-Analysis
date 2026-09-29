@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +28,7 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 
-from core.q_current_analysis import analyze_q_current
+from core.q_current_analysis import analyze_q_current, parse_q_current_timestamp
 from core.sleep_current_database import (
     database_path_for_source,
     default_dataset_name,
@@ -66,31 +67,10 @@ CHART_SCROLL_VISIBLE_SECONDS = 400.0
 CHART_SCROLL_SCALE = 1000
 PIN_HIT_RADIUS_PX = 12.0
 SAMPLE_HIT_RADIUS_PX = 18.0
-TIMESTAMP_FORMATS = (
-    "%y-%m-%d %H:%M:%S.%f",
-    "%y-%m-%d %H:%M:%S",
-    "%Y-%m-%d %H:%M:%S.%f",
-    "%Y-%m-%d %H:%M:%S",
-)
 
 
 def parse_timestamp(value):
-    text = str(value).strip()
-    if not text:
-        raise ValueError("empty timestamp")
-    try:
-        return float(text)
-    except ValueError:
-        pass
-    for timestamp_format in TIMESTAMP_FORMATS:
-        try:
-            return datetime.strptime(text, timestamp_format)
-        except ValueError:
-            continue
-    try:
-        return datetime.fromisoformat(text)
-    except ValueError as error:
-        raise ValueError(f"Unsupported timestamp: {text}") from error
+    return parse_q_current_timestamp(value)
 
 
 def calculate_elapsed_seconds(samples):
@@ -208,7 +188,6 @@ class QCurrentTab(QWidget):
         self.import_button.clicked.connect(self.import_current_file)
         self.btn_run.clicked.connect(self.run_current_analysis)
         self.btn_clear.clicked.connect(self.clear_current_workspace)
-        self.btn_copy_chart.clicked.connect(self.capture_current_chart)
         self.btn_capture_chart.clicked.connect(self.capture_current_chart)
         self.btn_invert_y_axis.clicked.connect(self.toggle_y_axis_inversion)
         self.btn_fit_all.clicked.connect(self._fit_all_current_chart)
@@ -316,7 +295,7 @@ class QCurrentTab(QWidget):
             "analysis_result_edit"
         )
         self.analysis_result_edit.setReadOnly(True)
-        self.analysis_result_edit.setText("NOT RUN")
+        self._set_analysis_result("NOT RUN")
         self.analysis_result_edit.setFixedWidth(130)
 
         self.settings_layout.addWidget(self.source_file_edit, 0, 0)
@@ -525,7 +504,6 @@ class QCurrentTab(QWidget):
 
         self.btn_run = PrimaryButton("RUN")
         self.btn_export = PrimaryButton("EXPORT")
-        self.btn_copy_chart = PrimaryButton("COPY CHART")
         self.btn_copy_data_review = PrimaryButton("COPY Data Review")
         self.btn_copy_summary = PrimaryButton("COPY Summary")
         self.btn_clear = PrimaryButton("CLEAR")
@@ -533,7 +511,6 @@ class QCurrentTab(QWidget):
         for button in (
             self.btn_run,
             self.btn_export,
-            self.btn_copy_chart,
             self.btn_copy_data_review,
             self.btn_copy_summary,
             self.btn_clear,
@@ -587,6 +564,28 @@ class QCurrentTab(QWidget):
         self.source_file_edit.setToolTip(path_text)
         self.import_button.setEnabled(True)
 
+    def _set_analysis_result(self, text):
+        self.analysis_result_edit.setText(text)
+        self._refresh_analysis_result_style()
+
+    def _refresh_analysis_result_style(self):
+        self.analysis_result_edit.fn_refresh_theme()
+        state = self.analysis_result_edit.text().strip().upper()
+        if state not in {"PASSED", "FAILED"}:
+            return
+
+        colors = ThemeManager.fn_colors()
+        state_color = colors.SUCCESS if state == "PASSED" else colors.DANGER
+        self.analysis_result_edit.setStyleSheet(
+            self.analysis_result_edit.styleSheet()
+            + f"""
+            QLineEdit {{
+                color: {state_color};
+                font-weight: 700;
+            }}
+            """
+        )
+
     def clear_source_file_selection(self):
         self.source_file_edit.clear()
         self.source_file_edit.setToolTip("")
@@ -605,7 +604,7 @@ class QCurrentTab(QWidget):
             dataset_name = default_dataset_name(source_path)
             database_path = database_path_for_source(source_path, self._database_dir)
         except Exception as error:
-            self.analysis_result_edit.setText("IMPORT FAILED")
+            self._set_analysis_result("IMPORT FAILED")
             QMessageBox.warning(self, "Q current Import", str(error))
             return
 
@@ -632,7 +631,7 @@ class QCurrentTab(QWidget):
                 detected_channel=normalized.detected_channel,
             )
         except Exception as error:
-            self.analysis_result_edit.setText("IMPORT FAILED")
+            self._set_analysis_result("IMPORT FAILED")
             QMessageBox.warning(self, "Q current Import", str(error))
             return
 
@@ -645,7 +644,7 @@ class QCurrentTab(QWidget):
         self._load_samples_into_workspace(self.current_samples)
         self._refresh_dataset_combo(selected_db_path=self.current_database_path)
         self.clear_source_file_selection()
-        self.analysis_result_edit.setText("IMPORTED")
+        self._set_analysis_result("IMPORTED")
         QMessageBox.information(
             self,
             "Q current Import",
@@ -670,7 +669,7 @@ class QCurrentTab(QWidget):
         database_path = Path(database_value).expanduser().resolve()
         dataset = get_primary_dataset(database_path)
         if dataset is None:
-            self.analysis_result_edit.setText("IMPORT FAILED")
+            self._set_analysis_result("IMPORT FAILED")
             QMessageBox.warning(
                 self,
                 "Q current Import",
@@ -682,7 +681,7 @@ class QCurrentTab(QWidget):
         self.current_database_path = dataset.database_path or database_path
         self.current_samples = get_samples(dataset.id, self.current_database_path)
         self._load_samples_into_workspace(self.current_samples)
-        self.analysis_result_edit.setText("LOADED")
+        self._set_analysis_result("LOADED")
         self.import_button.setEnabled(True)
 
     def _load_samples_into_workspace(self, samples):
@@ -700,7 +699,6 @@ class QCurrentTab(QWidget):
         self.btn_copy_data_review.setEnabled(has_data)
         self.btn_clear.setEnabled(has_data)
         self.btn_export.setEnabled(has_chart)
-        self.btn_copy_chart.setEnabled(has_chart)
         self.btn_capture_chart.setEnabled(has_chart)
         self.btn_invert_y_axis.setEnabled(has_chart)
         self.btn_fit_all.setEnabled(has_chart)
@@ -718,6 +716,7 @@ class QCurrentTab(QWidget):
                 self.current_limit_edit.value(),
                 self.wake_limit_edit.value(),
                 self.wake_duration_edit.value(),
+                source_times=[sample.time for sample in self.current_samples],
             )
         except ValueError as error:
             QMessageBox.warning(self, "Q current Chart", str(error))
@@ -731,7 +730,7 @@ class QCurrentTab(QWidget):
         )
         self.summary_widget.set_result(analysis_result)
         self._chart_ready = True
-        self.analysis_result_edit.setText("RUN")
+        self._set_analysis_result(analysis_result.result_status)
         self._update_action_states()
 
     def clear_current_workspace(self):
@@ -742,7 +741,7 @@ class QCurrentTab(QWidget):
         self.review_table.setRowCount(0)
         self._clear_current_chart()
         self.summary_widget.clear_result()
-        self.analysis_result_edit.setText("NOT RUN")
+        self._set_analysis_result("NOT RUN")
         self._update_action_states()
 
     def _build_chart_data(self):
@@ -909,7 +908,7 @@ class QCurrentTab(QWidget):
 
     def _mark_analysis_not_run(self, *_args):
         if hasattr(self, "analysis_result_edit"):
-            self.analysis_result_edit.setText("NOT RUN")
+            self._set_analysis_result("NOT RUN")
         if hasattr(self, "summary_widget"):
             self.summary_widget.clear_result()
 
@@ -1455,7 +1454,6 @@ class QCurrentTab(QWidget):
             self.import_button,
             self.btn_run,
             self.btn_export,
-            self.btn_copy_chart,
             self.btn_invert_y_axis,
             self.btn_fit_all,
             self.btn_capture_chart,
@@ -1477,6 +1475,7 @@ class QCurrentTab(QWidget):
             label.fn_refresh_theme()
 
         self.summary_widget.fn_refresh_theme()
+        self._refresh_analysis_result_style()
         self._refresh_chart_theme()
 
         colors = ThemeManager.fn_colors()
