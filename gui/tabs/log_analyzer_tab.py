@@ -532,6 +532,8 @@ class LogAnalyzerTab(QWidget):
         self.filter_box.clear()
         self.pipeline_result = None
         self.analysis_controller.pipeline_result = None
+        self.right_panel.action_panel.fn_set_analysis_ready()
+        
         self.right_panel.action_panel.fn_set_empty_state()
         self.right_panel.action_panel.fn_clear_detail_panels()
         self.left_panel.fn_disable_quick_access()
