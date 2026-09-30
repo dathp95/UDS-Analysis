@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QThread
+﻿from PySide6.QtCore import Qt, QThread
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -92,8 +92,8 @@ class LogAnalyzerTab(QWidget):
         # Log selector
         # ==========================================================
         self.log_selector = PathSelectorWidget(
-            "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...",
-            "Log Files (*.blf )",
+            "Log File: Ensure the correct Diagnostic Channel is selected",
+            "Log Files (*.blf)",
         )
 
         # Keep Vehicle / Log File labels at the same height
@@ -211,8 +211,10 @@ class LogAnalyzerTab(QWidget):
 
         content_grid.addWidget(
             self.right_panel,
+            0,
             2,
-            2,
+            3,
+            1,
         )
 
         # Search row only uses required height.
