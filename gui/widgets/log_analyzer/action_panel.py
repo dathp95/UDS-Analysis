@@ -5,14 +5,16 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QPlainTextEdit,
     QGroupBox,
+    QProgressBar,
 )
 
 from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 
 
-class ActionPanel (QWidget):
+class ActionPanel(QWidget):
     analyze_clicked = Signal()
     export_clicked = Signal()
     copy_clicked = Signal()
@@ -39,6 +41,7 @@ class ActionPanel (QWidget):
         self._setup_ui()
         self._connect_signals()
         self.fn_clear_detail_panels()
+        self.fn_set_analysis_ready()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -46,9 +49,21 @@ class ActionPanel (QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        # --------------------------
-        # Action Buttons
-        # --------------------------
+        self.grp_analysis_progress = self._fn_create_detail_group(
+            "Analysis Progress"
+        )
+        self.lbl_analysis_status = PrimaryLabel("Ready")
+        self.progress_analysis = QProgressBar()
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(0)
+        self.progress_analysis.setTextVisible(False)
+        self.progress_analysis.setMaximumHeight(12)
+        self.grp_analysis_progress.layout().addWidget(
+            self.lbl_analysis_status
+        )
+        self.grp_analysis_progress.layout().addWidget(
+            self.progress_analysis
+        )
 
         self.btn_run = PrimaryButton(
             "Analyze",
@@ -66,7 +81,6 @@ class ActionPanel (QWidget):
             "COPY ASC DATA",
             width=160,
             height=40,
-
         )
 
         self.btn_clear = PrimaryButton(
@@ -93,10 +107,7 @@ class ActionPanel (QWidget):
             self.txt_transaction_info
         )
 
-        # --------------------------
-        # Layout
-        # --------------------------
-
+        layout.addWidget(self.grp_analysis_progress)
         layout.addWidget(self.btn_run)
         layout.addWidget(self.btn_export)
         layout.addWidget(self.btn_copy)
@@ -131,7 +142,7 @@ class ActionPanel (QWidget):
         )
         text_edit.setMinimumHeight(80)
 
-    def _connect_signals (self):
+    def _connect_signals(self):
         self.btn_run.clicked.connect(
             self.analyze_clicked.emit
         )
@@ -144,165 +155,103 @@ class ActionPanel (QWidget):
         self.btn_clear.clicked.connect(
             self.clear_clicked.emit
         )
-    
-    
+
     def _fn_enable_buttons(
             self,
             run: bool,
             export: bool,
             copy: bool,
-            clear: bool
+            clear: bool,
         ):
-
         self.btn_run.setEnabled(run)
-
         self.btn_export.setEnabled(export)
-
         self.btn_copy.setEnabled(copy)
-
         self.btn_clear.setEnabled(clear)
 
     def fn_set_startup_state(self):
-
+        self.btn_run.setText("Analyze")
         self._fn_enable_buttons(
-
             run=False,
             export=False,
             copy=False,
-            clear=False
+            clear=False,
+        )
 
-        )   
-
-    # ===========================================================================
-    # Function: fn_set_file_loaded_state
-    #
-    # Purpose:
-    #     Set action buttons after a log file is selected.
-    #
-    # Inputs:
-    #     self: ActionPanel instance.
-    #
-    # Outputs:
-    #     None.
-    #
-    # Called by:
-    #     MainWindow.fn_log_file_changed()
-    #
-    # Calls:
-    #     ActionPanel._fn_enable_buttons()
-    #
-    # Side Effects:
-    #     Updates enabled/disabled state of action buttons.
-    #
-    # Responsibility:
-    #     Enable RUN while keeping COPY disabled until analysis is complete.
-    #
-    # Does NOT:
-    #     - Run analysis.
-    #     - Copy ASC content.
-    #     - Export Excel.
-    #     - Clear table data.
-    #     - Change selected file path.
-    #
-    # ===========================================================================
     def fn_set_file_loaded_state(self) -> None:
         """Update action buttons after the user selects a log file."""
 
+        self.btn_run.setText("Analyze")
         self._fn_enable_buttons(
-
             run=True,
             export=False,
             copy=False,
-            clear=False
+            clear=False,
+        )
 
-        ) 
-    
-    # ===========================================================================
-    # Function: fn_set_analyzed_state
-    #
-    # Purpose:
-    #     Set action buttons after analysis has completed.
-    #
-    # Inputs:
-    #     self: ActionPanel instance.
-    #
-    # Outputs:
-    #     None.
-    #
-    # Called by:
-    #     MainWindow.fn_run_clicked()
-    #
-    # Calls:
-    #     ActionPanel._fn_enable_buttons()
-    #
-    # Side Effects:
-    #     Enables result actions such as EXPORT, COPY, and CLEAR.
-    #
-    # Responsibility:
-    #     Make COPY active only after RUN has produced analysis data.
-    #
-    # Does NOT:
-    #     - Run analysis.
-    #     - Copy ASC content.
-    #     - Export Excel.
-    #     - Modify result table data.
-    #     - Change selected file path.
-    #
-    # ===========================================================================
     def fn_set_analyzed_state(self) -> None:
         """Update action buttons after analysis is complete."""
 
-        self._fn_enable_buttons (
-            run = True,
-            export = True,
-            copy = True,
-            clear = True
+        self.btn_run.setText("Analyze")
+        self._fn_enable_buttons(
+            run=True,
+            export=True,
+            copy=True,
+            clear=True,
         )
-    
-    # ===========================================================================
-    # Function: fn_set_empty_state
-    #
-    # Purpose:
-    #     Set action buttons after result data has been cleared.
-    #
-    # Inputs:
-    #     self: ActionPanel instance.
-    #
-    # Outputs:
-    #     None.
-    #
-    # Called by:
-    #     MainWindow.fn_clear_clicked()
-    #
-    # Calls:
-    #     ActionPanel._fn_enable_buttons()
-    #
-    # Side Effects:
-    #     Updates enabled/disabled state of RUN, EXPORT, COPY, and CLEAR buttons.
-    #
-    # Responsibility:
-    #     Keep the button state consistent after the table is cleared.
-    #
-    # Does NOT:
-    #     - Clear table data.
-    #     - Clear filter text.
-    #     - Remove the selected file path.
-    #     - Export Excel.
-    #     - Run analysis.
-    #
-    # ===========================================================================
+
     def fn_set_empty_state(self) -> None:
         """Update action buttons for an empty result table state."""
+
+        self.btn_run.setText("Analyze")
         self._fn_enable_buttons(
-            run = True,
-            export = False,
-            copy = False,
-            clear= False 
+            run=True,
+            export=False,
+            copy=False,
+            clear=False,
         )
+
+    def fn_set_analysis_ready(self) -> None:
+        self.lbl_analysis_status.setText("Ready")
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(0)
+        self.btn_run.setText("Analyze")
+
+    def fn_set_analysis_started(self) -> None:
+        self.lbl_analysis_status.setText("Starting analysis...")
+        self.progress_analysis.setRange(0, 0)
+        self.btn_run.setText("ANALYZING...")
+        self._fn_enable_buttons(
+            run=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def fn_set_analysis_status(
+            self,
+            text: str,
+        ) -> None:
+        if text:
+            self.lbl_analysis_status.setText(text)
+
+    def fn_set_analysis_completed(self) -> None:
+        self.lbl_analysis_status.setText("Completed")
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(100)
+        self.btn_run.setText("Analyze")
+
+    def fn_set_analysis_failed(
+            self,
+            message: str | None = None,
+        ) -> None:
+        self.lbl_analysis_status.setText("Failed")
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(0)
+        self.btn_run.setText("Analyze")
 
     def fn_set_quick_filter_info(
             self,
-            filter_data: dict
+            filter_data: dict,
         ) -> None:
         """Show selected quick filter details."""
 
@@ -328,7 +277,7 @@ class ActionPanel (QWidget):
 
     def fn_set_quick_filter_log(
             self,
-            filter_data: dict
+            filter_data: dict,
         ) -> None:
         """Backward-compatible wrapper for quick filter info."""
 
@@ -381,7 +330,7 @@ class ActionPanel (QWidget):
     def _fn_format_details(
             details: dict,
         ) -> str:
-        return "\n\n".join(
+        return "\n".join(
             f"{key}: {value}"
             for key, value in details.items()
         )
@@ -389,25 +338,21 @@ class ActionPanel (QWidget):
     @staticmethod
     def _fn_text_value(
             data: dict,
-            key: str
+            key: str,
         ) -> str:
-
         value = data.get(key, "")
 
         if value is None or value == "":
             return "-"
 
         return str(value)
-    
+
     def fn_refresh_theme(self):
-
         self.btn_run.fn_refresh_theme()
-
         self.btn_export.fn_refresh_theme()
-
         self.btn_copy.fn_refresh_theme()
-
         self.btn_clear.fn_refresh_theme()
+        self.lbl_analysis_status.fn_refresh_theme()
 
         colors = ThemeManager.fn_colors()
 
@@ -443,14 +388,26 @@ class ActionPanel (QWidget):
             """
         )
 
+        progress_style = (
+            f"""
+            QProgressBar {{
+                background: {colors.WINDOW};
+                border: 1px solid {colors.BORDER};
+                border-radius: 4px;
+            }}
+            QProgressBar::chunk {{
+                background: {colors.PRIMARY};
+                border-radius: 3px;
+            }}
+            """
+        )
+
+        self.grp_analysis_progress.setStyleSheet(group_style)
         self.grp_quick_filter_info.setStyleSheet(group_style)
         self.grp_transaction_info.setStyleSheet(group_style)
         self.txt_quick_filter_info.setStyleSheet(text_style)
         self.txt_transaction_info.setStyleSheet(text_style)
+        self.progress_analysis.setStyleSheet(progress_style)
 
         fn_apply_scrollbar_style(self.txt_quick_filter_info)
         fn_apply_scrollbar_style(self.txt_transaction_info)
-
-
-
-

@@ -1,4 +1,4 @@
-﻿from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -20,6 +20,7 @@ from gui.widgets.log_analyzer.path_selector import PathSelectorWidget
 from gui.widgets.log_analyzer.result_table import ResultTable
 from gui.widgets.log_analyzer.right_panel import RightPanel
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
+from gui.workers.analysis_worker import AnalysisWorker
 from services.vehicle_service import VehicleService
 from core.asc_reader import get_log_channels
 
@@ -32,6 +33,9 @@ class LogAnalyzerTab(QWidget):
         # Runtime data
         self.pipeline_result = None
         self._current_vehicle = None
+        self._analysis_running = False
+        self._analysis_thread = None
+        self._analysis_worker = None
 
         # Controllers
         self._create_controllers()
@@ -379,6 +383,10 @@ class LogAnalyzerTab(QWidget):
         self._update_analyze_state()
 
     def _update_analyze_state(self):
+        if self._analysis_running:
+            self.right_panel.action_panel.fn_set_analysis_started()
+            return
+
         if (
             self.log_selector.path()
             and self._current_vehicle is not None
@@ -389,29 +397,86 @@ class LogAnalyzerTab(QWidget):
 
         self.right_panel.action_panel.fn_set_startup_state()
 
+    def _fn_set_analysis_inputs_enabled(
+        self,
+        enabled: bool,
+    ):
+        self.vehicle_selector.setEnabled(enabled)
+        self.channel_selector.setEnabled(enabled)
+        self.log_selector.setEnabled(enabled)
+
     def fn_run_clicked(self):
-        try:
-            result = self.analysis_controller.fn_run(
-                log_file=self.log_selector.path(),
-                vehicle=self._current_vehicle,
-                channel=self.channel_selector.fn_channel(),
-            )
-
-        except ValueError as e:
-            QMessageBox.warning(
-                self,
-                "Analyze",
-                str(e),
-            )
+        if self._analysis_running:
             return
 
-        except FileNotFoundError as e:
-            QMessageBox.warning(
-                self,
-                "Log File Not Found",
-                str(e),
-            )
-            return
+        log_file = self.log_selector.path()
+        vehicle = self._current_vehicle
+        channel = self.channel_selector.fn_channel()
+
+        self._analysis_running = True
+        self._fn_set_analysis_inputs_enabled(False)
+        self.right_panel.action_panel.fn_set_analysis_started()
+        self._fn_start_analysis_thread(
+            log_file,
+            vehicle,
+            channel,
+        )
+
+    def _fn_start_analysis_thread(
+        self,
+        log_file: str,
+        vehicle,
+        channel,
+    ):
+        self._analysis_thread = QThread(self)
+        self._analysis_worker = AnalysisWorker(
+            controller=self.analysis_controller,
+            log_file=log_file,
+            vehicle=vehicle,
+            channel=channel,
+        )
+        self._analysis_worker.moveToThread(
+            self._analysis_thread
+        )
+
+        self._analysis_thread.started.connect(
+            self._analysis_worker.run
+        )
+        self._analysis_worker.status_changed.connect(
+            self.right_panel.action_panel.fn_set_analysis_status
+        )
+        self._analysis_worker.finished.connect(
+            self._fn_analysis_finished
+        )
+        self._analysis_worker.failed.connect(
+            self._fn_analysis_failed
+        )
+        self._analysis_worker.finished.connect(
+            self._analysis_thread.quit
+        )
+        self._analysis_worker.failed.connect(
+            self._analysis_thread.quit
+        )
+        self._analysis_thread.finished.connect(
+            self._analysis_worker.deleteLater
+        )
+        self._analysis_thread.finished.connect(
+            self._analysis_thread.deleteLater
+        )
+        self._analysis_thread.finished.connect(
+            self._fn_analysis_thread_finished
+        )
+
+        self._analysis_thread.start()
+
+    def _fn_analysis_finished(
+        self,
+        result,
+    ):
+        self._analysis_running = False
+        self._fn_set_analysis_inputs_enabled(True)
+        self.pipeline_result = result
+        self.analysis_controller.pipeline_result = result
 
         rows = fn_build_table_rows(
             result["transactions"]
@@ -422,8 +487,29 @@ class LogAnalyzerTab(QWidget):
         self.tbl_result.setCurrentCell(-1, -1)
         self.right_panel.action_panel.fn_clear_transaction_info()
 
+        self.right_panel.action_panel.fn_set_analysis_completed()
         self.right_panel.action_panel.fn_set_analyzed_state()
         self.left_panel.fn_enable_quick_access()
+
+    def _fn_analysis_failed(
+        self,
+        message: str,
+    ):
+        self._analysis_running = False
+        self._fn_set_analysis_inputs_enabled(True)
+        self.right_panel.action_panel.fn_set_analysis_failed(message)
+        self._update_analyze_state()
+        self.right_panel.action_panel.fn_set_analysis_failed(message)
+
+        QMessageBox.warning(
+            self,
+            "Analyze",
+            message,
+        )
+
+    def _fn_analysis_thread_finished(self):
+        self._analysis_thread = None
+        self._analysis_worker = None
 
     def fn_export_clicked(self):
         self.export_controller.fn_export(

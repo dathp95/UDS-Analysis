@@ -320,7 +320,7 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
         self.assertTrue(self.tab.right_panel.action_panel.btn_run.isEnabled())
 
-    def test_analyze_passes_selected_channel_to_controller(self):
+    def test_analyze_passes_selected_channel_to_worker_start(self):
         log_file = self._write_log(
             "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
         )
@@ -328,17 +328,13 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.tab.log_selector.set_path(str(log_file))
         self.tab.fn_log_file_changed(str(log_file))
 
-        with patch.object(
-            self.tab.analysis_controller,
-            "fn_run",
-            return_value={"transactions": []},
-        ) as run_analysis:
+        with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread:
             self.tab.fn_run_clicked()
 
-        run_analysis.assert_called_once_with(
-            log_file=str(log_file),
-            vehicle=self.tab._current_vehicle,
-            channel=2,
+        start_thread.assert_called_once_with(
+            str(log_file),
+            self.tab._current_vehicle,
+            2,
         )
 
     def test_non_sequential_selected_channel_is_passed_as_item_data(self):
@@ -352,17 +348,13 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.tab.fn_log_file_changed(str(log_file))
         self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
 
-        with patch.object(
-            self.tab.analysis_controller,
-            "fn_run",
-            return_value={"transactions": []},
-        ) as run_analysis:
+        with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread:
             self.tab.fn_run_clicked()
 
-        run_analysis.assert_called_once_with(
-            log_file=str(log_file),
-            vehicle=self.tab._current_vehicle,
-            channel=5,
+        start_thread.assert_called_once_with(
+            str(log_file),
+            self.tab._current_vehicle,
+            5,
         )
 
     def test_loading_new_file_clears_previous_channel_selection(self):
@@ -395,6 +387,102 @@ class LogAnalyzerTabTests(unittest.TestCase):
             [4, 5],
         )
         self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+
+
+    def test_analyze_click_starts_background_worker_and_locks_inputs(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+
+        with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread, patch.object(
+            self.tab.analysis_controller,
+            "fn_run",
+        ) as run_analysis:
+            self.tab.fn_run_clicked()
+            self.tab.fn_run_clicked()
+
+        start_thread.assert_called_once_with(
+            str(log_file),
+            self.tab._current_vehicle,
+            2,
+        )
+        run_analysis.assert_not_called()
+        self.assertTrue(self.tab._analysis_running)
+        self.assertFalse(self.tab.vehicle_selector.isEnabled())
+        self.assertFalse(self.tab.channel_selector.isEnabled())
+        self.assertFalse(self.tab.log_selector.isEnabled())
+        self.assertEqual(
+            self.tab.right_panel.action_panel.btn_run.text(),
+            "ANALYZING...",
+        )
+        self.assertEqual(
+            self.tab.right_panel.action_panel.progress_analysis.maximum(),
+            0,
+        )
+
+    def test_analysis_success_updates_results_and_restores_inputs(self):
+        self.tab._analysis_running = True
+        self.tab._fn_set_analysis_inputs_enabled(False)
+        result = {
+            "transactions": [
+                {
+                    "timestamp": 0.001,
+                    "ecu": "VCU",
+                    "request_payload": "22 F1 90",
+                    "response_payload": "62 F1 90",
+                    "status": "Positive",
+                }
+            ]
+        }
+
+        with patch(
+            "gui.tabs.log_analyzer_tab.fn_build_table_rows",
+            return_value=[{"ECU": "VCU", "Time": "0.001", "Activity": "Read DID", "Request": "22 F1 90", "Response": "62 F1 90", "RT (ms)": "1.00", "Status": "Positive"}],
+        ):
+            self.tab._fn_analysis_finished(result)
+
+        self.assertFalse(self.tab._analysis_running)
+        self.assertTrue(self.tab.vehicle_selector.isEnabled())
+        self.assertTrue(self.tab.channel_selector.isEnabled())
+        self.assertTrue(self.tab.log_selector.isEnabled())
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Completed",
+        )
+        self.assertEqual(self.tab.tbl_result.rowCount(), 1)
+        self.assertTrue(self.tab.right_panel.action_panel.btn_export.isEnabled())
+        self.assertTrue(self.tab.right_panel.action_panel.btn_copy.isEnabled())
+        self.assertTrue(self.tab.right_panel.action_panel.btn_clear.isEnabled())
+
+    def test_analysis_failure_restores_ready_state_without_analyzed_actions(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+        self.tab._analysis_running = True
+        self.tab._fn_set_analysis_inputs_enabled(False)
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning:
+            self.tab._fn_analysis_failed("Broken log")
+
+        warning.assert_called_once()
+        self.assertFalse(self.tab._analysis_running)
+        self.assertTrue(self.tab.vehicle_selector.isEnabled())
+        self.assertTrue(self.tab.channel_selector.isEnabled())
+        self.assertTrue(self.tab.log_selector.isEnabled())
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Failed",
+        )
+        self.assertTrue(self.tab.right_panel.action_panel.btn_run.isEnabled())
+        self.assertFalse(self.tab.right_panel.action_panel.btn_export.isEnabled())
+        self.assertFalse(self.tab.right_panel.action_panel.btn_copy.isEnabled())
+        self.assertFalse(self.tab.right_panel.action_panel.btn_clear.isEnabled())
 
     def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
         log_file = self._write_log(

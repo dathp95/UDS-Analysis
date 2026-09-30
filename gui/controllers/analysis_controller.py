@@ -13,6 +13,7 @@ class AnalysisController:
             log_file: str,
             vehicle: Vehicle,
             channel=None,
+            logger=None,
         ):
 
         if not log_file:
@@ -41,7 +42,9 @@ class AnalysisController:
 
             vehicle=vehicle,
 
-            channel=channel
+            channel=channel,
+
+            logger=logger
 
         )
 

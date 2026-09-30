@@ -51,11 +51,17 @@ def run_pipeline(
 
     # ==========================================
     # Load Files
+    if logger:
+        if channel is None:
+            logger("Reading log...")
+        else:
+            logger(f"Reading Channel {channel}...")
+
     messages = load_log(asc_file, channel=channel)
 
     
     if logger:
-        logger("Loading Vehicle Config...")
+        logger("Loading vehicle configuration...")
 
     ecu_info, req_map, resp_map = load_vehicle_mapping(vehicle)
 
@@ -67,7 +73,7 @@ def run_pipeline(
     # ==========================================
     # Parse UDS
     if logger:
-        logger("Parsing UDS...")
+        logger("Parsing ISO-TP / UDS...")
     
     completed_payloads = reassemble_isotp(messages)
 
@@ -112,7 +118,7 @@ def run_pipeline(
     # ==========================================
     # Report
     if logger:
-        logger("Exporting Excel...")
+        logger("Generating analysis result...")
 
     ecu_reports  = build_ecu_reports(transactions)
 
@@ -122,7 +128,7 @@ def run_pipeline(
 
 
     if logger:
-        logger("Done.")
+        logger("Completed")
 
     return {
 

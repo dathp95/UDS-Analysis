@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QGroupBox, QPlainTextEdit
+from PySide6.QtWidgets import QApplication, QGroupBox, QPlainTextEdit, QProgressBar
 
 
 class LogAnalyzerDetailPanelTests(unittest.TestCase):
@@ -108,6 +108,59 @@ class LogAnalyzerDetailPanelTests(unittest.TestCase):
             panel.txt_transaction_info.toPlainText(),
             "ECU: -\nTime: -\nActivity: -\nRequest: -\nResponse: -\nRT (ms): -\nStatus: -",
         )
+
+
+    def test_action_panel_has_analysis_progress_above_analyze(self):
+        from gui.widgets.log_analyzer.action_panel import ActionPanel
+
+        panel = ActionPanel()
+        self.addCleanup(panel.deleteLater)
+
+        layout = panel.layout()
+
+        self.assertLess(
+            layout.indexOf(panel.grp_analysis_progress),
+            layout.indexOf(panel.btn_run),
+        )
+        self.assertEqual(panel.grp_analysis_progress.title(), "Analysis Progress")
+        self.assertEqual(panel.lbl_analysis_status.text(), "Ready")
+        self.assertIsInstance(panel.progress_analysis, QProgressBar)
+        self.assertEqual(panel.progress_analysis.minimum(), 0)
+        self.assertEqual(panel.progress_analysis.maximum(), 100)
+        self.assertEqual(panel.progress_analysis.value(), 0)
+
+    def test_action_panel_analysis_running_and_completion_states(self):
+        from gui.widgets.log_analyzer.action_panel import ActionPanel
+
+        panel = ActionPanel()
+        self.addCleanup(panel.deleteLater)
+        panel.fn_set_analyzed_state()
+
+        panel.fn_set_analysis_started()
+
+        self.assertEqual(panel.lbl_analysis_status.text(), "Starting analysis...")
+        self.assertEqual(panel.progress_analysis.minimum(), 0)
+        self.assertEqual(panel.progress_analysis.maximum(), 0)
+        self.assertEqual(panel.btn_run.text(), "ANALYZING...")
+        self.assertFalse(panel.btn_run.isEnabled())
+        self.assertFalse(panel.btn_export.isEnabled())
+        self.assertFalse(panel.btn_copy.isEnabled())
+        self.assertFalse(panel.btn_clear.isEnabled())
+
+        panel.fn_set_analysis_status("Reading log...")
+        self.assertEqual(panel.lbl_analysis_status.text(), "Reading log...")
+
+        panel.fn_set_analysis_completed()
+        self.assertEqual(panel.lbl_analysis_status.text(), "Completed")
+        self.assertEqual(panel.progress_analysis.minimum(), 0)
+        self.assertEqual(panel.progress_analysis.maximum(), 100)
+        self.assertEqual(panel.progress_analysis.value(), 100)
+        self.assertEqual(panel.btn_run.text(), "Analyze")
+
+        panel.fn_set_analysis_failed("Broken")
+        self.assertEqual(panel.lbl_analysis_status.text(), "Failed")
+        self.assertEqual(panel.progress_analysis.value(), 0)
+        self.assertEqual(panel.btn_run.text(), "Analyze")
 
     def test_right_panel_shares_remaining_height_between_detail_areas(self):
         from gui.widgets.log_analyzer.right_panel import RightPanel
