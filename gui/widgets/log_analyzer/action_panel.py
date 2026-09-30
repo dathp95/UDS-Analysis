@@ -53,12 +53,13 @@ class ActionPanel (QWidget):
         self.btn_run = PrimaryButton(
             "Analyze",
             width=160,
-            height=50,
+            height=40,
         )
 
         self.btn_export = PrimaryButton(
             "EXPORT",
             width=160,
+            height=40,
         )
 
         self.btn_copy = PrimaryButton(
@@ -69,7 +70,7 @@ class ActionPanel (QWidget):
         self.btn_clear = PrimaryButton(
             "CLEAR TABLE",
             width=160,
-            height=50,
+            height=40,
         )
 
         self.grp_quick_filter_info = self._fn_create_detail_group(
@@ -95,9 +96,6 @@ class ActionPanel (QWidget):
         # --------------------------
 
         layout.addWidget(self.btn_run)
-
-        layout.addSpacing(12)
-
         layout.addWidget(self.btn_export)
         layout.addWidget(self.btn_copy)
         layout.addWidget(self.btn_clear)
