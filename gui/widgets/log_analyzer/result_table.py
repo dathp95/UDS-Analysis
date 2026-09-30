@@ -65,7 +65,7 @@ class ResultTable(PrimaryTable):
         header.setStretchLastSection(False)
 
         header.setSectionResizeMode(
-            self._fn_column_index("Status"),
+            self._fn_column_index("Activity"),
             QHeaderView.Stretch,
         )
 
@@ -117,10 +117,10 @@ class ResultTable(PrimaryTable):
         )
 
        
-        self.setColumnWidth(
-            self._fn_column_index("Activity"),
-            170
-        )
+        # self.setColumnWidth(
+        #     self._fn_column_index("Activity"),
+        #     170
+        # )
 
         self.setColumnWidth(
             self._fn_column_index("Request"),
@@ -135,6 +135,11 @@ class ResultTable(PrimaryTable):
         self.setColumnWidth(
             self._fn_column_index("RT (ms)"),
             80
+        )
+
+        self.setColumnWidth(
+            self._fn_column_index("Status"),
+            110
         )
 
     
