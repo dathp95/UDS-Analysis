@@ -330,7 +330,7 @@ class ActionPanel(QWidget):
     def _fn_format_details(
             details: dict,
         ) -> str:
-        return "\n".join(
+        return "\n\n".join(
             f"{key}: {value}"
             for key, value in details.items()
         )
@@ -396,7 +396,7 @@ class ActionPanel(QWidget):
                 border-radius: 4px;
             }}
             QProgressBar::chunk {{
-                background: {colors.PRIMARY};
+                background: {colors.SUCCESS};
                 border-radius: 3px;
             }}
             """

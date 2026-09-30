@@ -5,8 +5,11 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QApplication, QHeaderView
+from PySide6.QtWidgets import QApplication, QHeaderView, QMenu
 
+from gui.themes.styles.controls.menu_style import fn_apply_menu_style
+from gui.themes.theme import ThemeType
+from gui.themes.theme_manager import ThemeManager
 from gui.widgets.log_analyzer.result_table import ResultTable
 
 
@@ -143,6 +146,49 @@ class ResultTableQuickFilterTests(unittest.TestCase):
         exec_menu.assert_called_once()
         self.assertEqual(table.currentRow(), 1)
         self.assertEqual(selected_rows, [rows[1]])
+
+    def test_context_menu_uses_themed_menu_style_without_changing_actions(self):
+        table, _ = self._table_with_rows()
+        captured = []
+
+        def capture_menu(menu, pos):
+            captured.append(menu)
+            return None
+
+        with patch.object(table, "_fn_exec_context_menu", side_effect=capture_menu):
+            table._fn_show_context_menu(self._row_position(table, 0))
+
+        menu = captured[0]
+        self.assertIn("QMenu::item:selected", menu.styleSheet())
+        self.assertIn("QMenu::separator", menu.styleSheet())
+        self.assertEqual(
+            [action.text() for action in menu.actions()],
+            [
+                "Copy Request",
+                "Copy Response",
+                "Copy Transaction",
+                "",
+                "Create Quick Filter",
+            ],
+        )
+        self.assertTrue(menu.actions()[3].isSeparator())
+
+    def test_menu_style_uses_current_theme_colors(self):
+        menu = QMenu()
+        self.addCleanup(menu.deleteLater)
+        self.addCleanup(ThemeManager.fn_set_theme, ThemeType.LIGHT)
+
+        ThemeManager.fn_set_theme(ThemeType.DARK)
+        colors = ThemeManager.fn_colors()
+
+        fn_apply_menu_style(menu)
+
+        style = menu.styleSheet()
+        self.assertIn(f"background-color: {colors.WINDOW};", style)
+        self.assertIn(f"color: {colors.TEXT};", style)
+        self.assertIn(f"background-color: {colors.PRIMARY};", style)
+        self.assertIn(f"color: {colors.WINDOW};", style)
+        self.assertIn(f"color: {colors.BUTTON_DISABLED_TEXT};", style)
 
     def test_copy_request_response_and_transaction_use_displayed_values(self):
         table, rows = self._table_with_rows()

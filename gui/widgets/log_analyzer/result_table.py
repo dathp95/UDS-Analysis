@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 
 from gui.themes.theme_manager import ThemeManager
+from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.utils.payload_format import format_payload_input
 
@@ -244,6 +245,7 @@ class ResultTable(PrimaryTable):
         self.transaction_selected.emit(row_data)
 
         menu = QMenu(self)
+        fn_apply_menu_style(menu)
         action_copy_request = menu.addAction("Copy Request")
         action_copy_response = menu.addAction("Copy Response")
         action_copy_transaction = menu.addAction("Copy Transaction")
