@@ -250,6 +250,14 @@ class LogAnalyzerTab(QWidget):
             self._fn_result_row_selected
         )
 
+        self.tbl_result.transaction_selected.connect(
+            self.right_panel.action_panel.fn_set_transaction_info
+        )
+
+        self.tbl_result.create_quick_filter_requested.connect(
+            self._fn_create_quick_filter_from_transaction
+        )
+
     def _load_vehicles(self):
         self.fn_refresh_vehicles()
 
@@ -408,6 +416,14 @@ class LogAnalyzerTab(QWidget):
             self.tbl_result.fn_row_data(row)
         )
 
+    def _fn_create_quick_filter_from_transaction(
+        self,
+        row_data: dict,
+    ):
+        self.left_panel.quick_access.fn_create_from_transaction(
+            row_data
+        )
+
     def fn_refresh_theme(self):
         self.vehicle_selector.fn_refresh_theme()
         self.log_selector.fn_refresh_theme()
@@ -415,3 +431,4 @@ class LogAnalyzerTab(QWidget):
         self.left_panel.fn_refresh_theme()
         self.filter_box.fn_refresh_theme()
         self.tbl_result.fn_refresh_theme()
+

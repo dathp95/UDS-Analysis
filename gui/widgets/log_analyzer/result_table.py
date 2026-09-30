@@ -1,9 +1,12 @@
 
+from PySide6.QtCore import Qt, Signal
+
 from PySide6.QtWidgets import (
+    QApplication,
+    QHeaderView,
+    QMenu,
     QTableWidget,
     QTableWidgetItem,
-    QHeaderView,
-    
 )
 from PySide6.QtGui import QColor
 
@@ -11,7 +14,21 @@ from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.utils.payload_format import format_payload_input
 
+
 class ResultTable(PrimaryTable):
+    create_quick_filter_requested = Signal(dict)
+    transaction_selected = Signal(dict)
+
+    TRANSACTION_FIELDS = [
+        "ECU",
+        "Time",
+        "Activity",
+        "Request",
+        "Response",
+        "RT (ms)",
+        "Status",
+    ]
+
     def __init__(self):
         super().__init__()
 
@@ -49,6 +66,13 @@ class ResultTable(PrimaryTable):
         header.setSectionResizeMode(
             self._fn_column_index("Status"),
             QHeaderView.Stretch,
+        )
+
+        self.setContextMenuPolicy(
+            Qt.CustomContextMenu
+        )
+        self.customContextMenuRequested.connect(
+            self._fn_show_context_menu
         )
 
     def clear_data(self):
@@ -199,6 +223,98 @@ class ResultTable(PrimaryTable):
             data[header_item.text()] = "" if item is None else item.text()
 
         return data
+
+    def _fn_show_context_menu(
+            self,
+            pos,
+        ):
+        item = self.itemAt(pos)
+
+        if item is None:
+            return
+
+        row = item.row()
+        row_data = self.fn_row_data(row)
+
+        if not row_data:
+            return
+
+        self.selectRow(row)
+        self.setCurrentCell(row, item.column())
+        self.transaction_selected.emit(row_data)
+
+        menu = QMenu(self)
+        action_copy_request = menu.addAction("Copy Request")
+        action_copy_response = menu.addAction("Copy Response")
+        action_copy_transaction = menu.addAction("Copy Transaction")
+        menu.addSeparator()
+        action_create_quick_filter = menu.addAction("Create Quick Filter")
+
+        action = self._fn_exec_context_menu(menu, pos)
+
+        if action == action_copy_request:
+            self._fn_copy_request(row_data)
+        elif action == action_copy_response:
+            self._fn_copy_response(row_data)
+        elif action == action_copy_transaction:
+            self._fn_copy_transaction(row_data)
+        elif action == action_create_quick_filter:
+            self.create_quick_filter_requested.emit(row_data)
+
+    def _fn_exec_context_menu(
+            self,
+            menu: QMenu,
+            pos,
+        ):
+        return menu.exec(
+            self.viewport().mapToGlobal(pos)
+        )
+
+    def _fn_copy_request(
+            self,
+            row_data: dict,
+        ):
+        self._fn_copy_text(
+            self._fn_text_value(row_data.get("Request", ""))
+        )
+
+    def _fn_copy_response(
+            self,
+            row_data: dict,
+        ):
+        self._fn_copy_text(
+            self._fn_text_value(row_data.get("Response", ""))
+        )
+
+    def _fn_copy_transaction(
+            self,
+            row_data: dict,
+        ):
+        self._fn_copy_text(
+            self._fn_transaction_text(row_data)
+        )
+
+    def _fn_transaction_text(
+            self,
+            row_data: dict,
+        ) -> str:
+        return "\n".join(
+            f"{field}: {self._fn_text_value(row_data.get(field, ''))}"
+            for field in self.TRANSACTION_FIELDS
+        )
+
+    @staticmethod
+    def _fn_copy_text(text) -> None:
+        QApplication.clipboard().setText(
+            ResultTable._fn_text_value(text)
+        )
+
+    @staticmethod
+    def _fn_text_value(value) -> str:
+        if value is None:
+            return ""
+
+        return str(value)
 
   
     def _fn_column_index(

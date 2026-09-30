@@ -221,6 +221,37 @@ class QuickAccessWidget(QWidget):
         self.quick_filters = self.quick_access_controller.fn_load()
     
     
+    def fn_create_from_transaction(
+            self,
+            row_data: dict,
+        ):
+        """Create a quick filter draft from a result table transaction."""
+
+        if not isinstance(row_data, dict):
+            row_data = {}
+
+        quick_filter = {
+            "name": "",
+            "filters": {
+                "ecu": self._fn_text_value(row_data.get("ECU", "")),
+                "request": self._fn_text_value(row_data.get("Request", "")),
+                "response": self._fn_text_value(row_data.get("Response", "")),
+            },
+        }
+
+        dialog = QuickFilterDialog(
+            quick_filter=quick_filter,
+            parent=self,
+        )
+
+        if not dialog.exec():
+            return
+
+        self.quick_access_controller.fn_add(
+            dialog.fn_get_data()
+        )
+
+        self.fn_reload()
     def fn_add_filter(self):
         """
         Show Add Quick Filter dialog.
@@ -353,6 +384,14 @@ class QuickAccessWidget(QWidget):
         ) -> str:
         value = format_payload_input(value.strip())
         return " ".join(value.split()).lower()
+    
+    
+    @staticmethod
+    def _fn_text_value(value) -> str:
+        if value is None:
+            return ""
+
+        return str(value)
     
     
     def _fn_button_clicked(
@@ -528,4 +567,6 @@ class QuickAccessWidget(QWidget):
         self.btn_add.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
+
+
 

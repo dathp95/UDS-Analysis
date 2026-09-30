@@ -1,8 +1,10 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication, QHeaderView
 
 from gui.widgets.log_analyzer.result_table import ResultTable
@@ -14,6 +16,38 @@ class ResultTableQuickFilterTests(unittest.TestCase):
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
+    def _table_with_rows(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+        rows = [
+            {
+                "ECU": "MHU",
+                "Time": "42.500",
+                "Activity": "Read DID",
+                "Request": "22 F1 90",
+                "Response": "62 F1 90 56 49 4E",
+                "RT (ms)": "12.50",
+                "Status": "Positive",
+            },
+            {
+                "ECU": "VCU",
+                "Time": "125.320",
+                "Activity": "Read VIN",
+                "Request": "22 F1 91",
+                "Response": "7F 22 31",
+                "RT (ms)": "18.50",
+                "Status": "Negative",
+            },
+        ]
+        table.set_data(rows)
+        table.resize(900, 300)
+        table.show()
+        self.application.processEvents()
+        return table, rows
+
+    def _row_position(self, table, row):
+        item = table.item(row, table._fn_column_index("ECU"))
+        return table.visualItemRect(item).center()
 
     def test_status_column_stretches_to_fill_remaining_width(self):
         table = ResultTable()
@@ -88,6 +122,74 @@ class ResultTableQuickFilterTests(unittest.TestCase):
 
         self.assertEqual(table.fn_row_data(0), row_data)
         self.assertEqual(table.fn_row_data(-1), {})
+
+    def test_context_menu_does_not_open_for_empty_table_space(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+
+        with patch.object(table, "_fn_exec_context_menu") as exec_menu:
+            table._fn_show_context_menu(QPoint(5, 5))
+
+        exec_menu.assert_not_called()
+
+    def test_context_menu_selects_right_clicked_row_and_emits_transaction(self):
+        table, rows = self._table_with_rows()
+        selected_rows = []
+        table.transaction_selected.connect(selected_rows.append)
+
+        with patch.object(table, "_fn_exec_context_menu", return_value=None) as exec_menu:
+            table._fn_show_context_menu(self._row_position(table, 1))
+
+        exec_menu.assert_called_once()
+        self.assertEqual(table.currentRow(), 1)
+        self.assertEqual(selected_rows, [rows[1]])
+
+    def test_copy_request_response_and_transaction_use_displayed_values(self):
+        table, rows = self._table_with_rows()
+        clipboard = QApplication.clipboard()
+
+        table._fn_copy_request(rows[0])
+        self.assertEqual(clipboard.text(), "22 F1 90")
+
+        table._fn_copy_response(rows[0])
+        self.assertEqual(clipboard.text(), "62 F1 90 56 49 4E")
+
+        table._fn_copy_transaction(rows[0])
+        self.assertEqual(
+            clipboard.text(),
+            "ECU: MHU\n"
+            "Time: 42.500\n"
+            "Activity: Read DID\n"
+            "Request: 22 F1 90\n"
+            "Response: 62 F1 90 56 49 4E\n"
+            "RT (ms): 12.50\n"
+            "Status: Positive",
+        )
+
+    def test_copy_handles_missing_values_safely(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+        clipboard = QApplication.clipboard()
+
+        table._fn_copy_request({"Request": None})
+        self.assertEqual(clipboard.text(), "")
+
+        table._fn_copy_response({})
+        self.assertEqual(clipboard.text(), "")
+
+    def test_create_quick_filter_action_emits_row_data(self):
+        table, rows = self._table_with_rows()
+        emitted = []
+        table.create_quick_filter_requested.connect(emitted.append)
+
+        def choose_create_filter(menu, pos):
+            return menu.actions()[4]
+
+        with patch.object(table, "_fn_exec_context_menu", side_effect=choose_create_filter):
+            table._fn_show_context_menu(self._row_position(table, 0))
+
+        self.assertEqual(emitted, [rows[0]])
+
     def test_apply_quick_filter_clears_previous_row_selection(self):
         table = ResultTable()
         self.addCleanup(table.deleteLater)
@@ -144,4 +246,3 @@ class ResultTableQuickFilterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

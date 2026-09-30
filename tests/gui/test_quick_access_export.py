@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from gui.dialogs.export_quick_filters_dialog import ExportQuickFiltersDialog
+from gui.dialogs.quick_filter_dialog import QuickFilterDialog
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.quick_access import QuickAccessWidget
@@ -26,10 +27,9 @@ class QuickAccessExportWidgetTests(unittest.TestCase):
 
         self.assertIsInstance(widget.edit_search, PrimaryLineEdit)
         self.assertEqual(widget.edit_search.placeholderText(), "Search Quick Filter...")
-        self.assertIs(layout.itemAt(0).widget(), widget.edit_search)
-        self.assertIs(layout.itemAt(1).widget(), widget.scroll_area)
-        self.assertEqual(layout.stretch(1), 1)
-        self.assertIs(layout.itemAt(2).layout(), widget.action_layout)
+        self.assertIs(layout.itemAt(0).widget(), widget.scroll_area)
+        self.assertEqual(layout.stretch(0), 1)
+        self.assertIs(layout.itemAt(1).layout(), widget.action_layout)
         self.assertEqual(widget.action_layout.indexOf(widget.btn_add), 0)
         self.assertEqual(widget.action_layout.indexOf(widget.btn_import), 1)
         self.assertEqual(widget.action_layout.indexOf(widget.btn_export), 2)
@@ -128,6 +128,102 @@ class QuickAccessExportWidgetTests(unittest.TestCase):
         )
         self.assertFalse(widget.buttons[1].isEnabled())
 
+    def test_create_from_transaction_prefills_dialog_and_saves_edited_filter(self):
+        widget = QuickAccessWidget()
+        self.addCleanup(widget.deleteLater)
+
+        row_data = {
+            "ECU": "MHU",
+            "Request": "22 F1 90",
+            "Response": "62 F1 90 56 49 4E",
+            "Time": "42.500",
+            "Status": "Positive",
+        }
+        saved_filter = {
+            "name": "Read VIN MHU",
+            "filters": {
+                "ecu": "MHU",
+                "request": "22 F1 90",
+                "response": "62 F1 90",
+            },
+        }
+
+        with patch(
+            "gui.widgets.log_analyzer.quick_access.QuickFilterDialog"
+        ) as dialog_class, patch.object(
+            widget.quick_access_controller,
+            "fn_add",
+        ) as add_filter, patch.object(widget, "fn_reload") as reload_filters:
+            dialog = dialog_class.return_value
+            dialog.exec.return_value = True
+            dialog.fn_get_data.return_value = saved_filter
+
+            widget.fn_create_from_transaction(row_data)
+
+        dialog_class.assert_called_once_with(
+            quick_filter={
+                "name": "",
+                "filters": {
+                    "ecu": "MHU",
+                    "request": "22 F1 90",
+                    "response": "62 F1 90 56 49 4E",
+                },
+            },
+            parent=widget,
+        )
+        add_filter.assert_called_once_with(saved_filter)
+        reload_filters.assert_called_once_with()
+
+    def test_create_from_transaction_cancel_does_not_save(self):
+        widget = QuickAccessWidget()
+        self.addCleanup(widget.deleteLater)
+
+        with patch(
+            "gui.widgets.log_analyzer.quick_access.QuickFilterDialog"
+        ) as dialog_class, patch.object(
+            widget.quick_access_controller,
+            "fn_add",
+        ) as add_filter, patch.object(widget, "fn_reload") as reload_filters:
+            dialog_class.return_value.exec.return_value = False
+
+            widget.fn_create_from_transaction(
+                {
+                    "ECU": "MHU",
+                    "Request": "22 F1 90",
+                    "Response": "62 F1 90",
+                }
+            )
+
+        add_filter.assert_not_called()
+        reload_filters.assert_not_called()
+
+    def test_quick_filter_dialog_accepts_add_draft_without_id_or_enabled(self):
+        dialog = QuickFilterDialog(
+            quick_filter={
+                "name": "",
+                "filters": {
+                    "ecu": "MHU",
+                    "request": "22 F1 90",
+                    "response": "62 F1 90 56 49 4E",
+                },
+            }
+        )
+        self.addCleanup(dialog.deleteLater)
+
+        dialog.fields["name"].setText("Read VIN MHU")
+        dialog.fields["response"].setText("62 F1 90")
+
+        self.assertEqual(
+            dialog.fn_get_data(),
+            {
+                "name": "Read VIN MHU",
+                "filters": {
+                    "ecu": "MHU",
+                    "request": "22 F1 90",
+                    "response": "62 F1 90",
+                },
+            },
+        )
     def test_left_panel_gives_remaining_area_to_quick_filter(self):
         panel = LeftPanel()
         self.addCleanup(panel.deleteLater)
@@ -173,3 +269,6 @@ class QuickAccessExportWidgetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+

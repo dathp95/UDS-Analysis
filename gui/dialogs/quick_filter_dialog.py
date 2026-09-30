@@ -249,9 +249,13 @@ class QuickFilterDialog(QDialog):
 
         if self.quick_filter is not None:
 
-            data["id"] = self.quick_filter["id"]
+            if "id" in self.quick_filter:
 
-            data["enabled"] = self.quick_filter["enabled"]
+                data["id"] = self.quick_filter["id"]
+
+            if "enabled" in self.quick_filter:
+
+                data["enabled"] = self.quick_filter["enabled"]
 
         return data
 
@@ -297,3 +301,4 @@ class QuickFilterDialog(QDialog):
         self.fn_set_data(
             self.quick_filter
         )
+

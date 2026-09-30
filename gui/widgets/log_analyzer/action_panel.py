@@ -381,7 +381,7 @@ class ActionPanel (QWidget):
     def _fn_format_details(
             details: dict,
         ) -> str:
-        return "\n\n".join(
+        return "\n".join(
             f"{key}: {value}"
             for key, value in details.items()
         )
@@ -450,6 +450,7 @@ class ActionPanel (QWidget):
 
         fn_apply_scrollbar_style(self.txt_quick_filter_info)
         fn_apply_scrollbar_style(self.txt_transaction_info)
+
 
 
 

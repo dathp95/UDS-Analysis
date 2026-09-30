@@ -78,5 +78,15 @@
         },
         "id": 13,
         "enabled": true
+    },
+    {
+        "id": 14,
+        "name": "OK1",
+        "enabled": true,
+        "filters": {
+            "ecu": "USS_R",
+            "request": "22 F1 08",
+            "response": "62 F1 08 00 09 54 39 39 30 39 30 37 26 06 03 01 01 52 00 00 8C"
+        }
     }
 ]
