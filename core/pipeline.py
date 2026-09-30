@@ -42,16 +42,16 @@ from core.report_export import export_workbook
 
 
 def run_pipeline(
-        asc_file : str,
+        asc_file: str,
         vehicle,
         logger=None,
-        progress_callback=None
-
+        progress_callback=None,
+        channel=None,
     ):
 
     # ==========================================
     # Load Files
-    messages = load_log(asc_file)
+    messages = load_log(asc_file, channel=channel)
 
     
     if logger:
@@ -133,9 +133,3 @@ def run_pipeline(
         "transactions": transactions
 
     }
-    
-
-
-
-
-

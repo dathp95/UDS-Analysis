@@ -291,25 +291,66 @@ class LogAnalyzerTabTests(unittest.TestCase):
     def test_starts_without_a_vehicle_selection(self):
         self.assertEqual(self.tab.vehicle_selector.fn_vehicle(), "")
 
-    def test_analyze_requests_vehicle_after_selecting_valid_log(self):
-        log_file = self._write_log("PT BO INFO\n")
+    def test_analyze_waits_for_vehicle_after_selecting_valid_log(self):
+        log_file = self._write_log(
+            "0.001 1 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
         self.tab.log_selector.set_path(str(log_file))
         self.tab.fn_log_file_changed(str(log_file))
 
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
+        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+
+    def test_multi_channel_log_requires_channel_selection(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+            "0.002 1 682 Rx d 8 03 22 F1 91 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+
+        self.assertTrue(self.tab.channel_selector.cmb_channel.isEnabled())
+        self.assertIsNone(self.tab.channel_selector.fn_channel())
+        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
         self.assertTrue(self.tab.right_panel.action_panel.btn_run.isEnabled())
 
-        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning:
+    def test_analyze_passes_selected_channel_to_controller(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+
+        with patch.object(
+            self.tab.analysis_controller,
+            "fn_run",
+            return_value={"transactions": []},
+        ) as run_analysis:
             self.tab.fn_run_clicked()
 
-        self.assertIn("Please select a vehicle", warning.call_args.args[2])
+        run_analysis.assert_called_once_with(
+            log_file=str(log_file),
+            vehicle=self.tab._current_vehicle,
+            channel=2,
+        )
 
-    def test_rejects_log_with_multiple_pt_bo_info_markers(self):
-        log_file = self._write_log("PT BO INFO\nPT BO INFO\n")
+    def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
+        log_file = self._write_log(
+            "PT BO INFO\n"
+            "PT BO INFO\n"
+            "0.001 1 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
         self.tab.log_selector.set_path(str(log_file))
 
         with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning:
             self.tab.fn_log_file_changed(str(log_file))
 
-        self.assertEqual(self.tab.log_selector.path(), "")
-        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
-        self.assertEqual(warning.call_args.args[1], "Log File Not Supported")
+        self.assertEqual(self.tab.log_selector.path(), str(log_file))
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
+        warning.assert_not_called()

@@ -12,8 +12,9 @@ class AnalysisController:
             self,
             log_file: str,
             vehicle: Vehicle,
+            channel=None,
         ):
-    
+
         if not log_file:
             raise ValueError(
                 "Please select a Diagnostic CAN log (.asc or .blf) before running the analysis."
@@ -22,6 +23,11 @@ class AnalysisController:
         if vehicle is None:
             raise ValueError(
                 "Please select a vehicle before running the analysis."
+            )
+
+        if channel is None:
+            raise ValueError(
+                "Please select a Diagnostic Channel before running the analysis."
             )
 
         if not Path(log_file).is_file():
@@ -33,7 +39,9 @@ class AnalysisController:
 
             asc_file=log_file,
 
-            vehicle=vehicle
+            vehicle=vehicle,
+
+            channel=channel
 
         )
 

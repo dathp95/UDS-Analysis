@@ -11,7 +11,7 @@
 
 # extract_positive_responses()
 from pathlib import Path
-from core.convert_blf import blf_to_asc
+from core.convert_blf import blf_to_asc, get_blf_channels
 
 
 from core.uds_lookup import (
@@ -22,11 +22,10 @@ from core.uds_lookup import (
 
 def parse_asc_line(line):
 
-    # Tách chuỗi theo khoảng trắng
+    # Split by whitespace
     parts = line.split()   
 
-        # Nếu số cột quá ít
-        # => không phải CAN frame hợp lệ
+        # Not enough columns means this is not a valid CAN frame.
     if len(parts) < 13:
         return None
 
@@ -34,7 +33,9 @@ def parse_asc_line(line):
 
         timestamp = float(parts[0])
 
-        # Chuyển từ HEX string sang int
+        channel = int(parts[1])
+
+        # Convert HEX string to int.
         can_id = int(parts[2], 16)
 
         dlc = int(parts[5])
@@ -48,6 +49,7 @@ def parse_asc_line(line):
 
         return {
             "timestamp": timestamp,
+            "channel": channel,
             "can_id": can_id,
             "dlc": dlc,
             "data": data
@@ -55,14 +57,47 @@ def parse_asc_line(line):
           
 
     except:
-        # Nếu parse lỗi
+        # Parse error.
         return None
     
 # TODO: INPUT: file ASC -> OUT: messages
 
-def load_asc(file_name):
+def load_asc(file_name, channel=None):
 
     messages = []
+    selected_channel_found = channel is None
+
+    with open(
+        file_name,
+        "r",
+        encoding="utf-8",
+        errors="ignore"
+    ) as f:
+
+        for line in f:
+
+            msg = parse_asc_line(line)
+
+            if msg is None:
+                continue
+
+            if channel is not None and msg["channel"] != channel:
+                continue
+
+            selected_channel_found = True
+            messages.append(msg)
+
+    if not selected_channel_found:
+        raise ValueError(
+            "Selected Diagnostic Channel was not found in the log."
+        )
+
+    return messages
+
+
+def _get_asc_channels(file_name):
+
+    channels = set()
 
     with open(
         file_name,
@@ -76,23 +111,48 @@ def load_asc(file_name):
             msg = parse_asc_line(line)
 
             if msg is not None:
-                messages.append(msg)
+                channels.add(msg["channel"])
 
-    return messages
+    return sorted(channels)
 
-def load_log(log_file):
+
+def get_log_channels(log_file):
 
     suffix = Path(log_file).suffix.lower()
 
     if suffix == ".asc":
-        return load_asc(log_file)
+        return _get_asc_channels(log_file)
 
     if suffix == ".blf":
-        asc_file = blf_to_asc(log_file)
-        return load_asc(asc_file)
+        return get_blf_channels(log_file)
 
     raise ValueError(f"Unsupported log format: {suffix}")
 
+
+def _fn_blf_channel_to_asc_channel(channel):
+
+    if channel is None:
+        return None
+
+    # python-can ASCWriter serializes zero-based bus channels as one-based ASC channels.
+    return int(channel) + 1
+
+
+def load_log(log_file, channel=None):
+
+    suffix = Path(log_file).suffix.lower()
+
+    if suffix == ".asc":
+        return load_asc(log_file, channel=channel)
+
+    if suffix == ".blf":
+        asc_file = blf_to_asc(log_file)
+        return load_asc(
+            asc_file,
+            channel=_fn_blf_channel_to_asc_channel(channel),
+        )
+
+    raise ValueError(f"Unsupported log format: {suffix}")
 
 # TODO: INPUT: messages -> OUT: CANID + payload
 def reassemble_isotp(messages):
@@ -101,7 +161,7 @@ def reassemble_isotp(messages):
 
     completed_payloads = []
 
-    # Duyệt messages
+    # Iterate messages.
 
     for msg in messages:
 
@@ -202,7 +262,7 @@ def reassemble_isotp(messages):
 
 
 # TODO: Find Frame REQUEST to seperate:  03 22 F1 90 - 02 27 03 -02 10 03...
-# TODO: Loại bỏ TESTER PRESENT: 3E 80 - Check Service ID, KEEP 7F XX XX
+# TODO: Skip TESTER PRESENT: 3E 80 - Check Service ID, KEEP 7F XX XX
 def extract_single_frame_requests(messages):
     requests = []
 
@@ -213,7 +273,7 @@ def extract_single_frame_requests(messages):
         data = msg["data"]
 
         # ==================================
-        # Chỉ xử lý Single Frame
+        # Single Frame only
 
         frame_type = data[0] >> 4
 
@@ -221,7 +281,7 @@ def extract_single_frame_requests(messages):
             continue
 
         # ==================================
-        # Lấy payload
+        # Get payload
 
         payload_length = data[0]
 
@@ -229,7 +289,7 @@ def extract_single_frame_requests(messages):
             1 : 1 + payload_length
         ]
 
-        # Không có dữ liệu
+        # No data
 
         if len(payload) == 0:
             continue
@@ -239,7 +299,7 @@ def extract_single_frame_requests(messages):
 
         service_id = payload[0]
 
-        # Bỏ Tester Present
+        # Skip Tester Present
         # 3E 80
 
         if service_id == 0x3E:
@@ -314,7 +374,7 @@ def extract_negative_responses(messages):
         data = msg["data"]
 
         # ==============================
-        # Chỉ xử lý Single Frame
+        # Single Frame only
 
         frame_type = data[0] >> 4
 
@@ -322,7 +382,7 @@ def extract_negative_responses(messages):
             continue
 
         # ==============================
-        # Lấy payload
+        # Get payload
 
         payload_length = data[0]
 
@@ -330,7 +390,7 @@ def extract_negative_responses(messages):
             1 : 1 + payload_length
         ]
 
-        # Không có dữ liệu
+        # No data
 
         if len(payload) == 0:
             continue
@@ -378,7 +438,7 @@ def extract_positive_responses(completed_payloads):
 
         payload = item["payload"]
 
-        # Không có dữ liệu
+        # No data
         if len(payload) == 0:
             continue
 
@@ -412,7 +472,7 @@ def show_positive_responses(positive_responses):
 
         payload = item["payload"]
 
-        # Nếu payload là bytes
+        # Convert bytes payload
         if isinstance(payload, bytes):
 
             payload = payload.hex(
@@ -454,8 +514,3 @@ def show_positive_responses(
             hex(item["can_id"]),
             item["payload"]
         )
-
-
-
-
-

@@ -15,12 +15,13 @@ from gui.controllers.report_controller import ReportController
 from gui.presenters.transaction_presenter import fn_build_table_rows
 from gui.widgets.log_analyzer.filter_box import FilterBox
 from gui.widgets.log_analyzer.left_panel import LeftPanel
+from gui.widgets.log_analyzer.channel_selector import DiagnosticChannelSelectorWidget
 from gui.widgets.log_analyzer.path_selector import PathSelectorWidget
 from gui.widgets.log_analyzer.result_table import ResultTable
 from gui.widgets.log_analyzer.right_panel import RightPanel
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
 from services.vehicle_service import VehicleService
-from core.log_validation import has_multiple_pt_bo_info_markers
+from core.asc_reader import get_log_channels
 
 
 class LogAnalyzerTab(QWidget):
@@ -66,6 +67,11 @@ class LogAnalyzerTab(QWidget):
         self.vehicle_selector = VehicleSelectorWidget()
 
         # ==========================================================
+        # Diagnostic Channel selector
+        # ==========================================================
+        self.channel_selector = DiagnosticChannelSelectorWidget()
+
+        # ==========================================================
         # Log selector
         # ==========================================================
         self.log_selector = PathSelectorWidget(
@@ -76,10 +82,15 @@ class LogAnalyzerTab(QWidget):
         # Keep Vehicle / Log File labels at the same height
         input_label_height = max(
             self.vehicle_selector.lbl_vehicle.sizeHint().height(),
+            self.channel_selector.lbl_channel.sizeHint().height(),
             self.log_selector.label.sizeHint().height(),
         )
 
         self.vehicle_selector.lbl_vehicle.setFixedHeight(
+            input_label_height
+        )
+
+        self.channel_selector.lbl_channel.setFixedHeight(
             input_label_height
         )
 
@@ -112,8 +123,14 @@ class LogAnalyzerTab(QWidget):
         )
 
         input_layout.addWidget(
+            self.channel_selector,
+            2,
+            Qt.AlignTop,
+        )
+
+        input_layout.addWidget(
             self.log_selector,
-            9,
+            7,
             Qt.AlignTop,
         )
 
@@ -218,6 +235,10 @@ class LogAnalyzerTab(QWidget):
             self.fn_log_file_changed
         )
 
+        self.channel_selector.channel_changed.connect(
+            self._update_analyze_state
+        )
+
         self.filter_box.filter_changed.connect(
             self.fn_filter_transactions
         )
@@ -318,24 +339,44 @@ class LogAnalyzerTab(QWidget):
         file_path: str,
     ):
 
-        if (
-            file_path
-            and has_multiple_pt_bo_info_markers(file_path)
-        ):
+        self.channel_selector.fn_clear()
 
-            self.log_selector.set_path("")
+        if not file_path:
+            self._update_analyze_state()
+            return
+
+        try:
+            channels = get_log_channels(file_path)
+
+        except (OSError, ValueError) as e:
+            self.channel_selector.fn_set_channels([])
 
             QMessageBox.warning(
                 self,
-                "Log File Not Supported",
-                "The selected log contains multiple PT BO INFO markers. "
-                "Please select another diagnostic log.",
+                "Log File",
+                str(e),
+            )
+
+            self._update_analyze_state()
+            return
+
+        self.channel_selector.fn_set_channels(channels)
+
+        if not channels:
+            QMessageBox.warning(
+                self,
+                "Log File",
+                "No CAN channel detected in the selected log.",
             )
 
         self._update_analyze_state()
 
     def _update_analyze_state(self):
-        if self.log_selector.path():
+        if (
+            self.log_selector.path()
+            and self._current_vehicle is not None
+            and self.channel_selector.fn_channel() is not None
+        ):
             self.right_panel.action_panel.fn_set_file_loaded_state()
             return
 
@@ -346,6 +387,7 @@ class LogAnalyzerTab(QWidget):
             result = self.analysis_controller.fn_run(
                 log_file=self.log_selector.path(),
                 vehicle=self._current_vehicle,
+                channel=self.channel_selector.fn_channel(),
             )
 
         except ValueError as e:
@@ -426,9 +468,9 @@ class LogAnalyzerTab(QWidget):
 
     def fn_refresh_theme(self):
         self.vehicle_selector.fn_refresh_theme()
+        self.channel_selector.fn_refresh_theme()
         self.log_selector.fn_refresh_theme()
         self.right_panel.fn_refresh_theme()
         self.left_panel.fn_refresh_theme()
         self.filter_box.fn_refresh_theme()
         self.tbl_result.fn_refresh_theme()
-
