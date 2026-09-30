@@ -77,7 +77,7 @@ class AscReaderChannelTests(unittest.TestCase):
         blf_channels.assert_called_once_with("demo.blf")
         blf_to_asc.assert_not_called()
 
-    def test_load_log_maps_blf_channel_to_converted_asc_channel(self):
+    def test_load_log_filters_converted_blf_with_logical_channel(self):
         with (
             patch("core.asc_reader.blf_to_asc", return_value="demo.asc") as blf_to_asc,
             patch("core.asc_reader.load_asc", return_value=[{"channel": 2}]) as asc,
@@ -85,18 +85,18 @@ class AscReaderChannelTests(unittest.TestCase):
             self.assertEqual(load_log("demo.blf", channel=2), [{"channel": 2}])
 
         blf_to_asc.assert_called_once_with("demo.blf")
-        asc.assert_called_once_with("demo.asc", channel=3)
+        asc.assert_called_once_with("demo.asc", channel=2)
 
 
 class BlfChannelDiscoveryTests(unittest.TestCase):
 
-    def test_get_blf_channels_reads_message_channel_metadata(self):
+    def test_get_blf_channels_normalizes_raw_zero_based_channels(self):
         from core.convert_blf import get_blf_channels
 
         messages = [
-            Mock(channel=2),
             Mock(channel=1),
-            Mock(channel=2),
+            Mock(channel=0),
+            Mock(channel=1),
             Mock(channel=None),
         ]
 

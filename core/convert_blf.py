@@ -3,26 +3,29 @@ from pathlib import Path
 import can
 
 
-def _fn_channel_value(value):
+def _fn_raw_blf_channel_to_logical_channel(value):
     if value is None:
         return None
 
     try:
-        return int(value)
+        raw_blf_channel = int(value)
     except (TypeError, ValueError):
         return None
+
+    # python-can BLFReader exposes CANoe channels as zero-based values.
+    return raw_blf_channel + 1
 
 
 def get_blf_channels(blf_file):
     channels = set()
 
     for msg in can.BLFReader(Path(blf_file)):
-        channel = _fn_channel_value(
+        logical_channel = _fn_raw_blf_channel_to_logical_channel(
             getattr(msg, "channel", None)
         )
 
-        if channel is not None:
-            channels.add(channel)
+        if logical_channel is not None:
+            channels.add(logical_channel)
 
     return sorted(channels)
 

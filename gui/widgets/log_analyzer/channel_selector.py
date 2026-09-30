@@ -43,6 +43,7 @@ class DiagnosticChannelSelectorWidget(QWidget):
         ):
         self.cmb_channel.blockSignals(True)
         self.cmb_channel.clear()
+        self.cmb_channel.setPlaceholderText("")
         self.cmb_channel.addItem(text, data)
         self.cmb_channel.setCurrentIndex(0)
         self.cmb_channel.setEnabled(enabled)
@@ -56,11 +57,11 @@ class DiagnosticChannelSelectorWidget(QWidget):
         )
 
     def fn_set_channels(self, channels):
-        normalized_channels = sorted(
+        normalized_channels = sorted({
             int(channel)
             for channel in channels
             if channel is not None
-        )
+        })
 
         if not normalized_channels:
             self._fn_set_single_item(
@@ -81,7 +82,7 @@ class DiagnosticChannelSelectorWidget(QWidget):
 
         self.cmb_channel.blockSignals(True)
         self.cmb_channel.clear()
-        self.cmb_channel.addItem("Select channel...", None)
+        self.cmb_channel.setPlaceholderText("Select channel...")
 
         for channel in normalized_channels:
             self.cmb_channel.addItem(
@@ -89,7 +90,7 @@ class DiagnosticChannelSelectorWidget(QWidget):
                 channel,
             )
 
-        self.cmb_channel.setCurrentIndex(0)
+        self.cmb_channel.setCurrentIndex(-1)
         self.cmb_channel.setEnabled(True)
         self.cmb_channel.blockSignals(False)
 

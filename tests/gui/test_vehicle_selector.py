@@ -311,10 +311,11 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.tab.fn_log_file_changed(str(log_file))
 
         self.assertTrue(self.tab.channel_selector.cmb_channel.isEnabled())
+        self.assertEqual(self.tab.channel_selector.cmb_channel.currentIndex(), -1)
         self.assertIsNone(self.tab.channel_selector.fn_channel())
         self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
 
-        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(0)
 
         self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
         self.assertTrue(self.tab.right_panel.action_panel.btn_run.isEnabled())
@@ -339,6 +340,61 @@ class LogAnalyzerTabTests(unittest.TestCase):
             vehicle=self.tab._current_vehicle,
             channel=2,
         )
+
+    def test_non_sequential_selected_channel_is_passed_as_item_data(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+            "0.002 5 682 Rx d 8 03 22 F1 91 00 00 00 00\n"
+            "0.003 12 683 Rx d 8 03 22 F1 92 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+
+        with patch.object(
+            self.tab.analysis_controller,
+            "fn_run",
+            return_value={"transactions": []},
+        ) as run_analysis:
+            self.tab.fn_run_clicked()
+
+        run_analysis.assert_called_once_with(
+            log_file=str(log_file),
+            vehicle=self.tab._current_vehicle,
+            channel=5,
+        )
+
+    def test_loading_new_file_clears_previous_channel_selection(self):
+        first_log = self._write_log(
+            "0.001 1 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+            "0.002 2 682 Rx d 8 03 22 F1 91 00 00 00 00\n"
+            "0.003 3 683 Rx d 8 03 22 F1 92 00 00 00 00\n"
+        )
+        second_log = self._write_log(
+            "0.001 4 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+            "0.002 5 682 Rx d 8 03 22 F1 91 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(first_log))
+        self.tab.fn_log_file_changed(str(first_log))
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 2)
+
+        self.tab.log_selector.set_path(str(second_log))
+        self.tab.fn_log_file_changed(str(second_log))
+
+        self.assertEqual(self.tab.channel_selector.cmb_channel.currentIndex(), -1)
+        self.assertIsNone(self.tab.channel_selector.fn_channel())
+        self.assertEqual(self.tab.channel_selector.cmb_channel.count(), 2)
+        self.assertEqual(
+            [
+                self.tab.channel_selector.cmb_channel.itemData(index)
+                for index in range(self.tab.channel_selector.cmb_channel.count())
+            ],
+            [4, 5],
+        )
+        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
 
     def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
         log_file = self._write_log(

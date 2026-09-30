@@ -129,14 +129,6 @@ def get_log_channels(log_file):
     raise ValueError(f"Unsupported log format: {suffix}")
 
 
-def _fn_blf_channel_to_asc_channel(channel):
-
-    if channel is None:
-        return None
-
-    # python-can ASCWriter serializes zero-based bus channels as one-based ASC channels.
-    return int(channel) + 1
-
 
 def load_log(log_file, channel=None):
 
@@ -147,10 +139,7 @@ def load_log(log_file, channel=None):
 
     if suffix == ".blf":
         asc_file = blf_to_asc(log_file)
-        return load_asc(
-            asc_file,
-            channel=_fn_blf_channel_to_asc_channel(channel),
-        )
+        return load_asc(asc_file, channel=channel)
 
     raise ValueError(f"Unsupported log format: {suffix}")
 
