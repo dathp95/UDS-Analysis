@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+﻿from PySide6.QtCore import Qt
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -51,15 +51,6 @@ class LogAnalyzerTab(QWidget):
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
-        input_layout = QHBoxLayout()
-
-        # ==========================================================
-        # Main layout
-        # ==========================================================
-        main_layout.setSpacing(8)
-
-        input_layout.setContentsMargins(0, 0, 0, 0)
-        input_layout.setSpacing(8)
 
         # ==========================================================
         # Vehicle selector
@@ -71,12 +62,34 @@ class LogAnalyzerTab(QWidget):
         # ==========================================================
         self.channel_selector = DiagnosticChannelSelectorWidget()
 
+        left_input_layout = QHBoxLayout()
+        left_input_layout.setContentsMargins(0, 0, 0, 0)
+        left_input_layout.setSpacing(8)
+
+        left_input_layout.addWidget(
+            self.vehicle_selector,
+            1,
+        )
+
+        left_input_layout.addWidget(
+            self.channel_selector,
+            1,
+        )
+
+        # ==========================================================
+        # Main layout
+        # ==========================================================
+        main_layout.setSpacing(8)
+
+        
+        
+
         # ==========================================================
         # Log selector
         # ==========================================================
         self.log_selector = PathSelectorWidget(
             "Log File: Supported logs Diagnostic only - NO: PT, CH, BO, IF...",
-            "Log Files (*.blf *.asc)",
+            "Log Files (*.blf )",
         )
 
         # Keep Vehicle / Log File labels at the same height
@@ -116,23 +129,7 @@ class LogAnalyzerTab(QWidget):
         # ==========================================================
         # Top input layout
         # ==========================================================
-        input_layout.addWidget(
-            self.vehicle_selector,
-            2,
-            Qt.AlignTop,
-        )
-
-        input_layout.addWidget(
-            self.channel_selector,
-            2,
-            Qt.AlignTop,
-        )
-
-        input_layout.addWidget(
-            self.log_selector,
-            7,
-            Qt.AlignTop,
-        )
+       
 
         # ==========================================================
         # Search + Content Grid
@@ -167,15 +164,26 @@ class LogAnalyzerTab(QWidget):
         # ==========================================================
         # Row 0 - Search
         # ==========================================================
+        content_grid.addLayout(
+            left_input_layout,
+            0,
+            0,
+        )
+        
+        content_grid.addWidget(
+            self.log_selector,
+            0,
+            1,
+        )
         content_grid.addWidget(
             self.quick_filter_search,
-            0,
+            1,
             0,
         )
 
         content_grid.addWidget(
             self.filter_box,
-            0,
+            1,
             1,
         )
 
@@ -187,33 +195,32 @@ class LogAnalyzerTab(QWidget):
         # ==========================================================
         content_grid.addWidget(
             self.left_panel,
-            1,
+            2,
             0,
         )
 
         content_grid.addWidget(
             self.tbl_result,
-            1,
+            2,
             1,
         )
 
         content_grid.addWidget(
             self.right_panel,
-            1,
+            2,
             2,
         )
 
         # Search row only uses required height.
         # Main content consumes remaining vertical space.
         content_grid.setRowStretch(0, 0)
-        content_grid.setRowStretch(1, 1)
+        content_grid.setRowStretch(1, 0)
+        content_grid.setRowStretch(2, 1)
 
         # ==========================================================
         # Add everything to main layout
         # ==========================================================
-        main_layout.addLayout(
-            input_layout
-        )
+        
 
         main_layout.addLayout(
             content_grid,
