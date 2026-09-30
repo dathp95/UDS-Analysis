@@ -65,6 +65,8 @@ class ActionPanel (QWidget):
         self.btn_copy = PrimaryButton(
             "COPY ASC DATA",
             width=160,
+            height=40,
+
         )
 
         self.btn_clear = PrimaryButton(
