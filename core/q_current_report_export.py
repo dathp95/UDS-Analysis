@@ -8,8 +8,20 @@ from typing import Sequence
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as WorkbookImage
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.styles import Alignment, Font
 
+from core.excel_styles import (
+    COLOR_SECTION,
+    FAIL_FILL,
+    HEADER_ALIGNMENT,
+    HEADER_FILL,
+    HEADER_FONT,
+    LEFT_ALIGNMENT,
+    PASS_FILL,
+    SECTION_FILL,
+    SECTION_FONT,
+    THIN_BORDER,
+)
 from core.q_current_analysis import QCurrentAnalysisResult, parse_q_current_timestamp
 
 
@@ -27,18 +39,6 @@ class QCurrentReportData:
     analysis_result: QCurrentAnalysisResult
     settings: QCurrentReportSettings
     chart_png: bytes | None = None
-
-
-_HEADER_FILL = PatternFill("solid", fgColor="D9EAF7")
-_SECTION_FILL = PatternFill("solid", fgColor="1F4E78")
-_PASS_FILL = PatternFill("solid", fgColor="C6EFCE")
-_FAIL_FILL = PatternFill("solid", fgColor="FFC7CE")
-_THIN_BORDER = Border(
-    left=Side(style="thin", color="B7B7B7"),
-    right=Side(style="thin", color="B7B7B7"),
-    top=Side(style="thin", color="B7B7B7"),
-    bottom=Side(style="thin", color="B7B7B7"),
-)
 
 
 def export_q_current_report(report_data: QCurrentReportData, output_file: str | Path) -> bool:
@@ -78,14 +78,14 @@ def _populate_data_review_sheet(sheet, samples: Sequence[object]) -> None:
     sheet.column_dimensions["B"].width = 16
 
     for cell in sheet[1]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center")
-        cell.fill = _HEADER_FILL
-        cell.border = _THIN_BORDER
+        cell.font = HEADER_FONT
+        cell.alignment = HEADER_ALIGNMENT
+        cell.fill = HEADER_FILL
+        cell.border = THIN_BORDER
 
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=2):
         for cell in row:
-            cell.border = _THIN_BORDER
+            cell.border = THIN_BORDER
         row[1].number_format = "0.00"
 
 
@@ -105,7 +105,7 @@ def _populate_report_sheet(
 
     sheet.merge_cells("A1:D1")
     sheet["A1"] = "Q CURRENT ANALYSIS REPORT"
-    sheet["A1"].font = Font(bold=True, size=18, color="1F4E78")
+    sheet["A1"].font = Font(bold=True, size=18, color=COLOR_SECTION)
     sheet["A1"].alignment = Alignment(horizontal="center")
 
     sheet.merge_cells("A2:D2")
@@ -128,9 +128,9 @@ def _populate_report_sheet(
     result_cell = sheet.cell(row=row, column=2, value=result.result_status)
     result_cell.font = Font(bold=True)
     if result.result_status == "PASSED":
-        result_cell.fill = _PASS_FILL
+        result_cell.fill = PASS_FILL
     elif result.result_status == "FAILED":
-        result_cell.fill = _FAIL_FILL
+        result_cell.fill = FAIL_FILL
     _style_metric_row(sheet, row)
     row += 1
 
@@ -173,9 +173,9 @@ def _populate_report_sheet(
 def _write_section(sheet, row: int, title: str) -> int:
     sheet.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
     cell = sheet.cell(row=row, column=1, value=title)
-    cell.font = Font(bold=True, color="FFFFFF")
-    cell.fill = _SECTION_FILL
-    cell.alignment = Alignment(horizontal="left")
+    cell.font = SECTION_FONT
+    cell.fill = SECTION_FILL
+    cell.alignment = LEFT_ALIGNMENT
     return row + 1
 
 
@@ -191,7 +191,7 @@ def _write_metric(sheet, row: int, label: str, value, number_format: str | None 
 def _style_metric_row(sheet, row: int) -> None:
     for column in range(1, 3):
         cell = sheet.cell(row=row, column=column)
-        cell.border = _THIN_BORDER
+        cell.border = THIN_BORDER
         if column == 1:
             cell.font = Font(bold=True)
 

@@ -1,5 +1,11 @@
 import pandas as pd
 
+from core.excel_styles import (
+    HEADER_ALIGNMENT,
+    HEADER_FILL,
+    HEADER_FONT,
+    THIN_BORDER,
+)
 from core.report_engine import (
     get_activity_table,
 )
@@ -8,6 +14,33 @@ from gui.presenters.transaction_presenter import fn_build_table_rows
 # ==========================================================
 # Private
 # ==========================================================
+
+
+def _format_table_sheet(
+        writer,
+        sheet_name: str,
+    ):
+    sheet = writer.sheets[sheet_name]
+
+    for cell in sheet[1]:
+        cell.font = HEADER_FONT
+        cell.alignment = HEADER_ALIGNMENT
+        cell.fill = HEADER_FILL
+        cell.border = THIN_BORDER
+
+    for row in sheet.iter_rows(
+        min_row=2,
+        max_row=sheet.max_row,
+        min_col=1,
+        max_col=sheet.max_column,
+    ):
+        for cell in row:
+            cell.border = THIN_BORDER
+
+    sheet.freeze_panes = "A2"
+
+    if sheet.max_column > 0:
+        sheet.auto_filter.ref = sheet.dimensions
 
 def _export_summary_sheet(
         summary,
@@ -27,6 +60,11 @@ def _export_summary_sheet(
         index=False,
     )
 
+    _format_table_sheet(
+        writer,
+        "Summary",
+    )
+
 
 def _export_ecu_report(
     report,
@@ -41,10 +79,17 @@ def _export_ecu_report(
 
     df = pd.DataFrame(table)
 
+    sheet_name = _safe_sheet_name(report["ecu"])
+
     df.to_excel(
         writer,
-        sheet_name=_safe_sheet_name(report["ecu"]),
+        sheet_name=sheet_name,
         index=False,
+    )
+
+    _format_table_sheet(
+        writer,
+        sheet_name,
     )
 
 
@@ -119,6 +164,11 @@ def _export_all_ecus(
         writer,
         sheet_name="ALL_ECUS",
         index=False,
+    )
+
+    _format_table_sheet(
+        writer,
+        "ALL_ECUS",
     )
 
 

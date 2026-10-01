@@ -4,7 +4,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QKeySequence, QShortcut, QTextCharFormat, QTextCursor
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -20,6 +19,13 @@ from PySide6.QtWidgets import (
 
 from config.paths import CODING_VALUE_REPORT_DIR, EXPORT_CODING_FILES_DIR
 from core.crc import calculate_crc8_sae_j1850
+from core.excel_styles import (
+    HEADER_ALIGNMENT,
+    HEADER_FILL,
+    HEADER_FONT,
+    THIN_BORDER,
+    WARNING_FILL,
+)
 from core.coding_value import (
     export_coding_value_rows_to_json,
     load_coding_value_rows,
@@ -677,6 +683,8 @@ class CodingValuePanel(QGroupBox):
         headers = self._coding_table_headers()
         sheet.append(headers)
         result_index = self._coding_result_column_index(headers)
+        no_match_rows = []
+
         for row_index in range(self.table.rowCount()):
             if self.table.isRowHidden(row_index):
                 continue
@@ -684,7 +692,12 @@ class CodingValuePanel(QGroupBox):
             values = self._coding_table_row_values(row_index)
             sheet.append(values)
             if self._is_no_match_export_row(values, result_index):
-                self._apply_no_match_export_fill(sheet[sheet.max_row])
+                no_match_rows.append(sheet.max_row)
+
+        self._format_coding_export_sheet(sheet)
+
+        for row_number in no_match_rows:
+            self._apply_no_match_export_fill(sheet[row_number])
 
         workbook.save(output_file)
         return output_file
@@ -705,14 +718,31 @@ class CodingValuePanel(QGroupBox):
         )
 
     @staticmethod
+    def _format_coding_export_sheet(sheet):
+        for cell in sheet[1]:
+            cell.font = HEADER_FONT
+            cell.alignment = HEADER_ALIGNMENT
+            cell.fill = HEADER_FILL
+            cell.border = THIN_BORDER
+
+        for row in sheet.iter_rows(
+            min_row=2,
+            max_row=sheet.max_row,
+            min_col=1,
+            max_col=sheet.max_column,
+        ):
+            for cell in row:
+                cell.border = THIN_BORDER
+
+        sheet.freeze_panes = "A2"
+
+        if sheet.max_column > 0:
+            sheet.auto_filter.ref = sheet.dimensions
+
+    @staticmethod
     def _apply_no_match_export_fill(row_cells):
-        warning = ThemeManager.fn_colors().WARNING.replace("#", "")
-        fill = PatternFill(
-            fill_type="solid",
-            fgColor=warning,
-        )
         for cell in row_cells:
-            cell.fill = fill
+            cell.fill = WARNING_FILL
 
     def _coding_export_sheet_name(self):
         return self._safe_excel_sheet_name(

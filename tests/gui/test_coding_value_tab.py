@@ -15,10 +15,16 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainText
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingValueOption, CodingValueRow
+from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
+
+
+def _excel_color(cell):
+    value = cell.fill.fgColor.rgb
+    return "" if value is None else str(value).upper()
 
 
 class CodingValueTabTests(unittest.TestCase):
@@ -1260,6 +1266,13 @@ class CodingValueTabTests(unittest.TestCase):
             self.assertEqual(exported_sheet.cell(row=2, column=5).value, "03")
             self.assertEqual(exported_sheet.cell(row=2, column=6).value, "VF3")
             self.assertEqual(exported_sheet.cell(row=2, column=9).value, "MATCH")
+            self.assertEqual(exported_sheet.freeze_panes, "A2")
+            self.assertEqual(exported_sheet.auto_filter.ref, exported_sheet.dimensions)
+            self.assertTrue(exported_sheet["A1"].font.bold)
+            self.assertTrue(_excel_color(exported_sheet["A1"]).endswith(COLOR_HEADER))
+            self.assertEqual(exported_sheet["A1"].alignment.horizontal, "center")
+            self.assertEqual(exported_sheet["A1"].border.left.style, "thin")
+            self.assertEqual(exported_sheet["A2"].border.left.style, "thin")
     def test_export_button_highlights_no_match_rows_with_warning_fill(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -1311,12 +1324,11 @@ class CodingValueTabTests(unittest.TestCase):
             exported_path = Path(information.call_args.args[2].split("\n\n")[1])
             exported = load_workbook(exported_path)
             exported_sheet = exported["Coding value_62 F1 08"]
-            warning = ThemeManager.fn_colors().WARNING.replace("#", "").upper()
-
             self.assertEqual(exported_sheet.cell(row=2, column=9).value, "No-M")
             for cell in exported_sheet[2]:
                 self.assertEqual(cell.fill.fill_type, "solid")
-                self.assertTrue(cell.fill.fgColor.rgb.upper().endswith(warning))
+                self.assertTrue(cell.fill.fgColor.rgb.upper().endswith(COLOR_WARNING))
+                self.assertEqual(cell.border.left.style, "thin")
 
     def test_table_clear_button_clears_table_and_working_log(self):
         workbook = Workbook()
