@@ -913,7 +913,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIn("No samples exist inside", warning_box.call_args.args[2])
             self.assertIsNone(tab.current_analysis_result)
 
-    def test_analysis_range_can_be_set_from_review_rows_and_cursors(self):
+    def test_analysis_range_can_be_set_from_review_rows_without_touching_cursors(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
             tab._load_samples_into_workspace([
@@ -924,19 +924,25 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertTrue(tab.set_analysis_start_from_review_row(1))
             self.assertEqual(tab.analysis_start_time_edit.value(), 42.5)
+            self.assertIsNone(tab.cursor_a_index)
             self.assertTrue(tab.set_analysis_end_from_review_row(2))
             self.assertEqual(tab.analysis_end_time_edit.value(), 48.2)
+            self.assertIsNone(tab.cursor_b_index)
 
             tab.btn_run.click()
             tab.set_cursor_a(0)
             tab.set_cursor_b(2)
-            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_start_time_edit.value(), 42.5)
             self.assertEqual(tab.analysis_end_time_edit.value(), 48.2)
 
             tab.analysis_start_time_edit.setValue(43.0)
+            tab.analysis_end_time_edit.setValue(47.0)
             self.assertEqual(tab.analysis_start_time_edit.value(), 43.0)
-            self.assertEqual(tab.cursor_a_index, 1)
-            self.assertEqual(tab.cursor_a_value_label.text(), "A: 42.500 s | 182.30 mA")
+            self.assertEqual(tab.analysis_end_time_edit.value(), 47.0)
+            self.assertEqual(tab.cursor_a_index, 0)
+            self.assertEqual(tab.cursor_b_index, 2)
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: 0.000 s | 10.00 mA")
+            self.assertEqual(tab.cursor_b_value_label.text(), "B: 48.200 s | 179.80 mA")
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
 
     def test_analysis_range_resets_for_new_dataset_and_clear(self):
@@ -1259,6 +1265,61 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(view_box.menuEnabled())
             self.assertEqual(tab._chart_context_action_at_scene_position(None), (None, None))
 
+    def test_context_menus_use_shared_style_and_range_actions_do_not_touch_cursors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(10.5, 20.0),
+                self._sample(20.75, 30.0),
+            ])
+            tab.btn_run.click()
+            tab.set_cursor_a(0)
+            tab.set_cursor_b(2)
+            cursor_a_before = tab.cursor_a_index
+            cursor_b_before = tab.cursor_b_index
+
+            with patch("gui.tabs.q_current_tab.fn_apply_menu_style") as apply_style:
+                review_menu, review_actions = tab._create_review_context_menu()
+            apply_style.assert_called_once_with(review_menu)
+            self.assertEqual(
+                [action.text() for action in review_menu.actions()],
+                ["Set Start Time", "Set End Time"],
+            )
+            self.assertIn("set_start_time", review_actions)
+            self.assertIn("set_end_time", review_actions)
+
+            self.assertTrue(tab.set_analysis_start_from_review_row(1))
+            self.assertTrue(tab.set_analysis_end_from_review_row(2))
+            self.assertEqual(tab.analysis_start_time_edit.value(), 10.5)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 20.75)
+            self.assertEqual(tab.cursor_a_index, cursor_a_before)
+            self.assertEqual(tab.cursor_b_index, cursor_b_before)
+
+            with patch("gui.tabs.q_current_tab.fn_apply_menu_style") as apply_style:
+                chart_menu, chart_actions = tab._create_chart_context_menu("pin")
+            apply_style.assert_called_once_with(chart_menu)
+            self.assertIn("set_start_time", chart_actions)
+            self.assertIn("set_end_time", chart_actions)
+
+            tab._apply_chart_context_menu_selection(
+                chart_actions["set_start_time"],
+                chart_actions,
+                "pin",
+                1,
+            )
+            tab._apply_chart_context_menu_selection(
+                chart_actions["set_end_time"],
+                chart_actions,
+                "pin",
+                2,
+            )
+            self.assertEqual(tab.analysis_start_time_edit.value(), 10.5)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 20.75)
+            self.assertEqual(tab.cursor_a_index, cursor_a_before)
+            self.assertEqual(tab.cursor_b_index, cursor_b_before)
+            self.assertEqual(tab.chart_pins, [])
+
     def test_chart_ab_cursors_measure_real_elapsed_time_and_signed_current(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
@@ -1281,7 +1342,7 @@ class QCurrentTabTests(unittest.TestCase):
             menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 [item.text() for item in menu.actions() if not item.isSeparator()],
-                ["Pin", "Set Cursor A", "Set Cursor B"],
+                ["Pin", "Set Start Time", "Set End Time", "Set Cursor A", "Set Cursor B"],
             )
 
             tab.set_cursor_a(1)
@@ -1347,7 +1408,7 @@ class QCurrentTabTests(unittest.TestCase):
             menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 [item.text() for item in menu.actions() if not item.isSeparator()],
-                ["Pin", "Set Cursor A", "Set Cursor B"],
+                ["Pin", "Set Start Time", "Set End Time", "Set Cursor A", "Set Cursor B"],
             )
             self.assertIsNone(actions["clear_all_pins"])
 
@@ -1366,7 +1427,16 @@ class QCurrentTabTests(unittest.TestCase):
             menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 ["---" if item.isSeparator() else item.text() for item in menu.actions()],
-                ["Delete Pin", "Set Cursor A", "Set Cursor B", "---", "Clear All Pins"],
+                [
+                    "Delete Pin",
+                    "---",
+                    "Set Start Time",
+                    "Set End Time",
+                    "Set Cursor A",
+                    "Set Cursor B",
+                    "---",
+                    "Clear All Pins",
+                ],
             )
             self.assertIsNotNone(actions["clear_all_pins"])
             self.assertFalse(tab.pin_chart_sample(1))
@@ -1379,7 +1449,16 @@ class QCurrentTabTests(unittest.TestCase):
             menu, actions = tab._create_chart_context_menu(action)
             self.assertEqual(
                 ["---" if item.isSeparator() else item.text() for item in menu.actions()],
-                ["Pin", "Set Cursor A", "Set Cursor B", "---", "Clear All Pins"],
+                [
+                    "Pin",
+                    "---",
+                    "Set Start Time",
+                    "Set End Time",
+                    "Set Cursor A",
+                    "Set Cursor B",
+                    "---",
+                    "Clear All Pins",
+                ],
             )
             self.assertIsNotNone(actions["clear_all_pins"])
 
