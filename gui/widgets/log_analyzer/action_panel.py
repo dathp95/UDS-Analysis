@@ -216,6 +216,29 @@ class ActionPanel(QWidget):
             clear=False,
         )
 
+    def fn_set_log_loading(self) -> None:
+        self.lbl_analysis_status.setText("Reading log channels...")
+        self.progress_analysis.setRange(0, 0)
+        self.btn_run.setText("Analyze")
+        self._fn_enable_buttons(
+            run=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def fn_set_log_loaded(self) -> None:
+        self.lbl_analysis_status.setText("Log loaded")
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(100)
+        self.btn_run.setText("Analyze")
+
+    def fn_set_log_load_failed(self) -> None:
+        self.lbl_analysis_status.setText("Log load failed")
+        self.progress_analysis.setRange(0, 100)
+        self.progress_analysis.setValue(0)
+        self.btn_run.setText("Analyze")
+
     def fn_set_analysis_status(
             self,
             text: str,

@@ -21,8 +21,8 @@ from gui.widgets.log_analyzer.result_table import ResultTable
 from gui.widgets.log_analyzer.right_panel import RightPanel
 from gui.widgets.vehicle_manager.vehicle_selector import VehicleSelectorWidget
 from gui.workers.analysis_worker import AnalysisWorker
+from gui.workers.log_channel_worker import LogChannelWorker
 from services.vehicle_service import VehicleService
-from core.asc_reader import get_log_channels
 
 
 class LogAnalyzerTab(QWidget):
@@ -35,6 +35,9 @@ class LogAnalyzerTab(QWidget):
         self._analysis_running = False
         self._analysis_thread = None
         self._analysis_worker = None
+        self._log_loading = False
+        self._log_channel_thread = None
+        self._log_channel_worker = None
 
         # Controllers
         self._create_controllers()
@@ -365,38 +368,122 @@ class LogAnalyzerTab(QWidget):
 
         self._invalidate_analysis_result()
         self.channel_selector.fn_clear()
+        self.right_panel.action_panel.fn_set_analysis_ready()
 
         if not file_path:
             self._update_analyze_state()
             return
 
-        try:
-            channels = get_log_channels(file_path)
+        self._start_log_channel_discovery(
+            file_path
+        )
 
-        except (OSError, ValueError) as e:
-            self.channel_selector.fn_set_channels([])
+    def _start_log_channel_discovery(
+        self,
+        file_path: str,
+    ) -> None:
+        self._log_loading = True
+        self._fn_set_log_loading_inputs_enabled(False)
+        self.right_panel.action_panel.fn_set_log_loading()
+        self._fn_start_log_channel_thread(file_path)
 
-            QMessageBox.warning(
-                self,
-                "Log File",
-                str(e),
+    def _fn_start_log_channel_thread(
+        self,
+        file_path: str,
+    ) -> None:
+        self._log_channel_thread = QThread(self)
+        self._log_channel_worker = LogChannelWorker(file_path)
+        self._log_channel_worker.moveToThread(
+            self._log_channel_thread
+        )
+
+        self._log_channel_thread.started.connect(
+            self._log_channel_worker.run
+        )
+        self._log_channel_worker.finished.connect(
+            self._fn_log_channels_loaded
+        )
+        self._log_channel_worker.failed.connect(
+            self._fn_log_channels_failed
+        )
+        self._log_channel_worker.finished.connect(
+            self._log_channel_thread.quit
+        )
+        self._log_channel_worker.failed.connect(
+            self._log_channel_thread.quit
+        )
+        self._log_channel_thread.finished.connect(
+            self._log_channel_worker.deleteLater
+        )
+        self._log_channel_thread.finished.connect(
+            self._log_channel_thread.deleteLater
+        )
+        self._log_channel_thread.finished.connect(
+            self._fn_log_channel_thread_finished
+        )
+
+        self._log_channel_thread.start()
+
+    def _fn_log_channels_loaded(
+        self,
+        channels,
+    ) -> None:
+        valid_channels = sorted({
+            int(channel)
+            for channel in channels
+            if channel is not None
+        })
+
+        if not valid_channels:
+            self._fn_log_channels_failed(
+                "No CAN channel detected in the selected log."
             )
-
-            self._update_analyze_state()
             return
 
-        self.channel_selector.fn_set_channels(channels)
-
-        if not channels:
-            QMessageBox.warning(
-                self,
-                "Log File",
-                "No CAN channel detected in the selected log.",
-            )
-
+        self._log_loading = False
+        self.channel_selector.fn_set_channels(valid_channels)
+        self._fn_set_log_loading_inputs_enabled(True)
+        self.right_panel.action_panel.fn_set_log_loaded()
         self._update_analyze_state()
 
+        channel_count = len(valid_channels)
+        plural = "s" if channel_count != 1 else ""
+
+        QMessageBox.information(
+            self,
+            "Log File Loaded",
+            (
+                "Log file loaded successfully.\n"
+                f"Detected {channel_count} CAN channel{plural}."
+            ),
+        )
+
+    def _fn_log_channels_failed(
+        self,
+        message: str,
+    ) -> None:
+        self._log_loading = False
+        self._invalidate_analysis_result()
+        self.channel_selector.fn_set_channels([])
+        self._fn_set_log_loading_inputs_enabled(True)
+        self.right_panel.action_panel.fn_set_log_load_failed()
+        self._update_analyze_state()
+
+        QMessageBox.warning(
+            self,
+            "Log File",
+            message,
+        )
+
+    def _fn_log_channel_thread_finished(self) -> None:
+        self._log_channel_thread = None
+        self._log_channel_worker = None
+
     def _update_analyze_state(self):
+        if self._log_loading:
+            self.right_panel.action_panel.fn_set_log_loading()
+            return
+
         if self._analysis_running:
             self.right_panel.action_panel.fn_set_analysis_started()
             return
@@ -419,8 +506,19 @@ class LogAnalyzerTab(QWidget):
         self.channel_selector.setEnabled(enabled)
         self.log_selector.setEnabled(enabled)
 
+    def _fn_set_log_loading_inputs_enabled(
+        self,
+        enabled: bool,
+    ) -> None:
+        self.vehicle_selector.setEnabled(enabled)
+        self.channel_selector.setEnabled(enabled)
+        self.log_selector.setEnabled(enabled)
+        self.filter_box.setEnabled(enabled)
+        self.left_panel.setEnabled(enabled)
+        self.tbl_result.setEnabled(enabled)
+
     def fn_run_clicked(self):
-        if self._analysis_running:
+        if self._analysis_running or self._log_loading:
             return
 
         log_file = self.log_selector.path()

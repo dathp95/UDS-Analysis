@@ -309,7 +309,22 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2])
+
+    def _select_log_for_async_discovery(self) -> None:
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
 
     def _successful_analysis_result(self) -> dict:
         return {
@@ -346,7 +361,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
             "0.001 1 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
         )
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([1])
 
         self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
         self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
@@ -368,7 +386,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([1, 2])
 
         self.assertTrue(self.tab.channel_selector.cmb_channel.isEnabled())
         self.assertEqual(self.tab.channel_selector.cmb_channel.currentIndex(), -1)
@@ -386,7 +407,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2])
 
         with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread:
             self.tab.fn_run_clicked()
@@ -405,7 +429,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2, 5, 12])
         self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
 
         with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread:
@@ -429,12 +456,18 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(first_log))
-        self.tab.fn_log_file_changed(str(first_log))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(first_log))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([1, 2, 3])
         self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
         self.assertEqual(self.tab.channel_selector.fn_channel(), 2)
 
         self.tab.log_selector.set_path(str(second_log))
-        self.tab.fn_log_file_changed(str(second_log))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(second_log))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([4, 5])
 
         self.assertEqual(self.tab.channel_selector.cmb_channel.currentIndex(), -1)
         self.assertIsNone(self.tab.channel_selector.fn_channel())
@@ -455,7 +488,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2])
 
         with patch.object(self.tab, "_fn_start_analysis_thread") as start_thread, patch.object(
             self.tab.analysis_controller,
@@ -594,7 +630,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2])
         self.tab._analysis_running = True
         self.tab._fn_set_analysis_inputs_enabled(False)
 
@@ -646,9 +685,20 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
 
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
 
         self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([3])
+
         self._assert_action_buttons(
             analyze=True,
             export=False,
@@ -663,7 +713,10 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab._current_vehicle = object()
         self.tab.log_selector.set_path(str(log_file))
-        self.tab.fn_log_file_changed(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread"):
+            self.tab.fn_log_file_changed(str(log_file))
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([2, 5])
         self.tab.channel_selector.cmb_channel.setCurrentIndex(0)
         result = self._successful_analysis_result()
         self.tab.analysis_controller.pipeline_result = result
@@ -679,6 +732,156 @@ class LogAnalyzerTabTests(unittest.TestCase):
             clear=False,
         )
 
+    def test_selecting_log_enters_loading_state_and_locks_controls(self):
+        self.tab.analysis_controller.pipeline_result = self._successful_analysis_result()
+        self.tab.right_panel.action_panel.fn_set_analysis_completed()
+        self.tab.right_panel.action_panel.fn_set_analyzed_state()
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+
+        self.tab.log_selector.set_path(str(log_file))
+        with patch.object(self.tab, "_fn_start_log_channel_thread") as start_thread:
+            self.tab.fn_log_file_changed(str(log_file))
+
+        start_thread.assert_called_once_with(str(log_file))
+        self.assertTrue(self.tab._log_loading)
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Reading log channels...",
+        )
+        self.assertEqual(
+            self.tab.right_panel.action_panel.progress_analysis.maximum(),
+            0,
+        )
+        self.assertFalse(self.tab.vehicle_selector.isEnabled())
+        self.assertFalse(self.tab.channel_selector.isEnabled())
+        self.assertFalse(self.tab.log_selector.isEnabled())
+        self.assertFalse(self.tab.filter_box.isEnabled())
+        self.assertFalse(self.tab.left_panel.isEnabled())
+        self.assertFalse(self.tab.tbl_result.isEnabled())
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_log_channel_success_single_channel_restores_ready_state(self):
+        self._select_log_for_async_discovery()
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information") as info:
+            self.tab._fn_log_channels_loaded([2])
+
+        self.assertFalse(self.tab._log_loading)
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 2)
+        self.assertFalse(self.tab.channel_selector.cmb_channel.isEnabled())
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Log loaded",
+        )
+        self.assertEqual(
+            self.tab.right_panel.action_panel.progress_analysis.value(),
+            100,
+        )
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+        info.assert_called_once()
+        self.assertIn("Detected 1 CAN channel.", info.call_args.args[2])
+
+    def test_log_channel_success_multiple_channels_waits_for_channel_selection(self):
+        self._select_log_for_async_discovery()
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information") as info:
+            self.tab._fn_log_channels_loaded([1, 2, 4])
+
+        self.assertFalse(self.tab._log_loading)
+        self.assertTrue(self.tab.channel_selector.cmb_channel.isEnabled())
+        self.assertIsNone(self.tab.channel_selector.fn_channel())
+        self.assertEqual(
+            [
+                self.tab.channel_selector.cmb_channel.itemData(index)
+                for index in range(self.tab.channel_selector.cmb_channel.count())
+            ],
+            [1, 2, 4],
+        )
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+        info.assert_called_once()
+        self.assertIn("Detected 3 CAN channels.", info.call_args.args[2])
+
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+
+        self.assertEqual(self.tab.channel_selector.fn_channel(), 2)
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_log_channel_success_with_no_channels_is_failure(self):
+        self._select_log_for_async_discovery()
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information") as info, patch(
+            "gui.tabs.log_analyzer_tab.QMessageBox.warning"
+        ) as warning:
+            self.tab._fn_log_channels_loaded([])
+
+        self.assertFalse(self.tab._log_loading)
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Log load failed",
+        )
+        self.assertEqual(
+            self.tab.right_panel.action_panel.progress_analysis.value(),
+            0,
+        )
+        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+        info.assert_not_called()
+        warning.assert_called_once()
+
+    def test_log_channel_failure_restores_controls_without_stale_result(self):
+        self._select_log_for_async_discovery()
+        self.tab.analysis_controller.pipeline_result = self._successful_analysis_result()
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning:
+            self.tab._fn_log_channels_failed("Broken log")
+
+        self.assertFalse(self.tab._log_loading)
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self.assertTrue(self.tab.vehicle_selector.isEnabled())
+        self.assertTrue(self.tab.log_selector.isEnabled())
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Log load failed",
+        )
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+        warning.assert_called_once()
+
+    def test_log_channel_thread_finished_clears_references(self):
+        self.tab._log_channel_thread = object()
+        self.tab._log_channel_worker = object()
+
+        self.tab._fn_log_channel_thread_finished()
+
+        self.assertIsNone(self.tab._log_channel_thread)
+        self.assertIsNone(self.tab._log_channel_worker)
+
     def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
         log_file = self._write_log(
             "PT BO INFO\n"
@@ -687,8 +890,14 @@ class LogAnalyzerTabTests(unittest.TestCase):
         )
         self.tab.log_selector.set_path(str(log_file))
 
-        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning:
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning") as warning, patch.object(
+            self.tab,
+            "_fn_start_log_channel_thread",
+        ):
             self.tab.fn_log_file_changed(str(log_file))
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.information"):
+            self.tab._fn_log_channels_loaded([1])
 
         self.assertEqual(self.tab.log_selector.path(), str(log_file))
         self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
