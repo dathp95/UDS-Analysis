@@ -288,8 +288,58 @@ class LogAnalyzerTabTests(unittest.TestCase):
         handle.close()
         return Path(handle.name)
 
+    def _assert_action_buttons(
+        self,
+        *,
+        analyze: bool,
+        export: bool,
+        copy: bool,
+        clear: bool,
+    ) -> None:
+        panel = self.tab.right_panel.action_panel
+
+        self.assertEqual(panel.btn_run.isEnabled(), analyze)
+        self.assertEqual(panel.btn_export.isEnabled(), export)
+        self.assertEqual(panel.btn_copy.isEnabled(), copy)
+        self.assertEqual(panel.btn_clear.isEnabled(), clear)
+
+    def _select_valid_single_channel_inputs(self) -> None:
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+
+    def _successful_analysis_result(self) -> dict:
+        return {
+            "transactions": [
+                {
+                    "ecu": "VCU",
+                    "request": {
+                        "timestamp": 0.001,
+                        "payload": "22 F1 90",
+                    },
+                    "positive_response": {
+                        "payload": "62 F1 90",
+                    },
+                    "response_time": 0.001,
+                    "display_name": "Read DID",
+                    "status": "OK",
+                }
+            ]
+        }
+
     def test_starts_without_a_vehicle_selection(self):
         self.assertEqual(self.tab.vehicle_selector.fn_vehicle(), "")
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self.assertFalse(hasattr(self.tab, "pipeline_result"))
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
 
     def test_analyze_waits_for_vehicle_after_selecting_valid_log(self):
         log_file = self._write_log(
@@ -300,6 +350,16 @@ class LogAnalyzerTabTests(unittest.TestCase):
 
         self.assertEqual(self.tab.channel_selector.fn_channel(), 1)
         self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+
+    def test_valid_inputs_enable_only_analyze_before_analysis(self):
+        self._select_valid_single_channel_inputs()
+
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
 
     def test_multi_channel_log_requires_channel_selection(self):
         log_file = self._write_log(
@@ -422,6 +482,52 @@ class LogAnalyzerTabTests(unittest.TestCase):
             self.tab.right_panel.action_panel.progress_analysis.maximum(),
             0,
         )
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_starting_new_analysis_invalidates_previous_result(self):
+        old_result = self._successful_analysis_result()
+        self._select_valid_single_channel_inputs()
+        self.tab.analysis_controller.pipeline_result = old_result
+        self.tab.right_panel.action_panel.fn_set_analyzed_state()
+
+        with patch.object(self.tab, "_fn_start_analysis_thread"):
+            self.tab.fn_run_clicked()
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self._assert_action_buttons(
+            analyze=False,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_failed_new_analysis_does_not_keep_previous_result_exportable(self):
+        old_result = self._successful_analysis_result()
+        self._select_valid_single_channel_inputs()
+        self.tab.analysis_controller.pipeline_result = old_result
+
+        with patch.object(self.tab, "_fn_start_analysis_thread"):
+            self.tab.fn_run_clicked()
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning"):
+            self.tab._fn_analysis_failed("Broken log")
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Failed",
+        )
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
 
     def test_analysis_success_updates_results_and_restores_inputs(self):
         self.tab._analysis_running = True
@@ -438,12 +544,16 @@ class LogAnalyzerTabTests(unittest.TestCase):
             ]
         }
 
+        self.tab.analysis_controller.pipeline_result = result
+
         with patch(
             "gui.tabs.log_analyzer_tab.fn_build_transaction_rows",
             return_value=[{"ECU": "VCU", "Time": "0.001", "Activity": "Read DID", "Request": "22 F1 90", "Response": "62 F1 90", "RT (ms)": "1.00", "Status": "Positive"}],
         ):
             self.tab._fn_analysis_finished(result)
 
+        self.assertFalse(hasattr(self.tab, "pipeline_result"))
+        self.assertIs(self.tab.analysis_controller.pipeline_result, result)
         self.assertFalse(self.tab._analysis_running)
         self.assertTrue(self.tab.vehicle_selector.isEnabled())
         self.assertTrue(self.tab.channel_selector.isEnabled())
@@ -456,6 +566,27 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.assertTrue(self.tab.right_panel.action_panel.btn_export.isEnabled())
         self.assertTrue(self.tab.right_panel.action_panel.btn_copy.isEnabled())
         self.assertTrue(self.tab.right_panel.action_panel.btn_clear.isEnabled())
+
+    def test_clear_with_valid_inputs_resets_result_and_returns_to_ready(self):
+        result = self._successful_analysis_result()
+        self._select_valid_single_channel_inputs()
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab._fn_analysis_finished(result)
+
+        self.tab.fn_clear_clicked()
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self.assertFalse(hasattr(self.tab, "pipeline_result"))
+        self.assertEqual(
+            self.tab.right_panel.action_panel.lbl_analysis_status.text(),
+            "Ready",
+        )
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
 
     def test_analysis_failure_restores_ready_state_without_analyzed_actions(self):
         log_file = self._write_log(
@@ -483,6 +614,70 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.assertFalse(self.tab.right_panel.action_panel.btn_export.isEnabled())
         self.assertFalse(self.tab.right_panel.action_panel.btn_copy.isEnabled())
         self.assertFalse(self.tab.right_panel.action_panel.btn_clear.isEnabled())
+
+    def test_vehicle_change_invalidates_previous_result_and_export(self):
+        result = self._successful_analysis_result()
+        self._select_valid_single_channel_inputs()
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab.right_panel.action_panel.fn_set_analyzed_state()
+
+        with patch.object(
+            self.tab.vehicle_service,
+            "load_vehicle",
+            return_value=object(),
+        ):
+            self.tab.fn_vehicle_changed("VF6")
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_log_file_change_invalidates_previous_result_and_export(self):
+        result = self._successful_analysis_result()
+        self._select_valid_single_channel_inputs()
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab.right_panel.action_panel.fn_set_analyzed_state()
+        log_file = self._write_log(
+            "0.001 3 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+        )
+
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
+
+    def test_channel_change_invalidates_previous_result_and_export(self):
+        log_file = self._write_log(
+            "0.001 2 681 Rx d 8 03 22 F1 90 00 00 00 00\n"
+            "0.002 5 682 Rx d 8 03 22 F1 91 00 00 00 00\n"
+        )
+        self.tab._current_vehicle = object()
+        self.tab.log_selector.set_path(str(log_file))
+        self.tab.fn_log_file_changed(str(log_file))
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(0)
+        result = self._successful_analysis_result()
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab.right_panel.action_panel.fn_set_analyzed_state()
+
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(1)
+
+        self.assertIsNone(self.tab.analysis_controller.pipeline_result)
+        self._assert_action_buttons(
+            analyze=True,
+            export=False,
+            copy=False,
+            clear=False,
+        )
 
     def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
         log_file = self._write_log(

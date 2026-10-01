@@ -31,7 +31,6 @@ class LogAnalyzerTab(QWidget):
         super().__init__()
 
         # Runtime data
-        self.pipeline_result = None
         self._current_vehicle = None
         self._analysis_running = False
         self._analysis_thread = None
@@ -249,7 +248,7 @@ class LogAnalyzerTab(QWidget):
         )
 
         self.channel_selector.channel_changed.connect(
-            self._update_analyze_state
+            self._fn_channel_changed
         )
 
         self.filter_box.filter_changed.connect(
@@ -336,6 +335,8 @@ class LogAnalyzerTab(QWidget):
         vehicle_name: str,
     ):
 
+        self._invalidate_analysis_result()
+
         if not vehicle_name:
             self._current_vehicle = None
             self._update_analyze_state()
@@ -347,11 +348,22 @@ class LogAnalyzerTab(QWidget):
 
         self._update_analyze_state()
 
+    def _fn_channel_changed(
+        self,
+        channel,
+    ):
+        self._invalidate_analysis_result()
+        self._update_analyze_state()
+
+    def _invalidate_analysis_result(self) -> None:
+        self.analysis_controller.pipeline_result = None
+
     def fn_log_file_changed(
         self,
         file_path: str,
     ):
 
+        self._invalidate_analysis_result()
         self.channel_selector.fn_clear()
 
         if not file_path:
@@ -415,6 +427,7 @@ class LogAnalyzerTab(QWidget):
         vehicle = self._current_vehicle
         channel = self.channel_selector.fn_channel()
 
+        self._invalidate_analysis_result()
         self._analysis_running = True
         self._fn_set_analysis_inputs_enabled(False)
         self.right_panel.action_panel.fn_set_analysis_started()
@@ -477,8 +490,6 @@ class LogAnalyzerTab(QWidget):
     ):
         self._analysis_running = False
         self._fn_set_analysis_inputs_enabled(True)
-        self.pipeline_result = result
-        self.analysis_controller.pipeline_result = result
 
         rows = fn_build_transaction_rows(
             result["transactions"]
@@ -529,13 +540,10 @@ class LogAnalyzerTab(QWidget):
 
         self.tbl_result.clear_data()
         self.filter_box.clear()
-        self.pipeline_result = None
-        self.analysis_controller.pipeline_result = None
-        self.right_panel.action_panel.fn_set_analysis_ready()
-        
-        self.right_panel.action_panel.fn_set_empty_state()
+        self._invalidate_analysis_result()
         self.right_panel.action_panel.fn_clear_detail_panels()
         self.left_panel.fn_disable_quick_access()
+        self.right_panel.action_panel.fn_set_analysis_ready()
         self._update_analyze_state()
 
     def fn_filter_transactions(self, keyword=None):

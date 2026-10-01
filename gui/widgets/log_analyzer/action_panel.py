@@ -199,17 +199,6 @@ class ActionPanel(QWidget):
             clear=True,
         )
 
-    def fn_set_empty_state(self) -> None:
-        """Update action buttons for an empty result table state."""
-
-        self.btn_run.setText("Analyze")
-        self._fn_enable_buttons(
-            run=True,
-            export=False,
-            copy=False,
-            clear=False,
-        )
-
     def fn_set_analysis_ready(self) -> None:
         self.lbl_analysis_status.setText("Ready")
         self.progress_analysis.setRange(0, 100)
