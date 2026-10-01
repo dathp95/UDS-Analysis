@@ -499,7 +499,6 @@ class LogAnalyzerTab(QWidget):
     ):
         self._analysis_running = False
         self._fn_set_analysis_inputs_enabled(True)
-        self.right_panel.action_panel.fn_set_analysis_failed(message)
         self._update_analyze_state()
         self.right_panel.action_panel.fn_set_analysis_failed(message)
 

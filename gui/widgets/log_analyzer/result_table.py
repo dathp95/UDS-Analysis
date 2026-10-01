@@ -40,18 +40,12 @@ class ResultTable(PrimaryTable):
         self.fn_refresh_theme()
 
     def _setup_ui(self):
-        headers = [
-            "ECU",
-            "Time",
-            "Activity",
-            "Request",
-            "Response",
-            "RT (ms)",
-            "Status"
-        ]
-
-        self.setColumnCount(len(headers))
-        self.setHorizontalHeaderLabels(headers)
+        self.setColumnCount(
+            len(self.TRANSACTION_FIELDS)
+        )
+        self.setHorizontalHeaderLabels(
+            self.TRANSACTION_FIELDS
+        )
         self.setSortingEnabled(False)
 
         header = self.horizontalHeader()
