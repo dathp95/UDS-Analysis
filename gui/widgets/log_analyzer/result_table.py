@@ -65,7 +65,7 @@ class ResultTable(PrimaryTable):
         header.setStretchLastSection(False)
 
         header.setSectionResizeMode(
-            self._fn_column_index("Activity"),
+            self._fn_column_index("Status"),
             QHeaderView.Stretch,
         )
 
@@ -117,10 +117,10 @@ class ResultTable(PrimaryTable):
         )
 
        
-        # self.setColumnWidth(
-        #     self._fn_column_index("Activity"),
-        #     170
-        # )
+        self.setColumnWidth(
+            self._fn_column_index("Activity"),
+            250
+        )
 
         self.setColumnWidth(
             self._fn_column_index("Request"),
@@ -137,10 +137,7 @@ class ResultTable(PrimaryTable):
             80
         )
 
-        self.setColumnWidth(
-            self._fn_column_index("Status"),
-            110
-        )
+        
 
     
     def fn_search(
@@ -175,6 +172,7 @@ class ResultTable(PrimaryTable):
                     row,
                     False
                 )
+            self._fn_reset_scroll_position()
 
             return
 
@@ -206,7 +204,18 @@ class ResultTable(PrimaryTable):
                 row,
                 not matched
             )
+       
+        # Reset table view to the beginning after search
+        self._fn_reset_scroll_position()
 
+    def _fn_reset_scroll_position(self):
+        self.verticalScrollBar().setValue(
+            self.verticalScrollBar().minimum()
+        )
+
+        self.horizontalScrollBar().setValue(
+            self.horizontalScrollBar().minimum()
+        )
   
     def fn_row_data(
             self,
