@@ -1863,6 +1863,131 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
             self.assertEqual(tab.chart_current_ma.tolist(), [1.0, -2.0])
 
+
+    def test_analysis_range_markers_exist_and_start_hidden(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+
+            self.assertIsNotNone(tab.analysis_start_line)
+            self.assertIsNotNone(tab.analysis_end_line)
+            self.assertIsNotNone(tab.analysis_start_label)
+            self.assertIsNotNone(tab.analysis_end_label)
+            self.assertFalse(tab.analysis_start_line.isVisible())
+            self.assertFalse(tab.analysis_end_line.isVisible())
+            self.assertFalse(tab.analysis_start_label.isVisible())
+            self.assertFalse(tab.analysis_end_label.isVisible())
+
+    def test_analysis_range_markers_follow_duration_mode_and_label_nearest_samples(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample("2026-09-11 14:10:36.025", 10.0),
+                self._sample("2026-09-11 14:30:36.125", -18.42),
+                self._sample("2026-09-11 15:30:36.025", 21.75),
+                self._sample("2026-09-11 16:10:36.025", 5.0),
+            ])
+            tab.analysis_start_time_edit.setValue(1200.0)
+            tab.sampling_duration_edit.setValue(60.0)
+
+            tab.btn_run.click()
+
+            self.assertTrue(tab.analysis_start_line.isVisible())
+            self.assertTrue(tab.analysis_end_line.isVisible())
+            self.assertAlmostEqual(tab.analysis_start_line.value(), 1200.0, places=3)
+            self.assertAlmostEqual(tab.analysis_end_line.value(), 4800.0, places=3)
+            self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1200.1, 4800.0, 7200.0])
+            start_html = tab.analysis_start_label.toHtml().replace("\xa0", " ")
+            end_html = tab.analysis_end_label.toHtml().replace("\xa0", " ")
+            self.assertIn("START", start_html)
+            self.assertIn("1200.00 s", start_html)
+            self.assertIn("14:30:36.125", start_html)
+            self.assertIn("-18.42 mA", start_html)
+            self.assertIn("END", end_html)
+            self.assertIn("4800.00 s", end_html)
+            self.assertIn("15:30:36.025", end_html)
+            self.assertIn("21.75 mA", end_html)
+
+            tab.sampling_duration_edit.setValue(90.0)
+
+            self.assertAlmostEqual(tab.analysis_end_line.value(), 6600.0, places=3)
+            self.assertTrue(tab.analysis_start_label.isVisible())
+            self.assertTrue(tab.analysis_end_label.isVisible())
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+    def test_analysis_range_markers_follow_manual_end_and_out_of_range_duration(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1800.0, -20.0),
+                self._sample(3600.0, 30.0),
+            ])
+            tab.sampling_duration_checkbox.setChecked(False)
+            tab.analysis_start_time_edit.setValue(1200.0)
+            tab.analysis_end_time_edit.setValue(3500.0)
+            tab.btn_run.click()
+
+            self.assertAlmostEqual(tab.analysis_start_line.value(), 1200.0, places=3)
+            self.assertAlmostEqual(tab.analysis_end_line.value(), 3500.0, places=3)
+
+            tab.sampling_duration_checkbox.setChecked(True)
+            tab.analysis_start_time_edit.setValue(1800.0)
+            tab.sampling_duration_edit.setValue(60.0)
+
+            self.assertAlmostEqual(tab.analysis_start_line.value(), 1800.0, places=3)
+            self.assertAlmostEqual(tab.analysis_end_line.value(), 5400.0, places=3)
+            end_html = tab.analysis_end_label.toHtml().replace("\xa0", " ")
+            self.assertIn("END", end_html)
+            self.assertIn("5400.00 s", end_html)
+            self.assertIn("Out of data range", end_html)
+            self.assertNotIn("30.00 mA", end_html)
+
+    def test_analysis_range_markers_are_independent_from_pins_cursors_and_clear(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, -25.0),
+                self._sample(1200.0, -18.42),
+                self._sample(4800.0, 21.75),
+                self._sample(7200.0, 8.0),
+            ])
+            tab.analysis_start_time_edit.setValue(1200.0)
+            tab.sampling_duration_edit.setValue(60.0)
+            tab.btn_run.click()
+            start_line = tab.analysis_start_line
+            end_line = tab.analysis_end_line
+            start_label = tab.analysis_start_label
+            end_label = tab.analysis_end_label
+            tab.pin_chart_sample(1)
+            tab.set_cursor_a(0)
+            tab.set_cursor_b(2)
+
+            tab.analysis_start_time_edit.setValue(1800.0)
+            tab.sampling_duration_edit.setValue(30.0)
+
+            self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1])
+            self.assertEqual(tab.cursor_a_index, 0)
+            self.assertEqual(tab.cursor_b_index, 2)
+            self.assertAlmostEqual(tab.analysis_start_line.value(), 1800.0, places=3)
+            self.assertAlmostEqual(tab.analysis_end_line.value(), 3600.0, places=3)
+
+            tab.clear_chart_pins()
+
+            self.assertEqual(tab.chart_pins, [])
+            self.assertTrue(tab.analysis_start_line.isVisible())
+            self.assertTrue(tab.analysis_end_line.isVisible())
+
+            tab.btn_clear.click()
+
+            self.assertIs(tab.analysis_start_line, start_line)
+            self.assertIs(tab.analysis_end_line, end_line)
+            self.assertIs(tab.analysis_start_label, start_label)
+            self.assertIs(tab.analysis_end_label, end_label)
+            self.assertFalse(tab.analysis_start_line.isVisible())
+            self.assertFalse(tab.analysis_end_line.isVisible())
+            self.assertFalse(tab.analysis_start_label.isVisible())
+            self.assertFalse(tab.analysis_end_label.isVisible())
+
     def test_run_again_refreshes_chart_without_duplicate_items_and_updates_thresholds(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, database_dir = self._create_tab(tmpdir)

@@ -156,6 +156,10 @@ class QCurrentTab(QWidget):
         self.lower_sleep_limit_line = None
         self.hover_marker = None
         self.hover_label = None
+        self.analysis_start_line = None
+        self.analysis_end_line = None
+        self.analysis_start_label = None
+        self.analysis_end_label = None
         self.wake_up_regions = []
         self.chart_pins = []
         self.cursor_a_index = None
@@ -168,6 +172,7 @@ class QCurrentTab(QWidget):
         self.cursor_b_label = None
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
+        self.chart_source_times = np.array([], dtype=object)
         self._chart_user_zoomed = False
         self._hover_sample = None
         self._y_axis_inverted = False
@@ -651,6 +656,7 @@ class QCurrentTab(QWidget):
         self.hover_label.hide()
         plot.addItem(self.hover_label)
 
+        self._create_analysis_range_graphics(plot)
         self._create_cursor_graphics(plot, "a")
         self._create_cursor_graphics(plot, "b")
 
@@ -660,6 +666,7 @@ class QCurrentTab(QWidget):
             slot=self._update_hover_coordinates,
         )
         plot_item.vb.sigRangeChanged.connect(self.position_chart_pin_labels)
+        plot_item.vb.sigRangeChanged.connect(self.position_analysis_range_labels)
         return plot
 
     def _create_review_group(self):
@@ -1063,6 +1070,7 @@ class QCurrentTab(QWidget):
             self._update_calculated_end_time()
         elif has_data:
             self._clamp_manual_end_time_to_dataset()
+        self._update_analysis_range_markers()
         if mark_not_run:
             self._mark_analysis_not_run()
 
@@ -1090,14 +1098,17 @@ class QCurrentTab(QWidget):
     def _on_sampling_duration_changed(self, _value):
         if self.sampling_duration_checkbox.isChecked() and self.current_samples:
             self._update_calculated_end_time()
+        self._update_analysis_range_markers()
         self._mark_analysis_not_run()
 
     def _on_analysis_start_time_changed(self, _value):
         if self.sampling_duration_checkbox.isChecked() and self.current_samples:
             self._update_calculated_end_time()
+        self._update_analysis_range_markers()
         self._mark_analysis_not_run()
 
     def _on_analysis_end_time_changed(self, _value):
+        self._update_analysis_range_markers()
         self._mark_analysis_not_run()
 
     def _update_current_chart(self, elapsed_seconds, current_values, wake_up_intervals):
@@ -1106,11 +1117,19 @@ class QCurrentTab(QWidget):
         current_array = np.asarray(current_values, dtype=float)
         if time_array.size != current_array.size:
             raise ValueError("Q current chart data is not aligned.")
+        source_times = np.asarray(
+            [sample.time for sample in self.current_samples],
+            dtype=object,
+        )
+        if source_times.size != time_array.size:
+            raise ValueError("Q current chart source data is not aligned.")
         order = np.argsort(time_array)
         time_array = time_array[order]
         current_array = current_array[order]
+        source_times = source_times[order]
         self.chart_time_seconds = time_array
         self.chart_current_ma = current_array
+        self.chart_source_times = source_times
 
         x_min = float(time_array[0])
         x_max = float(time_array[-1]) if time_array.size > 1 else x_min + 1.0
@@ -1123,6 +1142,7 @@ class QCurrentTab(QWidget):
         self.hide_hover_items()
         self._update_chart_scrollbar(x_min, x_max)
         self._fit_all_current_chart()
+        self._update_analysis_range_markers()
 
         self.chart_placeholder.hide()
         self.current_plot.show()
@@ -1153,6 +1173,7 @@ class QCurrentTab(QWidget):
             y_max += 1.0
         self.current_plot.setYRange(y_min, y_max, padding=0.08)
         self.position_chart_pin_labels()
+        self.position_analysis_range_labels()
 
     def _on_review_row_selected(self, row, _column):
         if not self._chart_ready or self.chart_time_seconds.size == 0:
@@ -1271,6 +1292,7 @@ class QCurrentTab(QWidget):
         self._sync_chart_scrollbar_to_range(new_x_min, window_seconds)
         self._set_chart_x_range(new_x_min, new_x_max, padding=0)
         self.position_chart_pin_labels()
+        self.position_analysis_range_labels()
 
     def _set_chart_x_range(self, x_min, x_max, padding=0):
         self._chart_xrange_updating = True
@@ -1337,6 +1359,7 @@ class QCurrentTab(QWidget):
         self._chart_user_zoomed = True
         self._sync_chart_scrollbar_to_range(float(x_range[0]), min(current_width, total_span))
         self.position_chart_pin_labels()
+        self.position_analysis_range_labels()
     def _on_chart_scrollbar_changed(self, _value=None):
         if self._chart_scrollbar_updating or not self._chart_ready:
             return
@@ -1361,6 +1384,7 @@ class QCurrentTab(QWidget):
                 padding=0.02,
             )
             self.position_chart_pin_labels()
+            self.position_analysis_range_labels()
             return
 
         start = (
@@ -1376,6 +1400,7 @@ class QCurrentTab(QWidget):
             end = min(start + window_seconds, self._chart_x_max)
         self._set_chart_x_range(start, end, padding=0)
         self.position_chart_pin_labels()
+        self.position_analysis_range_labels()
     def toggle_y_axis_inversion(self):
         self._y_axis_inverted = not self._y_axis_inverted
         self._apply_y_axis_orientation()
@@ -1389,6 +1414,7 @@ class QCurrentTab(QWidget):
         view_box = self.current_plot.getPlotItem().getViewBox()
         view_box.invertY(self._y_axis_inverted)
         self.position_chart_pin_labels()
+        self.position_analysis_range_labels()
 
     def save_current_config(self):
         config = QCurrentConfig(
@@ -1733,6 +1759,190 @@ class QCurrentTab(QWidget):
         dy = first_position.y() - second_position.y()
         return (dx * dx + dy * dy) ** 0.5
 
+
+    def _create_analysis_range_graphics(self, plot):
+        colors = self._chart_colors()
+        marker_specs = (
+            ("start", "analysis_start"),
+            ("end", "analysis_end"),
+        )
+        for marker_name, color_key in marker_specs:
+            line = pg.InfiniteLine(
+                pos=0.0,
+                angle=90,
+                movable=False,
+                pen=pg.mkPen(colors[color_key], width=1.4, style=Qt.DashLine),
+            )
+            line.setZValue(23)
+            line.hide()
+            label = pg.TextItem(anchor=(0, 0))
+            label.setZValue(43)
+            label.hide()
+            plot.addItem(line)
+            plot.addItem(label)
+            setattr(self, f"analysis_{marker_name}_line", line)
+            setattr(self, f"analysis_{marker_name}_label", label)
+
+    def hide_analysis_range_markers(self):
+        for item in (
+            self.analysis_start_line,
+            self.analysis_end_line,
+            self.analysis_start_label,
+            self.analysis_end_label,
+        ):
+            if item is not None:
+                item.hide()
+
+    def _update_analysis_range_markers(self):
+        if (
+            self.analysis_start_line is None
+            or self.analysis_end_line is None
+            or self.analysis_start_label is None
+            or self.analysis_end_label is None
+        ):
+            return
+        if self.chart_time_seconds.size == 0 or self.chart_current_ma.size == 0:
+            self.hide_analysis_range_markers()
+            return
+
+        start_time_s = float(self.analysis_start_time_edit.value())
+        end_time_s = float(self._effective_analysis_end_time_s())
+        self._update_analysis_marker(
+            self.analysis_start_line,
+            self.analysis_start_label,
+            "START",
+            start_time_s,
+        )
+        self._update_analysis_marker(
+            self.analysis_end_line,
+            self.analysis_end_label,
+            "END",
+            end_time_s,
+        )
+        self.position_analysis_range_labels()
+
+    def _update_analysis_marker(self, line, label, title, boundary_time_s):
+        line.setValue(float(boundary_time_s))
+        line.show()
+        label.setHtml(self._analysis_marker_label_html(title, boundary_time_s))
+        label.show()
+
+    def _analysis_marker_label_html(self, title, boundary_time_s):
+        colors = self._chart_colors()
+        body_lines = [title, f"{float(boundary_time_s):.2f} s"]
+        sample_index = self._analysis_marker_sample_index(boundary_time_s)
+        if sample_index is None:
+            body_lines.append("Out of data range")
+        else:
+            source_time = self._source_time_for_chart_index(sample_index)
+            body_lines.append(self._format_source_time_for_marker(source_time))
+            body_lines.append(f"{float(self.chart_current_ma[sample_index]):.2f} mA")
+        body = "<br/>".join(body_lines)
+        return (
+            f"<div style='background-color: {colors['analysis_label_background']}; "
+            f"color: {colors['analysis_label_text']}; padding: 4px; "
+            "white-space: nowrap; font-size: 9pt;'>"
+            f"{body}"
+            "</div>"
+        )
+
+    def _analysis_marker_sample_index(self, boundary_time_s):
+        if self.chart_time_seconds.size == 0:
+            return None
+        data_min = float(self.chart_time_seconds[0])
+        data_max = float(self.chart_time_seconds[-1])
+        boundary_time_s = float(boundary_time_s)
+        if boundary_time_s < data_min or boundary_time_s > data_max:
+            return None
+        return self.find_nearest_sample_index(boundary_time_s)
+
+    def _source_time_for_chart_index(self, sample_index):
+        if 0 <= sample_index < self.chart_source_times.size:
+            return self.chart_source_times[sample_index]
+        if 0 <= sample_index < len(self.current_samples):
+            return self.current_samples[sample_index].time
+        return ""
+
+    def _format_source_time_for_marker(self, source_time):
+        source_text = str(source_time)
+        try:
+            parsed_time = parse_timestamp(source_time)
+        except (TypeError, ValueError):
+            return source_text
+        if isinstance(parsed_time, datetime):
+            return parsed_time.strftime("%H:%M:%S.%f").rstrip("0").rstrip(".")
+        return source_text
+
+    def position_analysis_range_labels(self, *_args):
+        if (
+            self.analysis_start_label is None
+            or self.analysis_end_label is None
+            or not hasattr(self, "current_plot")
+        ):
+            return
+        self._position_analysis_range_label(
+            self.analysis_start_label,
+            self.analysis_start_line,
+            prefer_right=True,
+        )
+        self._position_analysis_range_label(
+            self.analysis_end_label,
+            self.analysis_end_line,
+            prefer_right=False,
+        )
+
+    def _position_analysis_range_label(self, label, line, prefer_right):
+        if label is None or line is None or not label.isVisible():
+            return
+        x_range, y_range = self.current_plot.getPlotItem().viewRange()
+        x_span = max(float(x_range[1]) - float(x_range[0]), 1e-9)
+        y_span = max(float(y_range[1]) - float(y_range[0]), 1e-9)
+        x_padding = x_span * 0.015
+        y_top = float(y_range[1]) - y_span * 0.06
+        line_x = float(line.value())
+
+        if prefer_right:
+            anchor_x = 0
+            label_x = line_x + x_padding
+            if label_x > float(x_range[1]) - x_padding:
+                anchor_x = 1
+                label_x = line_x - x_padding
+        else:
+            anchor_x = 1
+            label_x = line_x - x_padding
+            if label_x < float(x_range[0]) + x_padding:
+                anchor_x = 0
+                label_x = line_x + x_padding
+
+        label.setAnchor((anchor_x, 0))
+        label.setPos(label_x, y_top)
+
+    def _refresh_analysis_range_theme(self):
+        if self.analysis_start_line is None or self.analysis_end_line is None:
+            return
+        colors = self._chart_colors()
+        self.analysis_start_line.setPen(
+            pg.mkPen(colors["analysis_start"], width=1.4, style=Qt.DashLine)
+        )
+        self.analysis_end_line.setPen(
+            pg.mkPen(colors["analysis_end"], width=1.4, style=Qt.DashLine)
+        )
+        if self.analysis_start_label is not None and self.analysis_start_label.isVisible():
+            self.analysis_start_label.setHtml(
+                self._analysis_marker_label_html(
+                    "START",
+                    float(self.analysis_start_line.value()),
+                )
+            )
+        if self.analysis_end_label is not None and self.analysis_end_label.isVisible():
+            self.analysis_end_label.setHtml(
+                self._analysis_marker_label_html(
+                    "END",
+                    float(self.analysis_end_line.value()),
+                )
+            )
+        self.position_analysis_range_labels()
+
     def pin_chart_sample(self, sample_index):
         if sample_index is None:
             return False
@@ -2029,8 +2239,10 @@ class QCurrentTab(QWidget):
         self.clear_chart_pins()
         self.clear_ab_cursors()
         self.clear_wake_up_regions()
+        self.hide_analysis_range_markers()
         self.chart_time_seconds = np.array([], dtype=float)
         self.chart_current_ma = np.array([], dtype=float)
+        self.chart_source_times = np.array([], dtype=object)
         self._selected_review_chart_index = None
         self._chart_user_zoomed = False
         self.hide_hover_items()
@@ -2076,6 +2288,10 @@ class QCurrentTab(QWidget):
             "cursor_a": colors.PRIMARY,
             "cursor_b": colors.DANGER,
             "cursor_marker_border": colors.TEXT,
+            "analysis_start": colors.SUCCESS,
+            "analysis_end": colors.DANGER,
+            "analysis_label_background": colors.WINDOW,
+            "analysis_label_text": colors.TEXT,
             "background": colors.WINDOW,
             "grid": colors.TABLE_GRID,
             "axis": colors.TEXT,
@@ -2113,6 +2329,7 @@ class QCurrentTab(QWidget):
         self._refresh_visible_hover_label()
         self._refresh_chart_pin_theme()
         self._refresh_cursor_theme()
+        self._refresh_analysis_range_theme()
         self._refresh_legend_theme()
 
     def _transparent_brush(self, color_value, alpha):
