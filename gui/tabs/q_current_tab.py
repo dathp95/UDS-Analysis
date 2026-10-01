@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QSignalBlocker, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -177,6 +176,7 @@ class QCurrentTab(QWidget):
         self._chart_x_min = 0.0
         self._chart_x_max = 0.0
         self._chart_visible_span = CHART_SCROLL_VISIBLE_SECONDS
+        self._analysis_range_syncing = False
         self._setup_ui()
         self._initialize_database()
         self._connect_signals()
@@ -221,6 +221,9 @@ class QCurrentTab(QWidget):
         self.current_plot.customContextMenuRequested.connect(
             self.show_chart_context_menu
         )
+        self.review_table.customContextMenuRequested.connect(
+            self.show_review_context_menu
+        )
         self.btn_copy_data_review.clicked.connect(self.copy_data_review)
         self.btn_copy_summary.clicked.connect(self.copy_summary)
         self.chart_scrollbar.valueChanged.connect(
@@ -235,6 +238,12 @@ class QCurrentTab(QWidget):
         )
         self.wake_limit_edit.valueChanged.connect(self._mark_analysis_not_run)
         self.wake_duration_edit.valueChanged.connect(self._mark_analysis_not_run)
+        self.analysis_start_time_edit.valueChanged.connect(
+            self._on_analysis_start_time_changed
+        )
+        self.analysis_end_time_edit.valueChanged.connect(
+            self._on_analysis_end_time_changed
+        )
 
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
@@ -336,6 +345,16 @@ class QCurrentTab(QWidget):
         self._set_analysis_result("NOT RUN")
         self.analysis_result_edit.setFixedWidth(130)
 
+        self.analysis_range_label = PrimaryLabel("Analysis Range:")
+        self.analysis_start_time_label = PrimaryLabel("Start Time (s)")
+        self.analysis_start_time_edit = self._create_analysis_range_spinbox(
+            "analysis_start_time_edit"
+        )
+        self.analysis_end_time_label = PrimaryLabel("End Time (s)")
+        self.analysis_end_time_edit = self._create_analysis_range_spinbox(
+            "analysis_end_time_edit"
+        )
+
         self.settings_layout.addWidget(self.source_file_edit, 0, 0)
         self.settings_layout.addWidget(self.browse_button, 0, 1)
         self.settings_layout.addWidget(self.dataset_combo, 0, 2)
@@ -363,7 +382,34 @@ class QCurrentTab(QWidget):
 
         self.settings_layout.addLayout(result_layout, 1, 0, 1, 4)
 
+        range_layout = QHBoxLayout()
+        range_layout.setContentsMargins(0, 0, 0, 0)
+        range_layout.setSpacing(8)
+        range_layout.addWidget(self.analysis_range_label)
+        range_layout.addSpacing(12)
+        range_layout.addWidget(self.analysis_start_time_label)
+        range_layout.addWidget(self.analysis_start_time_edit)
+        range_layout.addSpacing(16)
+        range_layout.addWidget(self.analysis_end_time_label)
+        range_layout.addWidget(self.analysis_end_time_edit)
+        range_layout.addStretch(1)
+        self.settings_layout.addLayout(range_layout, 2, 0, 1, 4)
+
         return group
+
+    def _create_analysis_range_spinbox(self, object_name):
+        spinbox = QDoubleSpinBox()
+        spinbox.setObjectName(object_name)
+        spinbox.setDecimals(2)
+        spinbox.setMinimum(0.0)
+        spinbox.setMaximum(0.0)
+        spinbox.setSingleStep(0.1)
+        spinbox.setValue(0.0)
+        spinbox.setFixedWidth(110)
+        spinbox.setMinimumHeight(36)
+        spinbox.setEnabled(False)
+        spinbox.lineEdit().setAlignment(Qt.AlignCenter)
+        return spinbox
 
     def _create_chart_group(self):
         group = QGroupBox("Current Chart")
@@ -632,6 +678,7 @@ class QCurrentTab(QWidget):
         table.setHorizontalHeaderLabels(["No.", "Time", "Current (mA)"])
         table.setSortingEnabled(False)
         table.setRowCount(0)
+        table.setContextMenuPolicy(Qt.CustomContextMenu)
 
         header = table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -780,11 +827,14 @@ class QCurrentTab(QWidget):
 
     def _load_samples_into_workspace(self, samples):
         self.current_samples = list(samples)
+        self.current_analysis_result = None
+        self.current_analysis_settings = None
         self._selected_review_chart_index = None
         self._chart_ready = False
         self._clear_current_chart()
         self.summary_widget.clear_result()
         self._populate_review_table(self.current_samples)
+        self._initialize_analysis_range_from_samples()
         self._update_action_states()
 
     def _update_action_states(self):
@@ -807,16 +857,20 @@ class QCurrentTab(QWidget):
             self._update_action_states()
             return
         self._selected_review_chart_index = None
-        self.clear_ab_cursors()
         try:
             elapsed_seconds, current_values = self._build_chart_data()
+            (
+                analysis_elapsed_seconds,
+                analysis_current_values,
+                analysis_source_times,
+            ) = self._build_analysis_data(elapsed_seconds, current_values)
             analysis_result = analyze_q_current(
-                elapsed_seconds,
-                current_values,
+                analysis_elapsed_seconds,
+                analysis_current_values,
                 self.current_limit_edit.value(),
                 self.wake_limit_edit.value(),
                 self.wake_duration_edit.value(),
-                source_times=[sample.time for sample in self.current_samples],
+                source_times=analysis_source_times,
             )
         except ValueError as error:
             QMessageBox.warning(self, "Q current Chart", str(error))
@@ -834,6 +888,8 @@ class QCurrentTab(QWidget):
             standard_current_ma=self.current_limit_edit.value(),
             wake_up_limit_ma=self.wake_limit_edit.value(),
             wake_duration_s=self.wake_duration_edit.value(),
+            analysis_start_time_s=self.analysis_start_time_edit.value(),
+            analysis_end_time_s=self.analysis_end_time_edit.value(),
         )
         self._chart_ready = True
         self._set_analysis_result(analysis_result.result_status)
@@ -849,6 +905,7 @@ class QCurrentTab(QWidget):
         self._chart_ready = False
         self.review_table.setRowCount(0)
         self._clear_current_chart()
+        self._reset_analysis_range_controls()
         self.summary_widget.clear_result()
         self._set_analysis_result("NOT RUN")
         self._update_action_states()
@@ -861,6 +918,115 @@ class QCurrentTab(QWidget):
         if len(elapsed_seconds) != len(current_values):
             raise ValueError("Q current chart data is not aligned.")
         return elapsed_seconds, current_values
+
+    def _build_analysis_data(self, elapsed_seconds, current_values):
+        start_time_s = float(self.analysis_start_time_edit.value())
+        end_time_s = float(self.analysis_end_time_edit.value())
+        if (
+            start_time_s > end_time_s
+            or (len(elapsed_seconds) > 1 and start_time_s >= end_time_s)
+        ):
+            raise ValueError("Start Time must be less than End Time.")
+
+        filtered_elapsed_seconds = []
+        filtered_current_values = []
+        filtered_source_times = []
+        for elapsed_s, current_ma, sample in zip(
+            elapsed_seconds,
+            current_values,
+            self.current_samples,
+        ):
+            elapsed_s = float(elapsed_s)
+            if start_time_s <= elapsed_s <= end_time_s:
+                filtered_elapsed_seconds.append(elapsed_s)
+                filtered_current_values.append(float(current_ma))
+                filtered_source_times.append(sample.time)
+
+        if not filtered_elapsed_seconds:
+            raise ValueError("No samples exist inside the selected analysis range.")
+        return filtered_elapsed_seconds, filtered_current_values, filtered_source_times
+
+    def _reset_analysis_range_controls(self):
+        if not hasattr(self, "analysis_start_time_edit"):
+            return
+        self._analysis_range_syncing = True
+        try:
+            for spinbox in (
+                self.analysis_start_time_edit,
+                self.analysis_end_time_edit,
+            ):
+                blocker = QSignalBlocker(spinbox)
+                spinbox.setMaximum(0.0)
+                spinbox.setValue(0.0)
+                spinbox.setEnabled(False)
+                del blocker
+        finally:
+            self._analysis_range_syncing = False
+
+    def _initialize_analysis_range_from_samples(self):
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        except ValueError:
+            self._reset_analysis_range_controls()
+            return
+        if not elapsed_seconds:
+            self._reset_analysis_range_controls()
+            return
+        start_time_s = float(min(elapsed_seconds))
+        end_time_s = float(max(elapsed_seconds))
+        maximum_time_s = max(end_time_s, 0.0)
+        self._analysis_range_syncing = True
+        try:
+            for spinbox in (
+                self.analysis_start_time_edit,
+                self.analysis_end_time_edit,
+            ):
+                blocker = QSignalBlocker(spinbox)
+                spinbox.setMaximum(maximum_time_s)
+                spinbox.setEnabled(True)
+                del blocker
+            self._set_analysis_range_value(
+                self.analysis_start_time_edit,
+                start_time_s,
+                mark_not_run=False,
+            )
+            self._set_analysis_range_value(
+                self.analysis_end_time_edit,
+                end_time_s,
+                mark_not_run=False,
+            )
+        finally:
+            self._analysis_range_syncing = False
+
+    def _set_analysis_range_value(self, spinbox, value, mark_not_run=False):
+        blocker = QSignalBlocker(spinbox)
+        spinbox.setValue(float(value))
+        del blocker
+        if mark_not_run and not self._analysis_range_syncing:
+            self._mark_analysis_not_run()
+
+    def _on_analysis_start_time_changed(self, value):
+        if self._analysis_range_syncing:
+            return
+        self._mark_analysis_not_run()
+        self._sync_cursor_to_analysis_range("a", float(value))
+
+    def _on_analysis_end_time_changed(self, value):
+        if self._analysis_range_syncing:
+            return
+        self._mark_analysis_not_run()
+        self._sync_cursor_to_analysis_range("b", float(value))
+
+    def _sync_cursor_to_analysis_range(self, cursor_name, time_s):
+        if not self._chart_ready or self.chart_time_seconds.size == 0:
+            return
+        sample_index = self.find_nearest_sample_index(float(time_s))
+        if sample_index is None:
+            return
+        if cursor_name == "a":
+            self.set_cursor_a(sample_index, update_range=False)
+        else:
+            self.set_cursor_b(sample_index, update_range=False)
 
     def _update_current_chart(self, elapsed_seconds, current_values, wake_up_intervals):
         self.clear_chart_pins()
@@ -949,6 +1115,47 @@ class QCurrentTab(QWidget):
         if sample_index is None:
             return False
         return self.pin_chart_sample(sample_index)
+
+    def show_review_context_menu(self, position):
+        row = self.review_table.rowAt(position.y())
+        if row < 0 or row >= len(self.current_samples):
+            return
+        self.review_table.setCurrentCell(row, 0)
+        self.review_table.selectRow(row)
+        menu = QMenu(self.review_table)
+        set_start_action = menu.addAction("Set as Start Time")
+        set_end_action = menu.addAction("Set as End Time")
+        selected_action = menu.exec(
+            self.review_table.viewport().mapToGlobal(position)
+        )
+        if selected_action is set_start_action:
+            self.set_analysis_start_from_review_row(row)
+        elif selected_action is set_end_action:
+            self.set_analysis_end_from_review_row(row)
+
+    def set_analysis_start_from_review_row(self, row):
+        return self._set_analysis_range_from_review_row(
+            row,
+            self.analysis_start_time_edit,
+        )
+
+    def set_analysis_end_from_review_row(self, row):
+        return self._set_analysis_range_from_review_row(
+            row,
+            self.analysis_end_time_edit,
+        )
+
+    def _set_analysis_range_from_review_row(self, row, spinbox):
+        if row < 0 or row >= len(self.current_samples):
+            return False
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        except ValueError:
+            return False
+        if row >= len(elapsed_seconds):
+            return False
+        spinbox.setValue(float(elapsed_seconds[row]))
+        return True
 
     def _navigate_chart_to_time(self, time_s):
         if self.chart_time_seconds.size == 0:
@@ -1468,22 +1675,34 @@ class QCurrentTab(QWidget):
             return None
         return sample_index
 
-    def set_cursor_a(self, sample_index):
+    def set_cursor_a(self, sample_index, update_range=True):
         sample_index = self._valid_cursor_index(sample_index)
         if sample_index is None:
             return False
         self.cursor_a_index = sample_index
         self._update_cursor_graphics("a")
         self._update_cursor_measurement()
+        if update_range:
+            self._set_analysis_range_value(
+                self.analysis_start_time_edit,
+                float(self.chart_time_seconds[sample_index]),
+                mark_not_run=True,
+            )
         return True
 
-    def set_cursor_b(self, sample_index):
+    def set_cursor_b(self, sample_index, update_range=True):
         sample_index = self._valid_cursor_index(sample_index)
         if sample_index is None:
             return False
         self.cursor_b_index = sample_index
         self._update_cursor_graphics("b")
         self._update_cursor_measurement()
+        if update_range:
+            self._set_analysis_range_value(
+                self.analysis_end_time_edit,
+                float(self.chart_time_seconds[sample_index]),
+                mark_not_run=True,
+            )
         return True
 
     def clear_cursor_a(self):
@@ -1950,6 +2169,8 @@ class QCurrentTab(QWidget):
             self.current_limit_edit,
             self.wake_limit_edit,
             self.wake_duration_edit,
+            self.analysis_start_time_edit,
+            self.analysis_end_time_edit,
         ):
             spinbox.setStyleSheet(spinbox_style)
 

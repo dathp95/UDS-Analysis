@@ -61,7 +61,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertIsInstance(tab.settings_group, QGroupBox)
             self.assertEqual(tab.settings_group.title(), "Analysis Settings")
-            self.assertEqual(tab.settings_layout.rowCount(), 2)
+            self.assertEqual(tab.settings_layout.rowCount(), 3)
             self.assertIsInstance(tab.source_file_edit, QLineEdit)
             self.assertEqual(tab.source_file_edit.objectName(), "source_file_edit")
             self.assertTrue(tab.source_file_edit.isReadOnly())
@@ -107,6 +107,15 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(hasattr(tab, "sleep_duration_edit"))
             self.assertFalse(hasattr(tab, "sleep_duration_label"))
             self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_range_label.text(), "Analysis Range:")
+            self.assertEqual(tab.analysis_start_time_label.text(), "Start Time (s)")
+            self.assertEqual(tab.analysis_start_time_edit.objectName(), "analysis_start_time_edit")
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertFalse(tab.analysis_start_time_edit.isEnabled())
+            self.assertEqual(tab.analysis_end_time_label.text(), "End Time (s)")
+            self.assertEqual(tab.analysis_end_time_edit.objectName(), "analysis_end_time_edit")
+            self.assertEqual(tab.analysis_end_time_edit.value(), 0.0)
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
 
 
     def test_saved_q_current_config_loads_on_new_tab_startup(self):
@@ -827,6 +836,135 @@ class QCurrentTabTests(unittest.TestCase):
             themed_x, themed_y = tab.current_curve.getData()
             self.assertEqual(themed_x.tolist(), current_x.tolist())
             self.assertEqual(themed_y.tolist(), current_y.tolist())
+
+    def test_analysis_range_initializes_from_dataset_and_filters_run_inputs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1.0, 20.0),
+                self._sample(2.0, 100.0),
+                self._sample(3.0, 120.0),
+            ])
+            tab.wake_limit_edit.setValue(1000.0)
+
+            self.assertTrue(tab.analysis_start_time_edit.isEnabled())
+            self.assertTrue(tab.analysis_end_time_edit.isEnabled())
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 3.0)
+            self.assertEqual(tab.review_table.rowCount(), 4)
+
+            tab.analysis_start_time_edit.setValue(2.0)
+            tab.analysis_end_time_edit.setValue(3.0)
+            tab.btn_run.click()
+
+            self.assertEqual(tab.current_curve.getData()[0].tolist(), [0.0, 1.0, 2.0, 3.0])
+            self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1.0, 2.0, 3.0])
+            self.assertEqual(tab.current_analysis_result.total_samples, 2)
+            self.assertEqual(tab.current_analysis_result.start_time_s, 2.0)
+            self.assertEqual(tab.current_analysis_result.end_time_s, 3.0)
+            self.assertEqual(tab.current_analysis_result.duration_s, 1.0)
+            self.assertEqual(tab.current_analysis_result.average_sleep_current_ma, 110.0)
+            self.assertEqual(tab.current_analysis_settings.analysis_start_time_s, 2.0)
+            self.assertEqual(tab.current_analysis_settings.analysis_end_time_s, 3.0)
+
+    def test_analysis_range_includes_boundaries_and_handles_irregular_samples(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(0.7, 20.0),
+                self._sample(2.4, 30.0),
+                self._sample(5.8, 40.0),
+            ])
+            tab.wake_limit_edit.setValue(1000.0)
+            tab.analysis_start_time_edit.setValue(0.7)
+            tab.analysis_end_time_edit.setValue(2.4)
+
+            tab.btn_run.click()
+
+            self.assertEqual(tab.current_analysis_result.total_samples, 2)
+            self.assertEqual(tab.current_analysis_result.start_time_s, 0.7)
+            self.assertEqual(tab.current_analysis_result.end_time_s, 2.4)
+            self.assertEqual(tab.current_analysis_result.average_sleep_current_ma, 25.0)
+
+    def test_invalid_or_empty_analysis_range_warns_without_running(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(100.0, 20.0),
+                self._sample(200.0, 30.0),
+            ])
+            tab.analysis_start_time_edit.setValue(100.0)
+            tab.analysis_end_time_edit.setValue(0.0)
+            with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
+                tab.btn_run.click()
+            warning_box.assert_called_once()
+            self.assertIn("Start Time must be less than End Time", warning_box.call_args.args[2])
+            self.assertIsNone(tab.current_analysis_result)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+            tab.analysis_start_time_edit.setValue(20.0)
+            tab.analysis_end_time_edit.setValue(30.0)
+            with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
+                tab.btn_run.click()
+            warning_box.assert_called_once()
+            self.assertIn("No samples exist inside", warning_box.call_args.args[2])
+            self.assertIsNone(tab.current_analysis_result)
+
+    def test_analysis_range_can_be_set_from_review_rows_and_cursors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(42.5, 182.3),
+                self._sample(48.2, 179.8),
+            ])
+
+            self.assertTrue(tab.set_analysis_start_from_review_row(1))
+            self.assertEqual(tab.analysis_start_time_edit.value(), 42.5)
+            self.assertTrue(tab.set_analysis_end_from_review_row(2))
+            self.assertEqual(tab.analysis_end_time_edit.value(), 48.2)
+
+            tab.btn_run.click()
+            tab.set_cursor_a(0)
+            tab.set_cursor_b(2)
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 48.2)
+
+            tab.analysis_start_time_edit.setValue(43.0)
+            self.assertEqual(tab.analysis_start_time_edit.value(), 43.0)
+            self.assertEqual(tab.cursor_a_index, 1)
+            self.assertEqual(tab.cursor_a_value_label.text(), "A: 42.500 s | 182.30 mA")
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+    def test_analysis_range_resets_for_new_dataset_and_clear(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(100.0, 2.0),
+            ])
+            tab.analysis_start_time_edit.setValue(20.0)
+            tab.analysis_end_time_edit.setValue(80.0)
+
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(500.0, 2.0),
+            ])
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 500.0)
+            self.assertTrue(tab.analysis_start_time_edit.isEnabled())
+            self.assertTrue(tab.analysis_end_time_edit.isEnabled())
+
+            tab.btn_clear.click()
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 0.0)
+            self.assertFalse(tab.analysis_start_time_edit.isEnabled())
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
+            self.assertIsNone(tab.cursor_a_index)
+            self.assertIsNone(tab.cursor_b_index)
 
     def test_sleep_limit_change_updates_existing_lines_and_marks_not_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1703,6 +1841,14 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(
                 tab.current_limit_edit.styleSheet(),
                 tab.wake_duration_edit.styleSheet(),
+            )
+            self.assertEqual(
+                tab.current_limit_edit.styleSheet(),
+                tab.analysis_start_time_edit.styleSheet(),
+            )
+            self.assertEqual(
+                tab.current_limit_edit.styleSheet(),
+                tab.analysis_end_time_edit.styleSheet(),
             )
 
 

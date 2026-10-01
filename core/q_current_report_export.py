@@ -30,6 +30,8 @@ class QCurrentReportSettings:
     standard_current_ma: float
     wake_up_limit_ma: float
     wake_duration_s: float
+    analysis_start_time_s: float | None = None
+    analysis_end_time_s: float | None = None
 
 
 @dataclass(frozen=True)
