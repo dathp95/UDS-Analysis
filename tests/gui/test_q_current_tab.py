@@ -55,6 +55,22 @@ class QCurrentTabTests(unittest.TestCase):
     def _sample(self, time, current_ma):
         return type("Sample", (), {"time": str(time), "current_mA": current_ma})()
 
+    def _use_manual_end_mode(self, tab):
+        tab.sampling_duration_checkbox.setChecked(False)
+        if not tab.current_samples:
+            return
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(tab.current_samples)
+        except ValueError:
+            return
+        if not elapsed_seconds:
+            return
+        end_time_s = float(max(elapsed_seconds))
+        tab.analysis_end_time_edit.setMaximum(
+            max(tab.analysis_end_time_edit.maximum(), end_time_s)
+        )
+        tab.analysis_end_time_edit.setValue(end_time_s)
+
     def test_analysis_settings_header_has_two_rows_and_file_controls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
@@ -101,6 +117,16 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.wake_duration_edit.decimals(), 1)
             self.assertEqual(tab.wake_duration_edit.value(), 2.0)
             self.assertEqual(tab.wake_duration_edit.text(), "2.0")
+            self.assertEqual(tab.sampling_duration_checkbox.text(), "Sampling Duration (min)")
+            self.assertTrue(tab.sampling_duration_checkbox.isChecked())
+            self.assertIsInstance(tab.sampling_duration_edit, QDoubleSpinBox)
+            self.assertEqual(tab.sampling_duration_edit.objectName(), "sampling_duration_edit")
+            self.assertEqual(tab.sampling_duration_edit.decimals(), 0)
+            self.assertEqual(tab.sampling_duration_edit.minimum(), 5.0)
+            self.assertEqual(tab.sampling_duration_edit.maximum(), 1440.0)
+            self.assertEqual(tab.sampling_duration_edit.singleStep(), 5.0)
+            self.assertEqual(tab.sampling_duration_edit.value(), 60.0)
+            self.assertTrue(tab.sampling_duration_edit.isEnabled())
             self.assertEqual(tab.save_config_button.objectName(), "save_config_button")
             self.assertEqual(tab.save_config_button.text(), "SAVE CONFIG")
             self.assertIsInstance(tab.save_config_button, PrimaryButton)
@@ -127,6 +153,8 @@ class QCurrentTabTests(unittest.TestCase):
                     standard_current_ma=25.0,
                     wake_up_limit_ma=250.0,
                     wake_duration_s=3.0,
+                    sampling_duration_enabled=False,
+                    sampling_duration_min=75.0,
                 ),
                 config_file,
             )
@@ -137,6 +165,137 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.current_limit_edit.value(), 25.0)
             self.assertEqual(tab.wake_limit_edit.value(), 250.0)
             self.assertEqual(tab.wake_duration_edit.value(), 3.0)
+            self.assertFalse(tab.sampling_duration_checkbox.isChecked())
+            self.assertEqual(tab.sampling_duration_edit.value(), 75.0)
+            self.assertFalse(tab.sampling_duration_edit.isEnabled())
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
+
+    def test_sampling_duration_config_saves_and_loads_on_fresh_tab(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            database_dir = Path(tmpdir) / "config" / "database_qcurrent"
+            config_file = Path(tmpdir) / "config" / "q_current_config.json"
+            tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
+            self.addCleanup(tab.deleteLater)
+
+            tab.sampling_duration_checkbox.setChecked(True)
+            tab.sampling_duration_edit.setValue(120.0)
+
+            with patch.object(QMessageBox, "information") as information, patch.object(
+                QMessageBox,
+                "critical",
+            ) as critical:
+                self.assertTrue(tab.save_current_config())
+
+            information.assert_called_once()
+            critical.assert_not_called()
+            restarted_tab = QCurrentTab(database_dir=database_dir, config_file=config_file)
+            self.addCleanup(restarted_tab.deleteLater)
+            self.assertTrue(restarted_tab.sampling_duration_checkbox.isChecked())
+            self.assertEqual(restarted_tab.sampling_duration_edit.value(), 120.0)
+
+    def test_sampling_duration_mode_recalculates_end_time_and_switches_manual_mode(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(7200.0, 2.0),
+            ])
+
+            self.assertTrue(tab.sampling_duration_checkbox.isChecked())
+            self.assertTrue(tab.sampling_duration_edit.isEnabled())
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 3600.0)
+
+            tab.analysis_start_time_edit.setValue(600.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 4200.0)
+            tab.sampling_duration_edit.setValue(90.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 6000.0)
+            self.assertEqual(tab._effective_analysis_end_time_s(), 6000.0)
+
+            tab.sampling_duration_checkbox.setChecked(False)
+            self.assertFalse(tab.sampling_duration_edit.isEnabled())
+            self.assertTrue(tab.analysis_end_time_edit.isEnabled())
+            tab.analysis_end_time_edit.setValue(3000.0)
+            self.assertEqual(tab._effective_analysis_end_time_s(), 3000.0)
+
+            tab.sampling_duration_checkbox.setChecked(True)
+            self.assertTrue(tab.sampling_duration_edit.isEnabled())
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
+            self.assertEqual(tab.sampling_duration_edit.value(), 90.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 6000.0)
+
+    def test_sampling_duration_mode_rejects_insufficient_data_without_analysis(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1800.0, 20.0),
+                self._sample(3600.0, 30.0),
+            ])
+            tab.sampling_duration_checkbox.setChecked(True)
+            tab.sampling_duration_edit.setValue(60.0)
+            tab.analysis_start_time_edit.setValue(1800.0)
+
+            with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
+                tab.btn_run.click()
+
+            warning_box.assert_called_once()
+            self.assertIn("Insufficient data for the selected sampling duration", warning_box.call_args.args[2])
+            self.assertIsNone(tab.current_analysis_result)
+            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+
+    def test_manual_end_mode_filters_analysis_and_qmenu_end_is_mode_aware(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 10.0),
+                self._sample(1800.0, 20.0),
+                self._sample(3600.0, 30.0),
+                self._sample(7200.0, 40.0),
+            ])
+            tab.wake_limit_edit.setValue(1000.0)
+            review_menu, review_actions = tab._create_review_context_menu()
+            self.assertFalse(review_actions["set_end_time"].isEnabled())
+            chart_menu, chart_actions = tab._create_chart_context_menu("pin")
+            self.assertFalse(chart_actions["set_end_time"].isEnabled())
+
+            tab.sampling_duration_checkbox.setChecked(False)
+            review_menu, review_actions = tab._create_review_context_menu()
+            self.assertTrue(review_actions["set_end_time"].isEnabled())
+            chart_menu, chart_actions = tab._create_chart_context_menu("pin")
+            self.assertTrue(chart_actions["set_end_time"].isEnabled())
+            self.assertTrue(tab.set_analysis_start_from_review_row(1))
+            self.assertTrue(tab.set_analysis_end_from_chart_sample(2))
+            self.assertEqual(tab.analysis_start_time_edit.value(), 1800.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 3600.0)
+
+            tab.btn_run.click()
+
+            self.assertEqual(tab.current_analysis_result.total_samples, 2)
+            self.assertEqual(tab.current_analysis_result.start_time_s, 1800.0)
+            self.assertEqual(tab.current_analysis_result.end_time_s, 3600.0)
+            self.assertFalse(tab.current_analysis_settings.sampling_duration_enabled)
+
+    def test_clear_preserves_sampling_duration_project_config_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tab, _database_dir = self._create_tab(tmpdir)
+            tab.sampling_duration_checkbox.setChecked(True)
+            tab.sampling_duration_edit.setValue(90.0)
+            tab._load_samples_into_workspace([
+                self._sample(0.0, 1.0),
+                self._sample(7200.0, 2.0),
+            ])
+            tab.analysis_start_time_edit.setValue(600.0)
+
+            tab.btn_clear.click()
+
+            self.assertTrue(tab.sampling_duration_checkbox.isChecked())
+            self.assertEqual(tab.sampling_duration_edit.value(), 90.0)
+            self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
+            self.assertEqual(tab.analysis_end_time_edit.value(), 0.0)
+            self.assertFalse(tab.analysis_start_time_edit.isEnabled())
+            self.assertFalse(tab.analysis_end_time_edit.isEnabled())
 
     def test_unsaved_q_current_config_changes_do_not_survive_restart(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -241,6 +400,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.current_limit_edit.setValue(25.0)
             tab.wake_limit_edit.setValue(250.0)
             tab.wake_duration_edit.setValue(3.0)
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             with patch.object(
@@ -577,6 +737,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             current_x, current_y = tab.current_curve.getData()
@@ -624,6 +785,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.current_limit_edit.setValue(30.0)
             tab.wake_limit_edit.setValue(300.0)
             tab.wake_duration_edit.setValue(2.0)
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             output_file = Path(tmpdir) / "report.xlsx"
@@ -657,6 +819,7 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
             tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             with patch.object(
@@ -680,6 +843,7 @@ class QCurrentTabTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tab, _database_dir = self._create_tab(tmpdir)
             tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             with patch.object(
@@ -705,6 +869,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.0, -20.0),
             ])
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "PASSED")
@@ -730,6 +895,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.0, -50.0),
             ])
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             ThemeManager.fn_set_theme(ThemeType.DARK)
             tab.fn_refresh_theme()
@@ -748,6 +914,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample("2026-09-30 00:10:00", -20.0),
             ])
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             self.assertEqual(tab.summary_widget.summary_values["source_start_time"].text(), "23:58:00")
@@ -766,6 +933,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, 10.0),
                 self._sample(1.0, 20.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
             self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
@@ -791,6 +959,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             self.assertFalse(tab.chart_scrollbar.isHidden())
@@ -816,6 +985,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(6.5, 360.0),
             ])
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             current_x, current_y = tab.current_curve.getData()
@@ -846,6 +1016,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(2.0, 100.0),
                 self._sample(3.0, 120.0),
             ])
+            tab.sampling_duration_checkbox.setChecked(False)
             tab.wake_limit_edit.setValue(1000.0)
 
             self.assertTrue(tab.analysis_start_time_edit.isEnabled())
@@ -856,6 +1027,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             tab.analysis_start_time_edit.setValue(2.0)
             tab.analysis_end_time_edit.setValue(3.0)
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             self.assertEqual(tab.current_curve.getData()[0].tolist(), [0.0, 1.0, 2.0, 3.0])
@@ -877,6 +1049,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(2.4, 30.0),
                 self._sample(5.8, 40.0),
             ])
+            tab.sampling_duration_checkbox.setChecked(False)
             tab.wake_limit_edit.setValue(1000.0)
             tab.analysis_start_time_edit.setValue(0.7)
             tab.analysis_end_time_edit.setValue(2.4)
@@ -896,6 +1069,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(100.0, 20.0),
                 self._sample(200.0, 30.0),
             ])
+            tab.sampling_duration_checkbox.setChecked(False)
             tab.analysis_start_time_edit.setValue(100.0)
             tab.analysis_end_time_edit.setValue(0.0)
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
@@ -921,6 +1095,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(42.5, 182.3),
                 self._sample(48.2, 179.8),
             ])
+            tab.sampling_duration_checkbox.setChecked(False)
 
             self.assertTrue(tab.set_analysis_start_from_review_row(1))
             self.assertEqual(tab.analysis_start_time_edit.value(), 42.5)
@@ -929,6 +1104,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.analysis_end_time_edit.value(), 48.2)
             self.assertIsNone(tab.cursor_b_index)
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.set_cursor_a(0)
             tab.set_cursor_b(2)
@@ -952,6 +1128,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, 1.0),
                 self._sample(100.0, 2.0),
             ])
+            tab.sampling_duration_checkbox.setChecked(False)
             tab.analysis_start_time_edit.setValue(20.0)
             tab.analysis_end_time_edit.setValue(80.0)
 
@@ -979,6 +1156,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, 1.0),
                 self._sample(1.0, -2.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             upper_line = tab.upper_sleep_limit_line
             lower_line = tab.lower_sleep_limit_line
@@ -1014,6 +1192,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.0, -28.46),
                 self._sample(2.0, 12.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             tab.review_table.cellClicked.emit(1, 1)
@@ -1040,6 +1219,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(600.0, 3.0),
                 self._sample(1000.0, 4.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             scroll_value = int(round((600.0 - tab._chart_visible_span / 2.0) * CHART_SCROLL_SCALE))
             tab.chart_scrollbar.setValue(scroll_value)
@@ -1066,6 +1246,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(600.0, 3.0),
                 self._sample(1000.0, 4.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             tab.review_table.cellClicked.emit(0, 1)
@@ -1088,6 +1269,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(100.0, 2.0),
                 self._sample(200.0, 3.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             tab.review_table.cellClicked.emit(1, 0)
@@ -1106,6 +1288,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(600.0, 3.0),
                 self._sample(1000.0, 4.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
@@ -1132,6 +1315,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(600.0, 3.0),
                 self._sample(1000.0, 4.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
@@ -1152,6 +1336,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(600.0, 3.0),
                 self._sample(1000.0, 4.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
@@ -1175,6 +1360,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self.assertFalse(tab.btn_pin.isEnabled())
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             self.assertFalse(tab.btn_pin.isEnabled())
             tab.current_plot.setXRange(80.0, 140.0, padding=0)
@@ -1219,6 +1405,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(100.0, 10.0),
                 self._sample(200.0, 80.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.pin_chart_sample(0)
             tab.btn_invert_y_axis.click()
@@ -1241,6 +1428,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.5, -28.46),
                 self._sample(3.0, 12.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             nearest = tab.find_nearest_sample(1.6)
@@ -1273,6 +1461,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(10.5, 20.0),
                 self._sample(20.75, 30.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.set_cursor_a(0)
             tab.set_cursor_b(2)
@@ -1334,6 +1523,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.cursor_delta_time_label.text(), "Δt: —")
             self.assertEqual(tab.cursor_delta_current_label.text(), "ΔI: —")
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             scene_pos = tab._scene_position_for_chart_sample(1)
             action, payload = tab._chart_context_action_at_scene_position(scene_pos)
@@ -1399,6 +1589,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.5, -28.46),
                 self._sample(3.0, 12.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             first_scene_pos = tab._scene_position_for_chart_sample(1)
@@ -1485,6 +1676,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(100.0, 10.0),
                 self._sample(200.0, 80.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.pin_chart_sample(0)
             tab.pin_chart_sample(2)
@@ -1524,6 +1716,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self.assertEqual(tab.chart_pins, [])
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.pin_chart_sample(1)
             self.assertEqual(len(tab.chart_pins), 1)
@@ -1537,6 +1730,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, 1.0),
                 self._sample(1.0, 2.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.pin_chart_sample(1)
             light_html = tab.chart_pins[0].label.toHtml()
@@ -1555,6 +1749,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, -25.30),
                 self._sample(1.0, 42.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             view_box = tab.current_plot.getPlotItem().getViewBox()
             x_range_before = tab.current_plot.getPlotItem().viewRange()[0]
@@ -1588,6 +1783,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(100.0, 10.0),
                 self._sample(200.0, 80.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.btn_invert_y_axis.click()
             tab.current_plot.setXRange(40.0, 60.0, padding=0)
@@ -1612,6 +1808,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(0.0, 1.0),
                 self._sample(1.0, 2.0),
             ])
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.btn_invert_y_axis.click()
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
@@ -1628,6 +1825,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.btn_pin.isEnabled())
             self.assertFalse(tab.btn_capture_chart.isEnabled())
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.btn_invert_y_axis.click()
             tab.btn_clear.click()
@@ -1648,6 +1846,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self.assertFalse(tab.capture_current_chart())
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             tab.btn_invert_y_axis.click()
 
@@ -1679,6 +1878,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
 
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
             current_curve = tab.current_curve
             upper_line = tab.upper_sleep_limit_line
@@ -1686,6 +1886,7 @@ class QCurrentTabTests(unittest.TestCase):
             hover_marker = tab.hover_marker
             tab.current_limit_edit.setValue(45.0)
             tab.wake_limit_edit.setValue(350.0)
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             self.assertIs(tab.current_curve, current_curve)
@@ -1713,6 +1914,7 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
+            self._use_manual_end_mode(tab)
             tab.btn_run.click()
 
             tab.btn_clear.click()
@@ -1920,6 +2122,10 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(
                 tab.current_limit_edit.styleSheet(),
                 tab.wake_duration_edit.styleSheet(),
+            )
+            self.assertEqual(
+                tab.current_limit_edit.styleSheet(),
+                tab.sampling_duration_edit.styleSheet(),
             )
             self.assertEqual(
                 tab.current_limit_edit.styleSheet(),

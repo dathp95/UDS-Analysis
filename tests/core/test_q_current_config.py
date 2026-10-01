@@ -41,6 +41,8 @@ class QCurrentConfigTests(unittest.TestCase):
             self.assertEqual(data["standard_current_ma"], 25.0)
             self.assertEqual(data["wake_up_limit_ma"], 250.0)
             self.assertEqual(data["wake_duration_s"], 3.0)
+            self.assertEqual(data["sampling_duration_enabled"], True)
+            self.assertEqual(data["sampling_duration_min"], 60.0)
             self.assertFalse(config_file.with_name("q_current_config.json.tmp").exists())
 
     def test_malformed_json_falls_back_to_default(self):
@@ -65,6 +67,73 @@ class QCurrentConfigTests(unittest.TestCase):
                 with self.subTest(payload=payload):
                     config_file.write_text(json.dumps(payload), encoding="utf-8")
                     self.assertEqual(load_q_current_config(config_file), DEFAULT_Q_CURRENT_CONFIG)
+
+    def test_old_config_loads_sampling_duration_defaults(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = Path(tmpdir) / "q_current_config.json"
+            config_file.write_text(
+                json.dumps({
+                    "version": 1,
+                    "standard_current_ma": 25.0,
+                    "wake_up_limit_ma": 250.0,
+                    "wake_duration_s": 3.0,
+                }),
+                encoding="utf-8",
+            )
+
+            config = load_q_current_config(config_file)
+
+            self.assertEqual(config.standard_current_ma, 25.0)
+            self.assertEqual(config.wake_up_limit_ma, 250.0)
+            self.assertEqual(config.wake_duration_s, 3.0)
+            self.assertTrue(config.sampling_duration_enabled)
+            self.assertEqual(config.sampling_duration_min, 60.0)
+
+    def test_save_then_reload_round_trips_sampling_duration_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = Path(tmpdir) / "q_current_config.json"
+            config = QCurrentConfig(
+                standard_current_ma=25.0,
+                wake_up_limit_ma=250.0,
+                wake_duration_s=3.0,
+                sampling_duration_enabled=False,
+                sampling_duration_min=75.0,
+            )
+
+            save_q_current_config(config, config_file)
+            loaded = load_q_current_config(config_file)
+
+            self.assertEqual(loaded, config)
+            data = json.loads(config_file.read_text(encoding="utf-8"))
+            self.assertFalse(data["sampling_duration_enabled"])
+            self.assertEqual(data["sampling_duration_min"], 75.0)
+
+    def test_invalid_sampling_duration_values_fall_back_without_losing_other_config(self):
+        invalid_payloads = [
+            {"sampling_duration_enabled": "yes", "sampling_duration_min": 90},
+            {"sampling_duration_enabled": True, "sampling_duration_min": 0},
+            {"sampling_duration_enabled": False, "sampling_duration_min": "ABC"},
+            {"sampling_duration_enabled": True, "sampling_duration_min": math.nan},
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = Path(tmpdir) / "q_current_config.json"
+            for payload in invalid_payloads:
+                with self.subTest(payload=payload):
+                    config_file.write_text(
+                        json.dumps({
+                            "standard_current_ma": 25,
+                            "wake_up_limit_ma": 250,
+                            "wake_duration_s": 3,
+                            **payload,
+                        }),
+                        encoding="utf-8",
+                    )
+                    config = load_q_current_config(config_file)
+                    self.assertEqual(config.standard_current_ma, 25.0)
+                    self.assertEqual(config.wake_up_limit_ma, 250.0)
+                    self.assertEqual(config.wake_duration_s, 3.0)
+                    self.assertTrue(config.sampling_duration_enabled)
+                    self.assertEqual(config.sampling_duration_min, 60.0)
 
     def test_save_rejects_invalid_config(self):
         with tempfile.TemporaryDirectory() as tmpdir:

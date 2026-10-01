@@ -50,6 +50,7 @@ from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 from gui.themes.styles.controls.spinbox_style import fn_spinbox_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_button import PrimaryButton
+from gui.widgets.controls.primary_checkbox import PrimaryCheckBox
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
@@ -238,6 +239,12 @@ class QCurrentTab(QWidget):
         )
         self.wake_limit_edit.valueChanged.connect(self._mark_analysis_not_run)
         self.wake_duration_edit.valueChanged.connect(self._mark_analysis_not_run)
+        self.sampling_duration_checkbox.toggled.connect(
+            self._on_sampling_duration_toggled
+        )
+        self.sampling_duration_edit.valueChanged.connect(
+            self._on_sampling_duration_changed
+        )
         self.analysis_start_time_edit.valueChanged.connect(
             self._on_analysis_start_time_changed
         )
@@ -326,6 +333,32 @@ class QCurrentTab(QWidget):
         self.wake_duration_edit.setMinimumHeight(36)
         self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
+        self.sampling_duration_checkbox = PrimaryCheckBox(
+            "Sampling Duration (min)"
+        )
+        self.sampling_duration_checkbox.setObjectName(
+            "sampling_duration_checkbox"
+        )
+        self.sampling_duration_checkbox.setChecked(
+            self.q_current_config.sampling_duration_enabled
+        )
+
+        self.sampling_duration_edit = QDoubleSpinBox()
+        self.sampling_duration_edit.setObjectName("sampling_duration_edit")
+        self.sampling_duration_edit.setDecimals(0)
+        self.sampling_duration_edit.setMinimum(5.0)
+        self.sampling_duration_edit.setMaximum(1440.0)
+        self.sampling_duration_edit.setSingleStep(5.0)
+        self.sampling_duration_edit.setValue(
+            self.q_current_config.sampling_duration_min
+        )
+        self.sampling_duration_edit.setFixedWidth(80)
+        self.sampling_duration_edit.setMinimumHeight(36)
+        self.sampling_duration_edit.setEnabled(
+            self.q_current_config.sampling_duration_enabled
+        )
+        self.sampling_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
         self.save_config_button = PrimaryButton(
             "SAVE CONFIG",
             width=120,
@@ -373,6 +406,9 @@ class QCurrentTab(QWidget):
         result_layout.addSpacing(16)
         result_layout.addWidget(self.wake_duration_label)
         result_layout.addWidget(self.wake_duration_edit)
+        result_layout.addSpacing(16)
+        result_layout.addWidget(self.sampling_duration_checkbox)
+        result_layout.addWidget(self.sampling_duration_edit)
         result_layout.addSpacing(16)
         result_layout.addWidget(self.save_config_button)
         result_layout.addSpacing(16)
@@ -889,7 +925,9 @@ class QCurrentTab(QWidget):
             wake_up_limit_ma=self.wake_limit_edit.value(),
             wake_duration_s=self.wake_duration_edit.value(),
             analysis_start_time_s=self.analysis_start_time_edit.value(),
-            analysis_end_time_s=self.analysis_end_time_edit.value(),
+            analysis_end_time_s=self._effective_analysis_end_time_s(),
+            sampling_duration_enabled=self.sampling_duration_checkbox.isChecked(),
+            sampling_duration_min=self.sampling_duration_edit.value(),
         )
         self._chart_ready = True
         self._set_analysis_result(analysis_result.result_status)
@@ -921,12 +959,23 @@ class QCurrentTab(QWidget):
 
     def _build_analysis_data(self, elapsed_seconds, current_values):
         start_time_s = float(self.analysis_start_time_edit.value())
-        end_time_s = float(self.analysis_end_time_edit.value())
+        end_time_s = float(self._effective_analysis_end_time_s())
+        available_end_time_s = float(max(elapsed_seconds))
         if (
             start_time_s > end_time_s
             or (len(elapsed_seconds) > 1 and start_time_s >= end_time_s)
         ):
             raise ValueError("Start Time must be less than End Time.")
+        if end_time_s > available_end_time_s:
+            if self.sampling_duration_checkbox.isChecked():
+                raise ValueError(
+                    "Insufficient data for the selected sampling duration.\n\n"
+                    f"Start Time: {start_time_s:.2f} s\n"
+                    f"Sampling Duration: {self.sampling_duration_edit.value():.0f} min\n"
+                    f"Required End Time: {end_time_s:.2f} s\n"
+                    f"Available End Time: {available_end_time_s:.2f} s"
+                )
+            raise ValueError("End Time must be inside the available dataset range.")
 
         filtered_elapsed_seconds = []
         filtered_current_values = []
@@ -970,18 +1019,82 @@ class QCurrentTab(QWidget):
             return
         start_time_s = float(min(elapsed_seconds))
         end_time_s = float(max(elapsed_seconds))
-        maximum_time_s = max(end_time_s, 0.0)
-        for spinbox, value in (
-            (self.analysis_start_time_edit, start_time_s),
-            (self.analysis_end_time_edit, end_time_s),
-        ):
+        calculated_end_time_s = start_time_s + self.sampling_duration_edit.value() * 60.0
+        maximum_time_s = max(end_time_s, calculated_end_time_s, 0.0)
+        for spinbox in (self.analysis_start_time_edit, self.analysis_end_time_edit):
             blocker = QSignalBlocker(spinbox)
             spinbox.setMaximum(maximum_time_s)
-            spinbox.setValue(value)
-            spinbox.setEnabled(True)
             del blocker
+        start_blocker = QSignalBlocker(self.analysis_start_time_edit)
+        self.analysis_start_time_edit.setValue(start_time_s)
+        self.analysis_start_time_edit.setEnabled(True)
+        del start_blocker
+        end_blocker = QSignalBlocker(self.analysis_end_time_edit)
+        self.analysis_end_time_edit.setValue(end_time_s)
+        del end_blocker
+        self._apply_sampling_duration_mode(mark_not_run=False)
+
+    def _effective_analysis_end_time_s(self):
+        if self.sampling_duration_checkbox.isChecked():
+            return (
+                self.analysis_start_time_edit.value()
+                + self.sampling_duration_edit.value() * 60.0
+            )
+        return self.analysis_end_time_edit.value()
+
+    def _update_calculated_end_time(self):
+        if not self.sampling_duration_checkbox.isChecked():
+            return
+        end_time_s = self._effective_analysis_end_time_s()
+        blocker = QSignalBlocker(self.analysis_end_time_edit)
+        self.analysis_end_time_edit.setMaximum(
+            max(self.analysis_end_time_edit.maximum(), end_time_s)
+        )
+        self.analysis_end_time_edit.setValue(end_time_s)
+        del blocker
+
+    def _apply_sampling_duration_mode(self, mark_not_run=True):
+        checked = self.sampling_duration_checkbox.isChecked()
+        has_data = bool(self.current_samples)
+        self.sampling_duration_edit.setEnabled(checked)
+        self.analysis_start_time_edit.setEnabled(has_data)
+        self.analysis_end_time_edit.setEnabled(has_data and not checked)
+        if checked and has_data:
+            self._update_calculated_end_time()
+        elif has_data:
+            self._clamp_manual_end_time_to_dataset()
+        if mark_not_run:
+            self._mark_analysis_not_run()
+
+
+    def _clamp_manual_end_time_to_dataset(self):
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        except ValueError:
+            return
+        if not elapsed_seconds:
+            return
+        available_end_time_s = float(max(elapsed_seconds))
+        if self.analysis_end_time_edit.value() <= available_end_time_s:
+            return
+        blocker = QSignalBlocker(self.analysis_end_time_edit)
+        self.analysis_end_time_edit.setMaximum(
+            max(self.analysis_end_time_edit.maximum(), available_end_time_s)
+        )
+        self.analysis_end_time_edit.setValue(available_end_time_s)
+        del blocker
+
+    def _on_sampling_duration_toggled(self, _checked):
+        self._apply_sampling_duration_mode(mark_not_run=True)
+
+    def _on_sampling_duration_changed(self, _value):
+        if self.sampling_duration_checkbox.isChecked() and self.current_samples:
+            self._update_calculated_end_time()
+        self._mark_analysis_not_run()
 
     def _on_analysis_start_time_changed(self, _value):
+        if self.sampling_duration_checkbox.isChecked() and self.current_samples:
+            self._update_calculated_end_time()
         self._mark_analysis_not_run()
 
     def _on_analysis_end_time_changed(self, _value):
@@ -1099,6 +1212,9 @@ class QCurrentTab(QWidget):
             "set_start_time": menu.addAction("Set Start Time"),
             "set_end_time": menu.addAction("Set End Time"),
         }
+        actions["set_end_time"].setEnabled(
+            not self.sampling_duration_checkbox.isChecked()
+        )
         return menu, actions
 
     def set_analysis_start_from_review_row(self, row):
@@ -1108,6 +1224,8 @@ class QCurrentTab(QWidget):
         )
 
     def set_analysis_end_from_review_row(self, row):
+        if self.sampling_duration_checkbox.isChecked():
+            return False
         return self._set_analysis_range_from_review_row(
             row,
             self.analysis_end_time_edit,
@@ -1277,6 +1395,8 @@ class QCurrentTab(QWidget):
             standard_current_ma=self.current_limit_edit.value(),
             wake_up_limit_ma=self.wake_limit_edit.value(),
             wake_duration_s=self.wake_duration_edit.value(),
+            sampling_duration_enabled=self.sampling_duration_checkbox.isChecked(),
+            sampling_duration_min=self.sampling_duration_edit.value(),
         )
         try:
             save_q_current_config(config, self._config_file)
@@ -1448,6 +1568,9 @@ class QCurrentTab(QWidget):
         menu.addSeparator()
         actions["set_start_time"] = menu.addAction("Set Start Time")
         actions["set_end_time"] = menu.addAction("Set End Time")
+        actions["set_end_time"].setEnabled(
+            not self.sampling_duration_checkbox.isChecked()
+        )
         actions["set_cursor_a"] = menu.addAction("Set Cursor A")
         actions["set_cursor_b"] = menu.addAction("Set Cursor B")
 
@@ -1519,6 +1642,8 @@ class QCurrentTab(QWidget):
         )
 
     def set_analysis_end_from_chart_sample(self, sample_index):
+        if self.sampling_duration_checkbox.isChecked():
+            return False
         return self._set_analysis_range_from_chart_sample(
             sample_index,
             self.analysis_end_time_edit,
@@ -1528,9 +1653,18 @@ class QCurrentTab(QWidget):
         if sample_index is None:
             return False
         sample_index = int(sample_index)
-        if sample_index < 0 or sample_index >= self.chart_time_seconds.size:
+        if self.chart_time_seconds.size > 0:
+            if sample_index < 0 or sample_index >= self.chart_time_seconds.size:
+                return False
+            spinbox.setValue(float(self.chart_time_seconds[sample_index]))
+            return True
+        try:
+            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        except ValueError:
             return False
-        spinbox.setValue(float(self.chart_time_seconds[sample_index]))
+        if sample_index < 0 or sample_index >= len(elapsed_seconds):
+            return False
+        spinbox.setValue(float(elapsed_seconds[sample_index]))
         return True
 
     def _chart_context_action_at_scene_position(self, scene_position):
@@ -2141,6 +2275,7 @@ class QCurrentTab(QWidget):
             self.browse_button,
             self.import_button,
             self.save_config_button,
+            self.sampling_duration_checkbox,
             self.btn_run,
             self.btn_export,
             self.btn_pin,
@@ -2158,6 +2293,7 @@ class QCurrentTab(QWidget):
             self.current_limit_edit,
             self.wake_limit_edit,
             self.wake_duration_edit,
+            self.sampling_duration_edit,
             self.analysis_start_time_edit,
             self.analysis_end_time_edit,
         ):

@@ -32,6 +32,8 @@ class QCurrentReportSettings:
     wake_duration_s: float
     analysis_start_time_s: float | None = None
     analysis_end_time_s: float | None = None
+    sampling_duration_enabled: bool | None = None
+    sampling_duration_min: float | None = None
 
 
 @dataclass(frozen=True)
