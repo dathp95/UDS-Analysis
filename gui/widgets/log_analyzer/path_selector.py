@@ -23,7 +23,7 @@ class PathSelectorWidget(QWidget):
         self.file_filter = file_filter
         self.label = QLabel(title)
         self.edit_path = PrimaryLineEdit(
-            placeholder="Please, input file format *.blf/asc"
+            placeholder="Please click Browse button to select file *.blf",
         )
         self.browse_button = PrimaryButton("Browse")
         self.browse_button.setFixedWidth(FORM_ACTION_BUTTON_WIDTH)
