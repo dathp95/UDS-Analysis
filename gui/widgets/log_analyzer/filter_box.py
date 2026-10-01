@@ -7,14 +7,16 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import QEvent, Qt, Signal
 
+from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.utils.payload_format import delete_payload_character_at_cursor
 from gui.utils.payload_format import format_payload_input_with_cursor
 
 
 class FilterBox(QWidget):
-    
+
     filter_changed = Signal(str)
+    refresh_clicked = Signal()
 
     def __init__(
             self,
@@ -25,6 +27,10 @@ class FilterBox(QWidget):
         self.edit_filter= PrimaryLineEdit(
                 placeholder="Search ECU, NAME DIDS, Request, Response..."
                 )
+        self.btn_refresh = PrimaryButton(
+            "Refresh"
+        )
+        self.btn_refresh.setEnabled(False)
 
         self._setup_ui()
         self._connect_signals()
@@ -42,13 +48,22 @@ class FilterBox(QWidget):
         filter_box_layout.setSpacing(8)
 
         # filter_box_layout.addWidget(self.label_title)
-        filter_box_layout.addWidget(self.edit_filter)
+        filter_box_layout.addWidget(
+            self.edit_filter,
+            1,
+        )
+        filter_box_layout.addWidget(
+            self.btn_refresh
+        )
 
         main_layout.addLayout(filter_box_layout)
 
     def _connect_signals(self):
         self.edit_filter.textEdited.connect(self._format_payload)
         self.edit_filter.textChanged.connect(self.filter_changed.emit)
+        self.btn_refresh.clicked.connect(
+            self.refresh_clicked.emit
+        )
 
     def _format_payload(self, value):
         formatted, cursor = format_payload_input_with_cursor(
@@ -106,7 +121,21 @@ class FilterBox(QWidget):
     def set_focus(self):
 
         self.edit_filter.setFocus()
+
+    def fn_set_refresh_enabled(
+        self,
+        enabled: bool,
+    ) -> None:
+        self.btn_refresh.setEnabled(enabled)
+
+    def fn_set_refresh_size(
+        self,
+        width: int,
+        height: int,
+    ) -> None:
+        self.btn_refresh.fn_set_size(width, height)
     
     def fn_refresh_theme(self):
 
         self.edit_filter.fn_refresh_theme()
+        self.btn_refresh.fn_refresh_theme()

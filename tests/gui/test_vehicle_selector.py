@@ -882,6 +882,133 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.assertIsNone(self.tab._log_channel_thread)
         self.assertIsNone(self.tab._log_channel_worker)
 
+
+    def test_refresh_button_matches_browse_size_and_starts_disabled(self):
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+        self.assertEqual(
+            self.tab.filter_box.btn_refresh.width(),
+            self.tab.log_selector.browse_button.width(),
+        )
+        self.assertEqual(
+            self.tab.filter_box.btn_refresh.height(),
+            self.tab.log_selector.browse_button.height(),
+        )
+
+    def test_refresh_table_resets_filtered_view_without_reanalysis(self):
+        result = self._successful_analysis_result()
+        self.tab.analysis_controller.pipeline_result = result
+        rows = [
+            {
+                "ECU": "ECU1",
+                "Time": "0.001",
+                "Activity": "Read DID",
+                "Request": "22 F1 90",
+                "Response": "62 F1 90",
+                "RT (ms)": "1.00",
+                "Status": "OK",
+            },
+            {
+                "ECU": "ECU2",
+                "Time": "0.002",
+                "Activity": "Read DID",
+                "Request": "22 F1 91",
+                "Response": "7F 22 31",
+                "RT (ms)": "",
+                "Status": "NRC_ONLY",
+            },
+        ]
+
+        with patch(
+            "gui.tabs.log_analyzer_tab.fn_build_transaction_rows",
+            return_value=rows,
+        ):
+            self.tab._fn_analysis_finished(result)
+
+        self.assertTrue(self.tab.filter_box.btn_refresh.isEnabled())
+        self.tab.left_panel.quick_access.selected_filter = {
+            "name": "Filter ECU1",
+            "filters": {
+                "ecu": "ECU1",
+                "request": "22 F1 90",
+                "response": "62 F1 90",
+            },
+        }
+        self.tab.fn_quick_filter(self.tab.left_panel.quick_access.selected_filter)
+        self.tab.filter_box.set_text("ECU1")
+        self.tab.tbl_result.selectRow(0)
+        self.tab.tbl_result.setCurrentCell(0, 0)
+        pipeline_result = self.tab.analysis_controller.pipeline_result
+
+        with patch.object(self.tab.analysis_controller, "fn_run") as run_analysis, patch.object(
+            self.tab,
+            "_fn_start_analysis_thread",
+        ) as start_analysis, patch.object(
+            self.tab,
+            "_fn_start_log_channel_thread",
+        ) as start_channel:
+            self.tab.fn_refresh_table()
+
+        run_analysis.assert_not_called()
+        start_analysis.assert_not_called()
+        start_channel.assert_not_called()
+        self.assertIs(self.tab.analysis_controller.pipeline_result, pipeline_result)
+        self.assertEqual(self.tab.tbl_result.rowCount(), 2)
+        self.assertEqual(self.tab.filter_box.text(), "")
+        self.assertFalse(self.tab.tbl_result.isRowHidden(0))
+        self.assertFalse(self.tab.tbl_result.isRowHidden(1))
+        self.assertEqual(self.tab.tbl_result.currentRow(), -1)
+        self.assertIsNone(self.tab.left_panel.quick_access.selected_filter)
+        self.assertIn(
+            "Name: -",
+            self.tab.right_panel.action_panel.txt_quick_filter_info.toPlainText(),
+        )
+        self.assertIn(
+            "ECU: -",
+            self.tab.right_panel.action_panel.txt_transaction_info.toPlainText(),
+        )
+        self.assertTrue(self.tab.filter_box.btn_refresh.isEnabled())
+
+    def test_refresh_button_enable_lifecycle(self):
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
+        self._select_valid_single_channel_inputs()
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
+        self.tab._log_loading = True
+        self.tab._update_analyze_state()
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+        self.tab._log_loading = False
+
+        with patch.object(self.tab, "_fn_start_analysis_thread"):
+            self.tab.fn_run_clicked()
+
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
+        with patch("gui.tabs.log_analyzer_tab.QMessageBox.warning"):
+            self.tab._fn_analysis_failed("Broken log")
+
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
+        result = self._successful_analysis_result()
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab._analysis_running = True
+        self.tab._fn_set_analysis_inputs_enabled(False)
+        self.tab._fn_analysis_finished(result)
+        self.assertTrue(self.tab.filter_box.btn_refresh.isEnabled())
+
+        with patch.object(
+            self.tab.vehicle_service,
+            "load_vehicle",
+            return_value=object(),
+        ):
+            self.tab.fn_vehicle_changed("VF6")
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
+        self.tab.analysis_controller.pipeline_result = result
+        self.tab.filter_box.fn_set_refresh_enabled(True)
+        self.tab.fn_clear_clicked()
+        self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
+
     def test_does_not_reject_log_with_multiple_pt_bo_info_markers(self):
         log_file = self._write_log(
             "PT BO INFO\n"

@@ -72,6 +72,19 @@ class ResultTable(PrimaryTable):
 
     def clear_data(self):
         self.setRowCount(0)
+
+    def fn_reset_view(self) -> None:
+        self._refresh_row_colors()
+
+        for row in range(self.rowCount()):
+            self.setRowHidden(
+                row,
+                False,
+            )
+
+        self.clearSelection()
+        self.setCurrentCell(-1, -1)
+        self._fn_reset_scroll_position()
     
 
 

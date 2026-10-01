@@ -547,6 +547,9 @@ class QuickAccessWidget(QWidget):
     def fn_set_disabled(self):
 
         self.fn_enable_buttons(False)
+
+    def fn_clear_active_selection(self) -> None:
+        self.selected_filter = None
     
     def fn_enable_buttons(
             self,

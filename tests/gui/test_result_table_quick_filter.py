@@ -289,6 +289,66 @@ class ResultTableQuickFilterTests(unittest.TestCase):
         self.assertEqual(table.currentRow(), -1)
         self.assertFalse(table.selectionModel().selectedRows())
 
+    def test_reset_view_restores_rows_colors_selection_and_scroll(self):
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+        rows = []
+        for index in range(30):
+            rows.append({
+                "ECU": "ECU1" if index == 0 else "ECU2",
+                "Time": f"{index}.000",
+                "Activity": "Diag",
+                "Request": "22 F1 90" if index == 0 else "22 F1 91",
+                "Response": "62 F1 90" if index == 0 else "7F 22 31",
+                "RT (ms)": "10",
+                "Status": "OK",
+            })
+        table.set_data(rows)
+        table.resize(500, 180)
+        table.show()
+        self.application.processEvents()
+
+        table.fn_apply_quick_filter({
+            "filters": {
+                "ecu": "ECU1",
+                "request": "22 F1 90",
+                "response": "62 F1 90",
+            }
+        })
+        table.selectRow(0)
+        table.setCurrentCell(0, 0)
+        table.verticalScrollBar().setValue(table.verticalScrollBar().maximum())
+        table.horizontalScrollBar().setValue(table.horizontalScrollBar().maximum())
+
+        self.assertTrue(table.isRowHidden(1))
+
+        table.fn_reset_view()
+
+        self.assertTrue(all(
+            not table.isRowHidden(row)
+            for row in range(table.rowCount())
+        ))
+        self.assertEqual(table.currentRow(), -1)
+        self.assertFalse(table.selectionModel().selectedRows())
+        self.assertEqual(
+            table.verticalScrollBar().value(),
+            table.verticalScrollBar().minimum(),
+        )
+        self.assertEqual(
+            table.horizontalScrollBar().value(),
+            table.horizontalScrollBar().minimum(),
+        )
+
+        colors = ThemeManager.fn_colors()
+        self.assertEqual(
+            table.item(0, 0).background().color().name().lower(),
+            colors.TABLE_ROW.lower(),
+        )
+        self.assertEqual(
+            table.item(1, 0).background().color().name().lower(),
+            colors.TABLE_ROW_ALT.lower(),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

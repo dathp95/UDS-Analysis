@@ -121,6 +121,7 @@ class LogAnalyzerTab(QWidget):
         # Main widgets
         # ==========================================================
         self.filter_box = FilterBox()
+        self._fn_match_refresh_button_to_browse()
 
         self.left_panel = LeftPanel()
         self.tbl_result = ResultTable()
@@ -258,6 +259,10 @@ class LogAnalyzerTab(QWidget):
             self.fn_filter_transactions
         )
 
+        self.filter_box.refresh_clicked.connect(
+            self.fn_refresh_table
+        )
+
         self.right_panel.action_panel.analyze_clicked.connect(
             self.fn_run_clicked
         )
@@ -292,6 +297,13 @@ class LogAnalyzerTab(QWidget):
 
         self.tbl_result.create_quick_filter_requested.connect(
             self._fn_create_quick_filter_from_transaction
+        )
+
+    def _fn_match_refresh_button_to_browse(self) -> None:
+        browse_size = self.log_selector.browse_button.sizeHint()
+        self.filter_box.fn_set_refresh_size(
+            browse_size.width(),
+            browse_size.height(),
         )
 
     def _load_vehicles(self):
@@ -360,6 +372,7 @@ class LogAnalyzerTab(QWidget):
 
     def _invalidate_analysis_result(self) -> None:
         self.analysis_controller.pipeline_result = None
+        self.filter_box.fn_set_refresh_enabled(False)
 
     def fn_log_file_changed(
         self,
@@ -594,6 +607,7 @@ class LogAnalyzerTab(QWidget):
         )
 
         self.tbl_result.set_data(rows)
+        self.filter_box.fn_set_refresh_enabled(True)
         self.tbl_result.clearSelection()
         self.tbl_result.setCurrentCell(-1, -1)
         self.right_panel.action_panel.fn_clear_transaction_info()
@@ -610,6 +624,7 @@ class LogAnalyzerTab(QWidget):
         self._fn_set_analysis_inputs_enabled(True)
         self._update_analyze_state()
         self.right_panel.action_panel.fn_set_analysis_failed(message)
+        self.filter_box.fn_set_refresh_enabled(False)
 
         QMessageBox.warning(
             self,
@@ -646,6 +661,13 @@ class LogAnalyzerTab(QWidget):
 
     def fn_filter_transactions(self, keyword=None):
         self.tbl_result.fn_search(keyword)
+
+    def fn_refresh_table(self):
+        self.filter_box.clear()
+        self.tbl_result.fn_reset_view()
+        self.right_panel.action_panel.fn_clear_quick_filter_info()
+        self.right_panel.action_panel.fn_clear_transaction_info()
+        self.left_panel.quick_access.fn_clear_active_selection()
 
     def fn_quick_filter(self, filter_data: dict):
         self.right_panel.action_panel.fn_set_quick_filter_info(filter_data)
