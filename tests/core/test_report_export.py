@@ -73,6 +73,18 @@ class ReportExportTests(unittest.TestCase):
         self.assertEqual(workbook.sheetnames, ["Summary", "ALL_ECUS", "BCM"])
         self.assertEqual(workbook["Summary"]["A2"].value, "BCM")
         self.assertEqual(workbook["ALL_ECUS"]["A2"].value, "BCM")
+        self.assertEqual(
+            [cell.value for cell in workbook["ALL_ECUS"][1]],
+            [
+                "ECU",
+                "Time",
+                "Activity",
+                "Request",
+                "Response",
+                "RT (ms)",
+                "Status",
+            ],
+        )
         self.assertEqual(workbook["BCM"]["D2"].value, "Read VIN")
 
         for sheet_name in ["Summary", "ALL_ECUS", "BCM"]:

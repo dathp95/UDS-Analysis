@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from gui.controllers.analysis_controller import AnalysisController
 from gui.controllers.clipboard_controller import ClipboardController
 from gui.controllers.report_controller import ReportController
-from gui.presenters.transaction_presenter import fn_build_table_rows
+from core.transaction_formatter import fn_build_transaction_rows
 from gui.widgets.log_analyzer.filter_box import FilterBox
 from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.channel_selector import DiagnosticChannelSelectorWidget
@@ -480,7 +480,7 @@ class LogAnalyzerTab(QWidget):
         self.pipeline_result = result
         self.analysis_controller.pipeline_result = result
 
-        rows = fn_build_table_rows(
+        rows = fn_build_transaction_rows(
             result["transactions"]
         )
 

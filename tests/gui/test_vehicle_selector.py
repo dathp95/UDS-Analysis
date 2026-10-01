@@ -439,7 +439,7 @@ class LogAnalyzerTabTests(unittest.TestCase):
         }
 
         with patch(
-            "gui.tabs.log_analyzer_tab.fn_build_table_rows",
+            "gui.tabs.log_analyzer_tab.fn_build_transaction_rows",
             return_value=[{"ECU": "VCU", "Time": "0.001", "Activity": "Read DID", "Request": "22 F1 90", "Response": "62 F1 90", "RT (ms)": "1.00", "Status": "Positive"}],
         ):
             self.tab._fn_analysis_finished(result)

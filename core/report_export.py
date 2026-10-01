@@ -9,7 +9,7 @@ from core.excel_styles import (
 from core.report_engine import (
     get_activity_table,
 )
-from gui.presenters.transaction_presenter import fn_build_table_rows
+from core.transaction_formatter import fn_build_transaction_rows
 
 # ==========================================================
 # Private
@@ -154,7 +154,7 @@ def _export_all_ecus(
     writer,
 ):
 
-    rows = fn_build_table_rows(
+    rows = fn_build_transaction_rows(
         transactions
     )
 
