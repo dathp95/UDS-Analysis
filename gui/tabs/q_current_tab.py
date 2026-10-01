@@ -378,12 +378,12 @@ class QCurrentTab(QWidget):
         self._set_analysis_result("NOT RUN")
         self.analysis_result_edit.setFixedWidth(130)
 
-        self.analysis_range_label = PrimaryLabel("Analysis Range:")
-        self.analysis_start_time_label = PrimaryLabel("Start Time (s)")
+        # self.analysis_range_label = PrimaryLabel("Analysis Range:")
+        self.analysis_start_time_label = PrimaryLabel("Start time (s)    ")
         self.analysis_start_time_edit = self._create_analysis_range_spinbox(
             "analysis_start_time_edit"
         )
-        self.analysis_end_time_label = PrimaryLabel("End Time (s)")
+        self.analysis_end_time_label = PrimaryLabel("End time (s)           ")
         self.analysis_end_time_edit = self._create_analysis_range_spinbox(
             "analysis_end_time_edit"
         )
@@ -421,8 +421,8 @@ class QCurrentTab(QWidget):
         range_layout = QHBoxLayout()
         range_layout.setContentsMargins(0, 0, 0, 0)
         range_layout.setSpacing(8)
-        range_layout.addWidget(self.analysis_range_label)
-        range_layout.addSpacing(12)
+        # range_layout.addWidget(self.analysis_range_label)
+        # range_layout.addSpacing(12)
         range_layout.addWidget(self.analysis_start_time_label)
         range_layout.addWidget(self.analysis_start_time_edit)
         range_layout.addSpacing(16)
