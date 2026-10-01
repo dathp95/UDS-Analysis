@@ -883,16 +883,50 @@ class LogAnalyzerTabTests(unittest.TestCase):
         self.assertIsNone(self.tab._log_channel_worker)
 
 
-    def test_refresh_button_matches_browse_size_and_starts_disabled(self):
+    def test_refresh_button_aligns_with_browse_across_resizes(self):
         self.assertFalse(self.tab.filter_box.btn_refresh.isEnabled())
-        self.assertEqual(
-            self.tab.filter_box.btn_refresh.width(),
-            self.tab.log_selector.browse_button.width(),
-        )
-        self.assertEqual(
-            self.tab.filter_box.btn_refresh.height(),
-            self.tab.log_selector.browse_button.height(),
-        )
+
+        for width in (1200, 820):
+            with self.subTest(width=width):
+                self.tab.resize(width, 800)
+                self.tab.show()
+                self.application.processEvents()
+
+                browse_button = self.tab.log_selector.browse_button
+                refresh_button = self.tab.filter_box.btn_refresh
+                browse_left = browse_button.mapTo(
+                    self.tab,
+                    browse_button.rect().topLeft(),
+                ).x()
+                browse_right = browse_button.mapTo(
+                    self.tab,
+                    browse_button.rect().topRight(),
+                ).x()
+                refresh_left = refresh_button.mapTo(
+                    self.tab,
+                    refresh_button.rect().topLeft(),
+                ).x()
+                refresh_right = refresh_button.mapTo(
+                    self.tab,
+                    refresh_button.rect().topRight(),
+                ).x()
+
+                self.assertEqual(refresh_button.width(), browse_button.width())
+                self.assertEqual(refresh_button.height(), browse_button.height())
+                self.assertEqual(refresh_left, browse_left)
+                self.assertEqual(refresh_right, browse_right)
+                self.assertEqual(
+                    browse_button.x()
+                    - self.tab.log_selector.edit_path.geometry().right()
+                    - 1,
+                    8,
+                )
+                self.assertEqual(
+                    refresh_button.x()
+                    - self.tab.filter_box.edit_filter.geometry().right()
+                    - 1,
+                    8,
+                )
 
     def test_refresh_table_resets_filtered_view_without_reanalysis(self):
         result = self._successful_analysis_result()

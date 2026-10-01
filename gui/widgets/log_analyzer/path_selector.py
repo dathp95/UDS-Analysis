@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.widgets.log_analyzer.layout_constants import FORM_ACTION_BUTTON_WIDTH
 
 
 class PathSelectorWidget(QWidget):
@@ -25,6 +26,7 @@ class PathSelectorWidget(QWidget):
             placeholder="Please, input file format *.blf/asc"
         )
         self.browse_button = PrimaryButton("Browse")
+        self.browse_button.setFixedWidth(FORM_ACTION_BUTTON_WIDTH)
 
         self.set_ui()
         self.connect_signals()
@@ -39,7 +41,10 @@ class PathSelectorWidget(QWidget):
         file_layout.setContentsMargins(0, 0, 0, 0)
         file_layout.setSpacing(8)
 
-        file_layout.addWidget(self.edit_path)
+        file_layout.addWidget(
+            self.edit_path,
+            1,
+        )
         file_layout.addWidget(self.browse_button)
 
         main_layout.addWidget(self.label)

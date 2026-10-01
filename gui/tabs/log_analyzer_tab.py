@@ -121,7 +121,6 @@ class LogAnalyzerTab(QWidget):
         # Main widgets
         # ==========================================================
         self.filter_box = FilterBox()
-        self._fn_match_refresh_button_to_browse()
 
         self.left_panel = LeftPanel()
         self.tbl_result = ResultTable()
@@ -297,13 +296,6 @@ class LogAnalyzerTab(QWidget):
 
         self.tbl_result.create_quick_filter_requested.connect(
             self._fn_create_quick_filter_from_transaction
-        )
-
-    def _fn_match_refresh_button_to_browse(self) -> None:
-        browse_size = self.log_selector.browse_button.sizeHint()
-        self.filter_box.fn_set_refresh_size(
-            browse_size.width(),
-            browse_size.height(),
         )
 
     def _load_vehicles(self):

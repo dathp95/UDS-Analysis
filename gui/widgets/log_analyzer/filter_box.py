@@ -9,6 +9,7 @@ from PySide6.QtCore import QEvent, Qt, Signal
 
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.widgets.log_analyzer.layout_constants import FORM_ACTION_BUTTON_WIDTH
 from gui.utils.payload_format import delete_payload_character_at_cursor
 from gui.utils.payload_format import format_payload_input_with_cursor
 
@@ -30,6 +31,7 @@ class FilterBox(QWidget):
         self.btn_refresh = PrimaryButton(
             "Refresh"
         )
+        self.btn_refresh.setFixedWidth(FORM_ACTION_BUTTON_WIDTH)
         self.btn_refresh.setEnabled(False)
 
         self._setup_ui()
@@ -128,12 +130,6 @@ class FilterBox(QWidget):
     ) -> None:
         self.btn_refresh.setEnabled(enabled)
 
-    def fn_set_refresh_size(
-        self,
-        width: int,
-        height: int,
-    ) -> None:
-        self.btn_refresh.fn_set_size(width, height)
     
     def fn_refresh_theme(self):
 
