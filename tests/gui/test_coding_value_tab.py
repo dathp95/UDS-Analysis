@@ -17,6 +17,7 @@ from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingValueOption, CodingValueRow
 from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
+from core.services.coding_value_report_service import CodingValueReportService
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
@@ -1224,10 +1225,8 @@ class CodingValueTabTests(unittest.TestCase):
             panel.encode_coding_payload()
             panel.check_coding_value()
 
+            panel._report_service = CodingValueReportService(report_root=report_root)
             with patch(
-                "gui.widgets.coding_value.coding_value_panel.CODING_VALUE_REPORT_DIR",
-                report_root,
-            ), patch(
                 "gui.widgets.coding_value.coding_value_panel.QFileDialog.getSaveFileName",
                 return_value=(str(custom_export_path), "Excel Files (*.xlsx)"),
             ) as save_dialog, patch(
@@ -1310,10 +1309,8 @@ class CodingValueTabTests(unittest.TestCase):
             )
             panel.check_coding_value()
 
+            panel._report_service = CodingValueReportService(report_root=report_root)
             with patch(
-                "gui.widgets.coding_value.coding_value_panel.CODING_VALUE_REPORT_DIR",
-                report_root,
-            ), patch(
                 "gui.widgets.coding_value.coding_value_panel.QFileDialog.getSaveFileName",
                 return_value=(str(custom_export_path), "Excel Files (*.xlsx)"),
             ) as save_dialog, patch(

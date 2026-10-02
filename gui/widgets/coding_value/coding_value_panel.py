@@ -1,10 +1,7 @@
-﻿from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QKeySequence, QShortcut, QTextCharFormat, QTextCursor
-from openpyxl import Workbook
-
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -17,20 +14,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from config.paths import CODING_VALUE_REPORT_DIR, EXPORT_CODING_FILES_DIR
+from config.paths import EXPORT_CODING_FILES_DIR
 from core.crc import calculate_crc8_sae_j1850
-from core.excel_styles import (
-    HEADER_ALIGNMENT,
-    HEADER_FILL,
-    HEADER_FONT,
-    THIN_BORDER,
-    WARNING_FILL,
-)
 from core.coding_value import (
     export_coding_value_rows_to_json,
     load_coding_value_rows,
     load_coding_value_rows_from_json,
 )
+from core.coding_value_report_export import (
+    CODING_VALUE_REPORT_HEADERS,
+    CodingValueReportData,
+    CodingValueReportRow,
+)
+from core.services.coding_value_report_service import CodingValueReportService
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
@@ -54,6 +50,7 @@ class CodingValuePanel(QGroupBox):
         self._payload_baseline_bytes = []
         self._has_encoded_payload = False
         self._preview_editing = False
+        self._report_service = CodingValueReportService()
         self._setup_ui()
         self._connect_signals()
         self._setup_shortcuts()
@@ -627,7 +624,10 @@ class CodingValuePanel(QGroupBox):
             return
 
         try:
-            output_file = self._export_coding_report(output_file)
+            output_file = self._report_service.export_report(
+                self._build_coding_report_data(),
+                output_file,
+            )
         except PermissionError:
             QMessageBox.warning(
                 self,
@@ -643,7 +643,7 @@ class CodingValuePanel(QGroupBox):
         )
 
     def _choose_coding_report_file(self):
-        default_path = self._default_coding_report_file()
+        default_path = self._default_coding_report_path()
         output_file, _ = QFileDialog.getSaveFileName(
             self,
             "Save Coding Value Report",
@@ -653,100 +653,43 @@ class CodingValuePanel(QGroupBox):
         if not output_file:
             return None
 
-        output_path = Path(output_file)
-        if output_path.suffix.lower() != ".xlsx":
-            output_path = output_path.with_suffix(".xlsx")
-        return output_path
+        selected_path = Path(output_file)
+        if selected_path.suffix.lower() != ".xlsx":
+            selected_path = selected_path.with_suffix(".xlsx")
+        return selected_path
 
-    def _default_coding_report_file(self):
-        now = datetime.now()
-        report_folder = CODING_VALUE_REPORT_DIR / now.strftime("%d-%m-%Y")
-        report_folder.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-        return report_folder / (
-            f"EEIV_report_Coding value_{now.strftime('%Y%m%d_%H%M%S')}.xlsx"
-        )
+    def _default_coding_report_path(self):
+        return self._report_service.default_report_path()
 
-    def _export_coding_report(self, output_file):
-        output_file = Path(output_file)
-        output_file.parent.mkdir(
-            parents=True,
-            exist_ok=True,
+    def _build_coding_report_data(self):
+        return CodingValueReportData(
+            sheet_name=self._coding_export_sheet_name(),
+            headers=self._coding_table_headers(),
+            rows=tuple(self._coding_report_rows()),
         )
 
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = self._coding_export_sheet_name()
+    def _coding_report_rows(self):
         headers = self._coding_table_headers()
-        sheet.append(headers)
-        result_index = self._coding_result_column_index(headers)
-        no_match_rows = []
-
         for row_index in range(self.table.rowCount()):
             if self.table.isRowHidden(row_index):
                 continue
 
             values = self._coding_table_row_values(row_index)
-            sheet.append(values)
-            if self._is_no_match_export_row(values, result_index):
-                no_match_rows.append(sheet.max_row)
-
-        self._format_coding_export_sheet(sheet)
-
-        for row_number in no_match_rows:
-            self._apply_no_match_export_fill(sheet[row_number])
-
-        workbook.save(output_file)
-        return output_file
-
-    @staticmethod
-    def _coding_result_column_index(headers):
-        try:
-            return headers.index("Result")
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _is_no_match_export_row(values, result_index):
-        return (
-            result_index is not None
-            and result_index < len(values)
-            and values[result_index] == "No-M"
-        )
-
-    @staticmethod
-    def _format_coding_export_sheet(sheet):
-        for cell in sheet[1]:
-            cell.font = HEADER_FONT
-            cell.alignment = HEADER_ALIGNMENT
-            cell.fill = HEADER_FILL
-            cell.border = THIN_BORDER
-
-        for row in sheet.iter_rows(
-            min_row=2,
-            max_row=sheet.max_row,
-            min_col=1,
-            max_col=sheet.max_column,
-        ):
-            for cell in row:
-                cell.border = THIN_BORDER
-
-        sheet.freeze_panes = "A2"
-
-        if sheet.max_column > 0:
-            sheet.auto_filter.ref = sheet.dimensions
-
-    @staticmethod
-    def _apply_no_match_export_fill(row_cells):
-        for cell in row_cells:
-            cell.fill = WARNING_FILL
+            values_by_header = dict(zip(headers, values))
+            yield CodingValueReportRow(
+                parameter=values_by_header.get("Parameter", ""),
+                byte_pos=values_by_header.get("Byte Pos", ""),
+                bit_pos=values_by_header.get("Bit Pos", ""),
+                bit_length=values_by_header.get("Bit Lengh", ""),
+                raw_value=values_by_header.get("Raw value", ""),
+                decoded_value=values_by_header.get("Decoded Value (Editable)", ""),
+                raw_value_before=values_by_header.get("Raw value (before)", ""),
+                decoded_value_before=values_by_header.get("Decoded value (before)", ""),
+                result=values_by_header.get("Result", ""),
+            )
 
     def _coding_export_sheet_name(self):
-        return self._safe_excel_sheet_name(
-            f"Coding value_{self._coding_export_identifier()}"
-        )
+        return f"Coding value_{self._coding_export_identifier()}"
 
     def _coding_export_identifier(self):
         payload_bytes = self._payload_baseline_bytes or self._payload_preview_bytes
@@ -756,9 +699,14 @@ class CodingValuePanel(QGroupBox):
         )
 
     def _coding_table_headers(self):
-        return [
+        headers = [
             self.table.horizontalHeaderItem(column).text()
             for column in range(self.table.columnCount())
+        ]
+        return [
+            header
+            for header in headers
+            if header in CODING_VALUE_REPORT_HEADERS
         ]
 
     def _coding_table_row_values(self, row_index):
@@ -772,15 +720,7 @@ class CodingValuePanel(QGroupBox):
             item = self.table.item(row_index, column)
             values.append(item.text() if item is not None else "")
 
-        return values
-
-    @staticmethod
-    def _safe_excel_sheet_name(name):
-        invalid_chars = r'[]:*?/\\'
-        for char in invalid_chars:
-            name = name.replace(char, "_")
-
-        return name[:31] or "Coding value"
+        return values[:len(self._coding_table_headers())]
 
     def copy_coding_payload(self):
         QApplication.clipboard().setText(
