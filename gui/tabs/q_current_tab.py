@@ -879,7 +879,7 @@ class QCurrentTab(QWidget):
 
         # Reset Analysis Range from the previous dataset.
         self._reset_analysis_range_controls()
-        
+
         self._populate_review_table(self.current_samples)
         self._initialize_analysis_range_from_samples()
         self._update_action_states()
@@ -1898,22 +1898,39 @@ class QCurrentTab(QWidget):
     def _position_analysis_range_label(self, label, line, prefer_right):
         if label is None or line is None or not label.isVisible():
             return
+
         x_range, y_range = self.current_plot.getPlotItem().viewRange()
+
         x_span = max(float(x_range[1]) - float(x_range[0]), 1e-9)
-        y_span = max(float(y_range[1]) - float(y_range[0]), 1e-9)
+
+        y_min = float(min(y_range))
+        y_max = float(max(y_range))
+        y_span = max(y_max - y_min, 1e-9)
+
         x_padding = x_span * 0.015
-        y_top = float(y_range[1]) - y_span * 0.06
+
+        # Keep label visually at the TOP of the chart,
+        # regardless of Y-axis inversion.
+        if self._y_axis_inverted:
+            y_top = y_min + y_span * 0.03
+        else:
+            y_top = y_max - y_span * 0.03
+        
+        anchor_y = 0
+
         line_x = float(line.value())
 
         if prefer_right:
             anchor_x = 0
             label_x = line_x + x_padding
+
             if label_x > float(x_range[1]) - x_padding:
                 anchor_x = 1
                 label_x = line_x - x_padding
         else:
             anchor_x = 1
             label_x = line_x - x_padding
+
             if label_x < float(x_range[0]) + x_padding:
                 anchor_x = 0
                 label_x = line_x + x_padding
