@@ -14,7 +14,7 @@ from PySide6.QtGui import QFocusEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
-from core.coding_value import CodingValueOption, CodingValueRow
+from core.coding_value import CodingDefinition, CodingValueOption, CodingValueRow
 from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
 from core.services.coding_value_report_service import CodingValueReportService
@@ -394,6 +394,8 @@ class CodingValueTabTests(unittest.TestCase):
                     panel.cmb_coding_json.findText("existing")
                 )
 
+        self.assertEqual(panel._coding_definition.name, "existing")
+        self.assertEqual(panel._coding_definition.source_file, "existing.xlsx")
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Method Type")
         self.assertEqual(panel.table.item(0, 4).text(), "")
@@ -440,6 +442,7 @@ class CodingValueTabTests(unittest.TestCase):
                     panel.import_coding_value()
 
         warning.assert_not_called()
+        self.assertEqual(panel._coding_definition.name, "existing")
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Method Type")
     def test_import_coding_excel_refreshes_json_drop_list_and_loads_table_from_json(self):
@@ -477,6 +480,8 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertEqual(panel.cmb_coding_json.currentText(), "coding")
         self.assertEqual(panel.file_path.text(), "")
+        self.assertEqual(panel._coding_definition.name, "coding")
+        self.assertEqual(panel._coding_definition.rows[0].parameter, "Vehicle Name")
         self.assertEqual(panel.table.rowCount(), 1)
         self.assertEqual(panel.table.item(0, 0).text(), "Vehicle Name")
         self.assertEqual(panel.table.item(0, 4).text(), "")
@@ -1842,7 +1847,43 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(panel_a.txt_coding_preview.toPlainText(), "AA")
         self.assertEqual(panel_a._payload_preview_bytes, [0xAA])
 
-        self.assertEqual(panel_b.table.rowCount(), 0)
+        definition_a = CodingDefinition(
+            name="Definition A",
+            rows=(
+                CodingValueRow(
+                    parameter="Definition A Byte",
+                    byte_pos="0",
+                    bit_pos="0",
+                    bit_length="8",
+                    raw_value="",
+                    decoded_value="",
+                    decoded_options=(),
+                ),
+            ),
+        )
+        definition_b = CodingDefinition(
+            name="Definition B",
+            rows=(
+                CodingValueRow(
+                    parameter="Definition B Byte",
+                    byte_pos="1",
+                    bit_pos="0",
+                    bit_length="8",
+                    raw_value="",
+                    decoded_value="",
+                    decoded_options=(),
+                ),
+            ),
+        )
+        panel_a._set_coding_definition(definition_a)
+        panel_b._set_coding_definition(definition_b)
+
+        self.assertIs(panel_a._coding_definition, definition_a)
+        self.assertIs(panel_b._coding_definition, definition_b)
+        self.assertEqual(panel_a.table.item(0, 0).text(), "Definition A Byte")
+        self.assertEqual(panel_b.table.item(0, 0).text(), "Definition B Byte")
+
+        self.assertEqual(panel_b.table.rowCount(), 1)
         self.assertEqual(panel_b.txt_coding_value.toPlainText(), "")
         self.assertEqual(panel_b.txt_coding_preview.toPlainText(), "")
         self.assertEqual(panel_b._payload_preview_bytes, [])

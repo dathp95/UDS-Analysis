@@ -16,10 +16,10 @@ from PySide6.QtWidgets import (
 
 from config.paths import EXPORT_CODING_FILES_DIR
 from core.crc import calculate_crc8_sae_j1850
-from core.coding_value import (
-    export_coding_value_rows_to_json,
-    load_coding_value_rows,
-    load_coding_value_rows_from_json,
+from core.coding_value_definition import (
+    export_coding_definition_to_json,
+    load_coding_definition_from_excel,
+    load_coding_definition_from_json,
 )
 from core.coding_value_payload import (
     extract_raw_value,
@@ -57,6 +57,7 @@ class CodingValuePanel(QGroupBox):
         self._has_encoded_payload = False
         self._preview_editing = False
         self._report_service = CodingValueReportService()
+        self._coding_definition = None
         self._setup_ui()
         self._connect_signals()
         self._setup_shortcuts()
@@ -401,7 +402,7 @@ class CodingValuePanel(QGroupBox):
             return
 
         try:
-            rows = load_coding_value_rows_from_json(json_path)
+            definition = load_coding_definition_from_json(json_path)
         except Exception as exc:
             QMessageBox.warning(
                 self,
@@ -410,7 +411,13 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
-        self._set_coding_rows(rows)
+        self._set_coding_definition(definition)
+
+    def _set_coding_definition(self, definition):
+        self._coding_definition = definition
+        self.table.set_rows(definition.rows)
+        self.filter_parameter_table()
+        self._update_action_states()
 
     def _set_coding_rows(self, rows):
         self.table.set_rows(rows)
@@ -433,7 +440,7 @@ class CodingValuePanel(QGroupBox):
             return
 
         try:
-            rows = load_coding_value_rows(
+            definition = load_coding_definition_from_excel(
                 excel_path,
                 "",
             )
@@ -445,14 +452,13 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
-        json_path = export_coding_value_rows_to_json(
-            excel_path,
-            rows,
+        json_path = export_coding_definition_to_json(
+            definition,
             EXPORT_CODING_FILES_DIR,
         )
         self._refresh_coding_json_options(json_path)
-        self._set_coding_rows(
-            load_coding_value_rows_from_json(json_path)
+        self._set_coding_definition(
+            load_coding_definition_from_json(json_path)
         )
         self.file_path.clear()
 
@@ -763,6 +769,7 @@ class CodingValuePanel(QGroupBox):
         self.clear_coding_preview()
 
     def clear_table_coding_values(self):
+        self._coding_definition = None
         self.table.clear_rows()
         self.txt_working_log.clear()
         self.clear_coding_preview()
