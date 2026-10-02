@@ -212,6 +212,7 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertEqual(set(shortcuts), set(expected))
         for shortcut in shortcuts.values():
+            self.assertIs(shortcut.parent(), panel)
             self.assertEqual(shortcut.context(), Qt.WidgetWithChildrenShortcut)
         for sequence, button in expected.items():
             shortcuts[sequence].activated.emit()
@@ -1828,64 +1829,98 @@ class CodingValueTabTests(unittest.TestCase):
         self.addCleanup(panel_a.deleteLater)
         self.addCleanup(panel_b.deleteLater)
 
-        panel_a.table.set_rows([
-            CodingValueRow(
-                parameter="Panel A Byte",
-                byte_pos="0",
+        def row(parameter, byte_pos):
+            return CodingValueRow(
+                parameter=parameter,
+                byte_pos=str(byte_pos),
                 bit_pos="0",
                 bit_length="8",
                 raw_value="",
                 decoded_value="",
                 decoded_options=(),
-            ),
-        ])
-        panel_a.txt_coding_value.setPlainText("AA")
-        panel_a.encode_coding_payload()
-
-        self.assertEqual(panel_a.table.rowCount(), 1)
-        self.assertEqual(panel_a.table.item(0, 4).text(), "AA")
-        self.assertEqual(panel_a.txt_coding_preview.toPlainText(), "AA")
-        self.assertEqual(panel_a._payload_preview_bytes, [0xAA])
+            )
 
         definition_a = CodingDefinition(
             name="Definition A",
             rows=(
-                CodingValueRow(
-                    parameter="Definition A Byte",
-                    byte_pos="0",
-                    bit_pos="0",
-                    bit_length="8",
-                    raw_value="",
-                    decoded_value="",
-                    decoded_options=(),
-                ),
+                row("Definition A Byte 0", 0),
+                row("Definition A Byte 1", 1),
             ),
         )
         definition_b = CodingDefinition(
             name="Definition B",
             rows=(
-                CodingValueRow(
-                    parameter="Definition B Byte",
-                    byte_pos="1",
-                    bit_pos="0",
-                    bit_length="8",
-                    raw_value="",
-                    decoded_value="",
-                    decoded_options=(),
-                ),
+                row("Definition B Byte 0", 0),
+                row("Definition B Byte 1", 1),
             ),
         )
         panel_a._set_coding_definition(definition_a)
         panel_b._set_coding_definition(definition_b)
+        panel_a.txt_coding_value.setPlainText("AA 11")
+        panel_b.txt_coding_value.setPlainText("BB CC")
+        panel_a.encode_coding_payload()
+        panel_b.encode_coding_payload()
 
         self.assertIs(panel_a._coding_definition, definition_a)
         self.assertIs(panel_b._coding_definition, definition_b)
-        self.assertEqual(panel_a.table.item(0, 0).text(), "Definition A Byte")
-        self.assertEqual(panel_b.table.item(0, 0).text(), "Definition B Byte")
+        self.assertIsInstance(panel_a._coding_definition, CodingDefinition)
+        self.assertIsInstance(panel_b._coding_definition, CodingDefinition)
 
-        self.assertEqual(panel_b.table.rowCount(), 1)
-        self.assertEqual(panel_b.txt_coding_value.toPlainText(), "")
-        self.assertEqual(panel_b.txt_coding_preview.toPlainText(), "")
-        self.assertEqual(panel_b._payload_preview_bytes, [])
+        expected_b_input = "BB CC"
+        expected_b_preview = "BB CC"
+        expected_b_baseline = [0xBB, 0xCC]
+        expected_b_raw_values = ["BB", "CC"]
+        expected_b_columns = len(CodingValueTable.HEADERS)
+
+        def assert_panel_b_unchanged():
+            self.assertIs(panel_b._coding_definition, definition_b)
+            self.assertEqual(panel_b.table.rowCount(), 2)
+            self.assertEqual(panel_b.table.item(0, 0).text(), "Definition B Byte 0")
+            self.assertEqual(panel_b.table.item(1, 0).text(), "Definition B Byte 1")
+            self.assertEqual(panel_b.txt_coding_value.toPlainText(), expected_b_input)
+            self.assertEqual(panel_b.txt_coding_preview.toPlainText(), expected_b_preview)
+            self.assertEqual(panel_b._payload_baseline_bytes, expected_b_baseline)
+            self.assertEqual(panel_b._payload_preview_bytes, expected_b_baseline)
+            self.assertEqual(
+                [panel_b.table.item(row_index, 4).text() for row_index in range(2)],
+                expected_b_raw_values,
+            )
+            self.assertEqual(panel_b.table.columnCount(), expected_b_columns)
+            self.assertFalse(panel_b.table.isRowHidden(0))
+            self.assertFalse(panel_b.table.isRowHidden(1))
+            self.assertEqual(panel_b.txt_parameter_filter.text(), "")
+
+        self.assertEqual(panel_a.table.item(0, 0).text(), "Definition A Byte 0")
+        self.assertEqual(panel_a.table.item(1, 0).text(), "Definition A Byte 1")
+        self.assertEqual(panel_a._payload_baseline_bytes, [0xAA, 0x11])
+        self.assertEqual(panel_a._payload_preview_bytes, [0xAA, 0x11])
+        assert_panel_b_unchanged()
+
+        panel_a.table.fn_set_raw_value_at_row(0, "AB")
+        self.assertEqual(panel_a.txt_coding_preview.toPlainText(), "AB 11")
+        self.assertEqual(panel_a._payload_preview_bytes, [0xAB, 0x11])
+        assert_panel_b_unchanged()
+
+        panel_a.check_coding_value()
+        self.assertGreater(panel_a.table.columnCount(), len(CodingValueTable.HEADERS))
+        assert_panel_b_unchanged()
+
+        panel_a.filter_no_match_rows()
+        self.assertEqual(panel_a.txt_parameter_filter.text(), "No-M")
+        assert_panel_b_unchanged()
+
+        panel_a.clear_coding_payload()
+        self.assertEqual(panel_a.txt_coding_value.toPlainText(), "")
+        self.assertEqual(panel_a.txt_coding_preview.toPlainText(), "")
+        assert_panel_b_unchanged()
+
+        replacement_definition_a = CodingDefinition(
+            name="Definition A Replacement",
+            rows=(row("Replacement A Byte 0", 0),),
+        )
+        panel_a._set_coding_definition(replacement_definition_a)
+        self.assertIs(panel_a._coding_definition, replacement_definition_a)
+        self.assertEqual(panel_a.table.item(0, 0).text(), "Replacement A Byte 0")
+        assert_panel_b_unchanged()
 if __name__ == "__main__":
     unittest.main()

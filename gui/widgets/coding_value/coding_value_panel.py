@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from config.paths import EXPORT_CODING_FILES_DIR
+from core.coding_value import CodingDefinition
 from core.crc import calculate_crc8_sae_j1850
 from core.coding_value_definition import (
     export_coding_definition_to_json,
@@ -52,12 +53,12 @@ class CodingValuePanel(QGroupBox):
     def __init__(self):
         super().__init__("Coding Value")
 
-        self._payload_preview_bytes = []
-        self._payload_baseline_bytes = []
-        self._has_encoded_payload = False
-        self._preview_editing = False
-        self._report_service = CodingValueReportService()
-        self._coding_definition = None
+        self._payload_preview_bytes: list[int] = []
+        self._payload_baseline_bytes: list[int] = []
+        self._has_encoded_payload: bool = False
+        self._preview_editing: bool = False
+        self._report_service: CodingValueReportService = CodingValueReportService()
+        self._coding_definition: CodingDefinition | None = None
         self._setup_ui()
         self._connect_signals()
         self._setup_shortcuts()
@@ -413,14 +414,9 @@ class CodingValuePanel(QGroupBox):
 
         self._set_coding_definition(definition)
 
-    def _set_coding_definition(self, definition):
+    def _set_coding_definition(self, definition: CodingDefinition):
         self._coding_definition = definition
         self.table.set_rows(definition.rows)
-        self.filter_parameter_table()
-        self._update_action_states()
-
-    def _set_coding_rows(self, rows):
-        self.table.set_rows(rows)
         self.filter_parameter_table()
         self._update_action_states()
 
