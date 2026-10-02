@@ -1,5 +1,3 @@
-import re
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
@@ -15,6 +13,17 @@ from gui.themes.styles.controls.scrollbar_style import (
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_table import PrimaryTable
+from core.coding_value_payload import (
+    extract_raw_value,
+    format_raw_int,
+    format_raw_value,
+    hex_tokens,
+    is_spaced_hex,
+    normalize_raw_tokens,
+    normalize_user_raw_value,
+    parse_payload_text,
+    to_int,
+)
 
 
 class CodingValueTable(PrimaryTable):
@@ -492,157 +501,39 @@ class CodingValueTable(PrimaryTable):
 
     @classmethod
     def _normalize_user_raw_value(cls, raw_value, bit_length):
-        text = str(raw_value or "").strip()
-        if not text:
-            return None
-
-        bit_count = cls._to_int(bit_length)
-        tokens = cls._hex_tokens(text)
-        if not tokens:
-            return None
-
-        if cls._is_spaced_hex(text) and bit_count is not None and bit_count <= 4:
-            return cls._normalize_raw_tokens(tokens, bit_count)
-
-        hex_text = "".join(tokens)
-        raw_int = int(hex_text, 16)
-        if bit_count is not None and bit_count > 0:
-            max_value = (1 << bit_count) - 1
-            if raw_int > max_value:
-                return None
-
-        return cls._format_raw_int(raw_int, bit_count, len(hex_text))
+        return normalize_user_raw_value(raw_value, bit_length)
 
     @classmethod
     def _normalize_raw_tokens(cls, tokens, bit_count):
-        if bit_count is not None and bit_count > 0:
-            max_value = (1 << bit_count) - 1
-            for token in tokens:
-                if int(token, 16) > max_value:
-                    return None
-
-        formatted = [
-            f"{int(token, 16):02X}"
-            for token in tokens
-        ]
-        return " ".join(formatted)
+        return normalize_raw_tokens(tokens, bit_count)
 
     @classmethod
     def _format_raw_value(cls, raw_value, bit_length):
-        text = str(raw_value or "").strip()
-        if not text:
-            return ""
-
-        bit_count = cls._to_int(bit_length)
-        tokens = cls._hex_tokens(text)
-        if not tokens:
-            return text.removeprefix("0x").removeprefix("0X")
-
-        if cls._is_spaced_hex(text):
-            normalized = cls._normalize_raw_tokens(tokens, bit_count)
-            return normalized if normalized is not None else " ".join(tokens)
-
-        hex_text = "".join(tokens)
-        return cls._format_raw_int(
-            int(hex_text, 16),
-            bit_count,
-            len(hex_text),
-        )
+        return format_raw_value(raw_value, bit_length)
 
     @staticmethod
     def _format_raw_int(raw_int, bit_count, source_width):
-        if bit_count is not None and bit_count > 0:
-            width = max(2, (bit_count + 3) // 4)
-        else:
-            width = max(2, source_width)
-
-        raw_text = f"{raw_int:0{width}X}"
-        if bit_count is not None and bit_count > 4:
-            if len(raw_text) % 2:
-                raw_text = "0" + raw_text
-            return " ".join(
-                raw_text[index:index + 2]
-                for index in range(0, len(raw_text), 2)
-            )
-
-        return raw_text
+        return format_raw_int(raw_int, bit_count, source_width)
 
     @classmethod
     def _payload_raw_value(cls, payload_bytes, byte_pos, bit_pos, bit_length):
-        bit_offset = cls._to_int(bit_pos)
-        bit_count = cls._to_int(bit_length)
-        if (
-                bit_offset is None
-                or bit_count is None
-                or bit_count <= 0
-                or byte_pos < 0
-                or byte_pos >= len(payload_bytes)
-            ):
-            return ""
-
-        if bit_offset == 0 and bit_count % 8 == 0:
-            byte_count = bit_count // 8
-            selected = payload_bytes[byte_pos:byte_pos + byte_count]
-            if len(selected) != byte_count:
-                return ""
-            return " ".join(f"{value:02X}" for value in selected)
-
-        byte_count = (bit_offset + bit_count + 7) // 8
-        selected = payload_bytes[byte_pos:byte_pos + byte_count]
-        if len(selected) != byte_count:
-            return ""
-
-        container = int.from_bytes(
-            bytes(selected),
-            byteorder="little",
-        )
-        raw_int = (container >> bit_offset) & ((1 << bit_count) - 1)
-        return cls._format_raw_int(
-            raw_int,
-            bit_count,
-            max(1, (bit_count + 3) // 4),
-        )
+        return extract_raw_value(payload_bytes, byte_pos, bit_pos, bit_length)
 
     @staticmethod
     def _parse_payload_bytes(payload):
-        return [
-            int(token, 16)
-            for token in re.findall(r"[0-9A-Fa-f]{2}", payload or "")
-        ]
+        return parse_payload_text(payload)
 
     @staticmethod
     def _hex_tokens(raw_value):
-        text = str(raw_value or "").strip()
-        text = re.sub(r"(?i)0x", "", text)
-        tokens = re.findall(r"[0-9A-Fa-f]+", text)
-        if not tokens or "".join(tokens) != re.sub(r"\s+", "", text):
-            return []
-
-        return tokens
+        return hex_tokens(raw_value)
 
     @staticmethod
     def _is_spaced_hex(raw_value):
-        return bool(re.search(r"\s", str(raw_value or "").strip()))
+        return is_spaced_hex(raw_value)
 
     @staticmethod
     def _to_int(value):
-        if value is None:
-            return None
-
-        text = str(value).strip()
-        if not text:
-            return None
-
-        try:
-            return int(text, 0)
-        except ValueError:
-            pass
-
-        match = re.match(r"^(\d+)(?:\.0+)?(?:\D.*)?$", text)
-        if match:
-            return int(match.group(1), 10)
-
-        return None
+        return to_int(value)
 
     def fn_refresh_theme(self):
         super().fn_refresh_theme()

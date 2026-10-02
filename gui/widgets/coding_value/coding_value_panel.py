@@ -21,6 +21,12 @@ from core.coding_value import (
     load_coding_value_rows,
     load_coding_value_rows_from_json,
 )
+from core.coding_value_payload import (
+    extract_raw_value,
+    format_payload_bytes,
+    parse_payload_text,
+    write_raw_value,
+)
 from core.coding_value_report_export import (
     CODING_VALUE_REPORT_HEADERS,
     CodingValueReportData,
@@ -740,7 +746,7 @@ class CodingValuePanel(QGroupBox):
             return
 
         try:
-            payload_bytes = self.table._parse_payload_bytes(preview_text)
+            payload_bytes = parse_payload_text(preview_text)
         except ValueError:
             return
 
@@ -801,7 +807,7 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
-        self._payload_preview_bytes = self.table._parse_payload_bytes(payload)
+        self._payload_preview_bytes = parse_payload_text(payload)
         self.txt_coding_preview.setPlainText(
             self._format_payload_bytes(self._payload_preview_bytes)
         )
@@ -988,7 +994,7 @@ class CodingValuePanel(QGroupBox):
 
     def _row_raw_matches_preview(self, row_index, preview_byte_pos, raw_value):
         _, bit_pos, bit_length = self.table.fn_payload_location_for_row(row_index)
-        expected = CodingValueTable._payload_raw_value(
+        expected = extract_raw_value(
             self._payload_preview_bytes,
             preview_byte_pos,
             bit_pos,
@@ -1057,7 +1063,7 @@ class CodingValuePanel(QGroupBox):
         return f"{payload_bytes[-1]:02X}"
 
     def set_payload_preview(self, payload):
-        self._payload_preview_bytes = self.table._parse_payload_bytes(payload)
+        self._payload_preview_bytes = parse_payload_text(payload)
         self._payload_baseline_bytes = list(self._payload_preview_bytes)
         self.txt_coding_preview.setPlainText(
             self._format_payload_bytes(self._payload_preview_bytes)
@@ -1093,42 +1099,22 @@ class CodingValuePanel(QGroupBox):
             bit_length,
             raw_value,
         ):
-        if byte_pos < 0 or byte_pos >= len(self._payload_preview_bytes):
+        result = write_raw_value(
+            self._payload_preview_bytes,
+            byte_pos,
+            bit_pos,
+            bit_length,
+            raw_value,
+        )
+        if not result.success:
             return []
 
-        tokens = self.table._hex_tokens(raw_value)
-        if not tokens:
-            return []
-
-        raw_int = int("".join(tokens), 16)
-        if bit_pos == 0 and bit_length % 8 == 0:
-            byte_count = bit_length // 8
-            if byte_count <= 0 or byte_pos + byte_count > len(self._payload_preview_bytes):
-                return []
-            raw_bytes = raw_int.to_bytes(byte_count, byteorder="big")
-            for offset, value in enumerate(raw_bytes):
-                self._payload_preview_bytes[byte_pos + offset] = value
-            return list(range(byte_pos, byte_pos + byte_count))
-
-        byte_count = (bit_pos + bit_length + 7) // 8
-        if byte_count <= 0 or byte_pos + byte_count > len(self._payload_preview_bytes):
-            return []
-
-        selected = self._payload_preview_bytes[byte_pos:byte_pos + byte_count]
-        container = int.from_bytes(bytes(selected), byteorder="little")
-        mask = ((1 << bit_length) - 1) << bit_pos
-        container = (container & ~mask) | ((raw_int << bit_pos) & mask)
-        merged = container.to_bytes(byte_count, byteorder="little")
-        for offset, value in enumerate(merged):
-            self._payload_preview_bytes[byte_pos + offset] = value
-        return list(range(byte_pos, byte_pos + byte_count))
+        self._payload_preview_bytes = result.payload
+        return result.changed_indexes
 
     @staticmethod
     def _format_payload_bytes(payload_bytes):
-        return " ".join(
-            f"{value:02X}"
-            for value in payload_bytes
-        )
+        return format_payload_bytes(payload_bytes)
 
     def _highlight_payload_bytes(self, byte_indexes):
         selections = []
