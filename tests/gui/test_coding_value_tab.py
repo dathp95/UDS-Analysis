@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFocusEvent, QKeySequence
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainTextEdit, QStackedWidget, QVBoxLayout
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingDefinition, CodingValueOption, CodingValueRow
@@ -47,18 +47,21 @@ class CodingValueTabTests(unittest.TestCase):
         self.export_dir_patch.start()
         self.addCleanup(self.export_dir_patch.stop)
 
-    def test_coding_value_tab_displays_sidebar_and_single_panel(self):
+    def test_coding_value_tab_displays_sidebar_and_initial_stack_panel(self):
         tab = CodingValueTab()
         self.addCleanup(tab.deleteLater)
 
         self.assertIsInstance(tab.workspace_sidebar, EcuWorkspaceSidebar)
         self.assertIsInstance(tab.coding_value_panel, CodingValuePanel)
+        self.assertIsInstance(tab.workspace_stack, QStackedWidget)
         self.assertIsInstance(tab.workspace_row.layout(), QHBoxLayout)
         self.assertEqual(tab.workspace_row.layout().indexOf(tab.workspace_sidebar), 0)
-        self.assertEqual(tab.workspace_row.layout().indexOf(tab.coding_value_panel), 1)
+        self.assertEqual(tab.workspace_row.layout().indexOf(tab.workspace_stack), 1)
+        self.assertEqual(tab.workspace_stack.count(), 1)
         self.assertEqual(len(tab.findChildren(CodingValuePanel)), 1)
+        self.assertIs(tab.workspace_stack.currentWidget(), tab.coding_value_panel)
 
-    def test_coding_value_tab_creates_transitional_default_workspace(self):
+    def test_coding_value_tab_creates_default_workspace_and_panel_mapping(self):
         tab = CodingValueTab()
         self.addCleanup(tab.deleteLater)
 
@@ -66,43 +69,223 @@ class CodingValueTabTests(unittest.TestCase):
         workspace = tab.workspace_sidebar.workspaces()[0]
         self.assertEqual(workspace.name, "ECU 1")
         self.assertEqual(tab.workspace_sidebar.active_workspace_id(), workspace.id)
+        self.assertEqual(set(tab._panel_by_workspace_id), {workspace.id})
+        self.assertIs(tab.active_coding_value_panel(), tab._panel_by_workspace_id[workspace.id])
 
-    def test_adding_sidebar_workspace_does_not_create_another_panel(self):
+    def test_add_button_creates_independent_panel_before_selecting_workspace(self):
         tab = CodingValueTab()
         self.addCleanup(tab.deleteLater)
-
-        tab.workspace_sidebar.add_workspace(
-            CodingEcuWorkspace.create("ECU 2"),
-            select=True,
+        events = []
+        tab.workspace_sidebar.workspace_added.connect(
+            lambda workspace: events.append(("added", workspace.id, tab._panel_by_workspace_id.get(workspace.id)))
+        )
+        tab.workspace_sidebar.workspace_selected.connect(
+            lambda workspace_id: events.append(("selected", workspace_id, tab._panel_by_workspace_id.get(workspace_id)))
         )
 
-        self.assertEqual(tab.workspace_sidebar.workspace_count(), 2)
-        self.assertEqual(len(tab.findChildren(CodingValuePanel)), 1)
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("ECU 2", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
 
-    def test_coding_value_tab_crc_routing_still_uses_single_panel(self):
+        self.assertEqual(tab.workspace_sidebar.workspace_count(), 2)
+        self.assertEqual(tab.workspace_stack.count(), 2)
+        self.assertEqual(len(tab.findChildren(CodingValuePanel)), 2)
+        active_workspace = tab.workspace_sidebar.active_workspace()
+        self.assertIs(tab.workspace_stack.currentWidget(), tab._panel_by_workspace_id[active_workspace.id])
+        self.assertEqual([event[0] for event in events], ["added", "selected"])
+        self.assertIsNotNone(events[0][2])
+        self.assertIs(events[1][2], events[0][2])
+
+    def test_rename_workspace_does_not_recreate_panel(self):
         tab = CodingValueTab()
         self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        original_panel = tab._panel_by_workspace_id[workspace.id]
 
-        with patch.object(
-            tab.coding_value_panel,
-            "fn_set_crc_value",
-            return_value=True,
-        ) as set_crc:
-            result = tab.fn_set_crc_value("47")
+        self.assertTrue(tab.workspace_sidebar.rename_workspace(workspace.id, "Main Head Unit"))
+
+        self.assertIs(tab._panel_by_workspace_id[workspace.id], original_panel)
+        self.assertIs(tab.coding_value_panel, original_panel)
+
+    def test_coding_value_tab_crc_routing_uses_active_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("ECU 2", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        second_workspace = tab.workspace_sidebar.active_workspace()
+        first_panel = tab._panel_by_workspace_id[first_workspace.id]
+        second_panel = tab._panel_by_workspace_id[second_workspace.id]
+
+        with patch.object(first_panel, "fn_set_crc_value", return_value=True) as first_set_crc:
+            with patch.object(second_panel, "fn_set_crc_value", return_value=True) as second_set_crc:
+                result = tab.fn_set_crc_value("47")
 
         self.assertTrue(result)
-        set_crc.assert_called_once_with("47")
+        first_set_crc.assert_not_called()
+        second_set_crc.assert_called_once_with("47")
 
-    def test_coding_value_tab_theme_refresh_updates_sidebar_and_panel(self):
+        tab.workspace_sidebar.select_workspace(first_workspace.id)
+        with patch.object(first_panel, "fn_set_crc_value", return_value=True) as first_set_crc:
+            result = tab.fn_set_crc_value("99")
+
+        self.assertTrue(result)
+        first_set_crc.assert_called_once_with("99")
+
+    def test_coding_value_tab_crc_routing_returns_false_without_active_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+
+        tab.workspace_sidebar.remove_workspace(workspace.id)
+
+        self.assertIsNone(tab.active_coding_value_panel())
+        self.assertFalse(tab.fn_set_crc_value("47"))
+
+    def test_coding_value_tab_theme_refresh_updates_sidebar_and_all_panels(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("ECU 2", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        second_workspace = tab.workspace_sidebar.active_workspace()
+        first_panel = tab._panel_by_workspace_id[first_workspace.id]
+        second_panel = tab._panel_by_workspace_id[second_workspace.id]
+
+        with patch.object(tab.workspace_sidebar, "fn_refresh_theme") as sidebar_theme:
+            with patch.object(first_panel, "fn_refresh_theme") as first_panel_theme:
+                with patch.object(second_panel, "fn_refresh_theme") as second_panel_theme:
+                    tab.fn_refresh_theme()
+
+        sidebar_theme.assert_called_once_with()
+        first_panel_theme.assert_called_once_with()
+        second_panel_theme.assert_called_once_with()
+
+    def test_delete_workspace_removes_panel_and_keeps_active_fallback(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("ECU 2", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        second_workspace = tab.workspace_sidebar.active_workspace()
+        first_panel = tab._panel_by_workspace_id[first_workspace.id]
+        second_panel = tab._panel_by_workspace_id[second_workspace.id]
+
+        self.assertTrue(tab.workspace_sidebar.remove_workspace(second_workspace.id))
+
+        self.assertEqual(tab.workspace_stack.count(), 1)
+        self.assertNotIn(second_workspace.id, tab._panel_by_workspace_id)
+        self.assertEqual(tab.workspace_stack.indexOf(second_panel), -1)
+        self.assertIs(tab.workspace_sidebar.active_workspace(), first_workspace)
+        self.assertIs(tab.workspace_stack.currentWidget(), first_panel)
+
+    def test_delete_last_workspace_and_add_after_empty_is_safe(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+
+        self.assertTrue(tab.workspace_sidebar.remove_workspace(workspace.id))
+
+        self.assertEqual(tab.workspace_stack.count(), 0)
+        self.assertEqual(tab._panel_by_workspace_id, {})
+        self.assertIsNone(tab.active_coding_value_panel())
+
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("ECU New", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+
+        self.assertEqual(tab.workspace_stack.count(), 1)
+        self.assertEqual(len(tab._panel_by_workspace_id), 1)
+        self.assertIs(tab.workspace_stack.currentWidget(), tab.active_coding_value_panel())
+
+    def test_switching_ecu_workspaces_preserves_independent_panel_state(self):
         tab = CodingValueTab()
         self.addCleanup(tab.deleteLater)
 
-        with patch.object(tab.workspace_sidebar, "fn_refresh_theme") as sidebar_theme:
-            with patch.object(tab.coding_value_panel, "fn_refresh_theme") as panel_theme:
-                tab.fn_refresh_theme()
+        def row(parameter, byte_pos):
+            return CodingValueRow(
+                parameter=parameter,
+                byte_pos=str(byte_pos),
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            )
 
-        sidebar_theme.assert_called_once_with()
-        panel_theme.assert_called_once_with()
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        tab.workspace_sidebar.rename_workspace(mhu_workspace.id, "MHU")
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+
+        mhu_definition = CodingDefinition(
+            name="MHU Definition",
+            rows=(row("MHU Byte 0", 0), row("MHU Byte 1", 1)),
+        )
+        vcu_definition = CodingDefinition(
+            name="VCU Definition",
+            rows=(row("VCU Byte 0", 0), row("VCU Byte 1", 1)),
+        )
+
+        tab.workspace_sidebar.select_workspace(mhu_workspace.id)
+        mhu_panel = tab.active_coding_value_panel()
+        mhu_panel._set_coding_definition(mhu_definition)
+        mhu_panel.txt_coding_value.setPlainText("AA 11")
+        mhu_panel.encode_coding_payload()
+        mhu_panel.table.fn_set_raw_value_at_row(0, "AB")
+        mhu_panel.check_coding_value()
+        mhu_panel.filter_no_match_rows()
+
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        vcu_panel = tab.active_coding_value_panel()
+        vcu_panel._set_coding_definition(vcu_definition)
+        vcu_panel.txt_coding_value.setPlainText("BB CC")
+        vcu_panel.encode_coding_payload()
+        vcu_panel.table.fn_set_raw_value_at_row(1, "CD")
+        vcu_panel.check_coding_value()
+
+        self.assertIsNot(mhu_panel, vcu_panel)
+        self.assertIs(tab.workspace_stack.currentWidget(), vcu_panel)
+        self.assertIs(vcu_panel._coding_definition, vcu_definition)
+        self.assertEqual(vcu_panel.txt_coding_value.toPlainText(), "BB CC")
+        self.assertEqual(vcu_panel.txt_coding_preview.toPlainText(), "BB CD")
+        self.assertEqual(vcu_panel.table.item(0, 0).text(), "VCU Byte 0")
+        self.assertEqual(vcu_panel.table.item(1, 4).text(), "CD")
+        self.assertEqual(vcu_panel.txt_parameter_filter.text(), "")
+        self.assertIn("Total No-M", vcu_panel.txt_working_log.toPlainText())
+
+        tab.workspace_sidebar.select_workspace(mhu_workspace.id)
+
+        self.assertIs(tab.workspace_stack.currentWidget(), mhu_panel)
+        self.assertIs(mhu_panel._coding_definition, mhu_definition)
+        self.assertEqual(mhu_panel.txt_coding_value.toPlainText(), "AA 11")
+        self.assertEqual(mhu_panel.txt_coding_preview.toPlainText(), "AB 11")
+        self.assertEqual(mhu_panel.table.item(0, 0).text(), "MHU Byte 0")
+        self.assertEqual(mhu_panel.table.item(0, 4).text(), "AB")
+        self.assertEqual(mhu_panel.txt_parameter_filter.text(), "No-M")
+        self.assertIn("Total No-M", mhu_panel.txt_working_log.toPlainText())
+
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+
+        self.assertEqual(vcu_panel.txt_coding_preview.toPlainText(), "BB CD")
+        self.assertEqual(vcu_panel.table.item(1, 4).text(), "CD")
 
     def test_set_crc_value_updates_crc_parameter_row(self):
         panel = CodingValuePanel()

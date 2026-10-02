@@ -4,10 +4,11 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from core.coding_value_workspace import CodingEcuWorkspace
 from gui.widgets.coding_value.ecu_workspace_sidebar import EcuWorkspaceSidebar
+from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
 class EcuWorkspaceSidebarTests(unittest.TestCase):
@@ -23,6 +24,12 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertEqual(sidebar.workspace_count(), 0)
         self.assertIsNone(sidebar.active_workspace_id())
         self.assertEqual(sidebar.btn_add.text(), "+ Add ECU")
+        root_layout = sidebar.layout()
+        self.assertLess(
+            root_layout.indexOf(sidebar.scroll_area),
+            root_layout.indexOf(sidebar.btn_add),
+        )
+        self.assertLessEqual(sidebar.list_layout.spacing(), 4)
 
     def test_add_existing_workspace_preserves_id_and_display_name(self):
         sidebar = EcuWorkspaceSidebar()
@@ -35,6 +42,7 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertIs(sidebar.workspaces()[0], workspace)
         self.assertIs(sidebar.workspace_by_id(workspace.id), workspace)
         self.assertEqual(sidebar._item_by_id[workspace.id].workspace_name(), "MHU")
+        self.assertIsInstance(sidebar._item_by_id[workspace.id], QuickAccessButton)
 
     def test_multiple_workspaces_preserve_order(self):
         sidebar = EcuWorkspaceSidebar()
@@ -160,13 +168,43 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
 
         self.assertEqual(sidebar.active_workspace_id(), workspace.id)
 
+    def test_workspace_rows_are_compact_buttons_without_permanent_delete_button(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        workspace = CodingEcuWorkspace.create("MHU")
+
+        sidebar.add_workspace(workspace, select=True)
+
+        item = sidebar._item_by_id[workspace.id]
+        self.assertIsInstance(item, QuickAccessButton)
+        self.assertLessEqual(item.minimumHeight(), 28)
+        self.assertFalse(hasattr(item, "btn_delete"))
+        self.assertFalse(item.findChildren(QPushButton))
+        self.assertNotIn("*", item.text())
+
+    def test_workspace_context_menu_exposes_rename_and_delete_actions(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        workspace = CodingEcuWorkspace.create("MHU")
+        sidebar.add_workspace(workspace)
+        item = sidebar._item_by_id[workspace.id]
+
+        menu = item._create_context_menu()
+        actions = {action.text(): action for action in menu.actions()}
+
+        self.assertEqual(set(actions), {"Rename", "Delete"})
+        menu.deleteLater()
+
     def test_add_button_creates_selects_and_emits_workspace(self):
         sidebar = EcuWorkspaceSidebar()
         self.addCleanup(sidebar.deleteLater)
         added = []
         selected = []
+        events = []
         sidebar.workspace_added.connect(added.append)
         sidebar.workspace_selected.connect(selected.append)
+        sidebar.workspace_added.connect(lambda workspace: events.append(("added", workspace.id)))
+        sidebar.workspace_selected.connect(lambda workspace_id: events.append(("selected", workspace_id)))
 
         with patch(
             "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
@@ -178,6 +216,10 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertEqual(sidebar.workspaces()[0].name, "VCU")
         self.assertEqual(added, [sidebar.workspaces()[0]])
         self.assertEqual(selected, [sidebar.workspaces()[0].id])
+        self.assertEqual(events, [
+            ("added", sidebar.workspaces()[0].id),
+            ("selected", sidebar.workspaces()[0].id),
+        ])
 
     def test_cancel_add_dialog_does_nothing(self):
         sidebar = EcuWorkspaceSidebar()

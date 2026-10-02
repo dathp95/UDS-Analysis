@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
     QInputDialog,
     QLabel,
     QMenu,
     QMessageBox,
-    QPushButton,
+    QFrame,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -19,108 +16,76 @@ from core.coding_value_workspace import CodingEcuWorkspace
 from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.themes.theme_manager import ThemeManager
+from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.controls.secondary_button import SecondaryButton
 
 
-class EcuWorkspaceItemWidget(QFrame):
+class EcuWorkspaceItemWidget(QuickAccessButton):
 
     clicked = Signal(str)
     delete_requested = Signal(str)
     rename_requested = Signal(str)
 
     def __init__(self, workspace: CodingEcuWorkspace, parent=None):
-        super().__init__(parent)
-
         self.workspace = workspace
         self._active = False
-        self._setup_ui()
-        self.fn_refresh_theme()
-
-    def _setup_ui(self):
+        super().__init__(workspace.name, width=132, height=26, parent=parent)
         self.setObjectName("ecuWorkspaceItem")
         self.setCursor(Qt.PointingHandCursor)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 6, 4)
-        layout.setSpacing(6)
-
-        self.active_marker = QLabel("")
-        self.active_marker.setFixedWidth(10)
-        self.name_label = QLabel(self.workspace.name)
-        self.name_label.setTextInteractionFlags(Qt.NoTextInteraction)
-        self.name_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.name_label.setToolTip(self.workspace.name)
-
-        self.btn_delete = QPushButton("x")
-        self.btn_delete.setObjectName("ecuWorkspaceDeleteButton")
-        self.btn_delete.setFixedSize(24, 24)
-        self.btn_delete.setCursor(Qt.PointingHandCursor)
-        self.btn_delete.clicked.connect(
-            lambda: self.delete_requested.emit(self.workspace.id)
-        )
-
-        layout.addWidget(self.active_marker)
-        layout.addWidget(self.name_label, 1)
-        layout.addWidget(self.btn_delete)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clicked.emit(self.workspace.id)
-
-        super().mousePressEvent(event)
+        super().clicked.connect(lambda checked=False: self.clicked.emit(self.workspace.id))
+        self.setToolTip(self.workspace.name)
 
     def set_active(self, active: bool):
         self._active = active
-        self.active_marker.setText("*" if active else "")
         self.fn_refresh_theme()
 
     def set_workspace_name(self, name: str):
-        self.name_label.setText(name)
-        self.name_label.setToolTip(name)
+        self.setText(name)
+        self.setToolTip(name)
 
     def workspace_name(self) -> str:
-        return self.name_label.text()
+        return self.text()
 
     def _show_context_menu(self, position):
-        menu = QMenu(self)
-        fn_apply_menu_style(menu)
-        rename_action = menu.addAction("Rename")
-        delete_action = menu.addAction("Delete")
+        menu = self._create_context_menu()
         action = menu.exec(self.mapToGlobal(position))
-        if action == rename_action:
+        if action is None:
+            return
+
+        if action.text() == "Rename":
             self.rename_requested.emit(self.workspace.id)
-        elif action == delete_action:
+        elif action.text() == "Delete":
             self.delete_requested.emit(self.workspace.id)
 
-    def fn_refresh_theme(self):
-        colors = ThemeManager.fn_colors()
-        background = colors.TABLE_SELECTION if self._active else colors.WINDOW
-        text_color = colors.TEXT_INVERT if self._active else colors.TEXT
-        delete_background = colors.DANGER if self._active else colors.SECONDARY
-        delete_text = colors.TEXT_INVERT if self._active else colors.TEXT
+    def _create_context_menu(self):
+        menu = QMenu(self)
+        fn_apply_menu_style(menu)
+        menu.addAction("Rename")
+        menu.addAction("Delete")
+        return menu
 
+    def fn_refresh_theme(self):
+        super().fn_refresh_theme()
+        if not self._active:
+            return
+
+        colors = ThemeManager.fn_colors()
         self.setStyleSheet(
             f"""
-            QFrame#ecuWorkspaceItem {{
-                background-color: {background};
-                border: 1px solid {colors.BORDER};
-                border-radius: 6px;
-            }}
-            QLabel {{
-                color: {text_color};
-            }}
-            QPushButton#ecuWorkspaceDeleteButton {{
-                background-color: {delete_background};
-                color: {delete_text};
+            QPushButton#ecuWorkspaceItem {{
+                background-color: {colors.TABLE_SELECTION};
+                color: {colors.TEXT_INVERT};
                 border: 1px solid {colors.BORDER};
                 border-radius: 4px;
-                padding: 0;
-            }}
-            QPushButton#ecuWorkspaceDeleteButton:hover {{
-                background-color: {colors.DANGER};
-                color: {colors.TEXT_INVERT};
+                font-family: "Segoe UI";
+                font-size: 10pt;
+                font-weight: 600;
+                min-height: 24px;
+                padding-left: 16px;
+                padding-right: 10px;
+                text-align: left;
             }}
             """
         )
@@ -153,7 +118,7 @@ class EcuWorkspaceSidebar(QWidget):
 
         self.lbl_title = QLabel("ECU")
         self.lbl_title.setObjectName("ecuWorkspaceTitle")
-        self.btn_add = SecondaryButton("+ Add ECU", width=132, height=32)
+        self.btn_add = SecondaryButton("+ Add ECU", width=132, height=28)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -163,14 +128,14 @@ class EcuWorkspaceSidebar(QWidget):
 
         self.list_container = QWidget()
         self.list_layout = QVBoxLayout(self.list_container)
-        self.list_layout.setContentsMargins(0, 0, 0, 0)
-        self.list_layout.setSpacing(6)
+        self.list_layout.setContentsMargins(6, 6, 6, 6)
+        self.list_layout.setSpacing(4)
         self.list_layout.addStretch(1)
         self.scroll_area.setWidget(self.list_container)
 
         layout.addWidget(self.lbl_title)
-        layout.addWidget(self.btn_add)
         layout.addWidget(self.scroll_area, 1)
+        layout.addWidget(self.btn_add)
 
     def _connect_signals(self):
         self.btn_add.clicked.connect(self._add_workspace_from_dialog)
@@ -330,8 +295,9 @@ class EcuWorkspaceSidebar(QWidget):
             )
             return
 
-        self.add_workspace(workspace, select=True)
+        self.add_workspace(workspace, select=False)
         self.workspace_added.emit(workspace)
+        self.select_workspace(workspace.id)
 
     def _rename_workspace_from_dialog(self, workspace_id: str):
         workspace = self.workspace_by_id(workspace_id)
