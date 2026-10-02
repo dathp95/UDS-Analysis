@@ -16,8 +16,13 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainText
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingDefinition, CodingValueOption, CodingValueRow
 from core.coding_value_workspace import CodingEcuWorkspace
+from core.coding_value_workspace_store import (
+    CodingWorkspaceState,
+    CodingWorkspaceStore,
+)
 from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
+from core.coding_value_definition import export_coding_definition_to_json
 from core.services.coding_value_report_service import CodingValueReportService
 from gui.themes.theme_manager import ThemeManager
 from gui.tabs.coding_value_tab import CodingValueTab
@@ -46,9 +51,41 @@ class CodingValueTabTests(unittest.TestCase):
         )
         self.export_dir_patch.start()
         self.addCleanup(self.export_dir_patch.stop)
+        self.workspace_store_handle = tempfile.TemporaryDirectory()
+        self.addCleanup(self.workspace_store_handle.cleanup)
+
+    def create_workspace_store(self):
+        return CodingWorkspaceStore(
+            Path(self.workspace_store_handle.name) / "coding_value_workspaces.json"
+        )
+
+    def create_tab(self, workspace_store=None):
+        return CodingValueTab(
+            workspace_store=workspace_store or self.create_workspace_store()
+        )
+
+    def create_definition_file(self, directory: Path, name: str, parameter: str) -> Path:
+        directory.mkdir(parents=True, exist_ok=True)
+        definition = CodingDefinition(
+            name=name,
+            rows=(
+                CodingValueRow(
+                    parameter=parameter,
+                    byte_pos="0",
+                    bit_pos="0",
+                    bit_length="8",
+                    raw_value="",
+                    decoded_value="",
+                    decoded_options=(),
+                ),
+            ),
+            source_file=f"{name}.xlsx",
+            source_path=f"config/Coding/{name}.xlsx",
+        )
+        return export_coding_definition_to_json(definition, directory / f"{name}.json")
 
     def test_coding_value_tab_displays_sidebar_and_initial_stack_panel(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
 
         self.assertIsInstance(tab.workspace_sidebar, EcuWorkspaceSidebar)
@@ -62,7 +99,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIs(tab.workspace_stack.currentWidget(), tab.coding_value_panel)
 
     def test_coding_value_tab_creates_default_workspace_and_panel_mapping(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
 
         self.assertEqual(tab.workspace_sidebar.workspace_count(), 1)
@@ -72,8 +109,219 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(set(tab._panel_by_workspace_id), {workspace.id})
         self.assertIs(tab.active_coding_value_panel(), tab._panel_by_workspace_id[workspace.id])
 
+    def test_coding_value_tab_restores_saved_workspaces_without_extra_default(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            mhu = CodingEcuWorkspace("mhu-id", "MHU")
+            vcu = CodingEcuWorkspace("vcu-id", "VCU")
+            bcm = CodingEcuWorkspace("bcm-id", "BCM")
+            store.save(CodingWorkspaceState((mhu, vcu, bcm), "vcu-id"))
+
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+        self.assertEqual(
+            [workspace.name for workspace in tab.workspace_sidebar.workspaces()],
+            ["MHU", "VCU", "BCM"],
+        )
+        self.assertEqual(tab.workspace_stack.count(), 3)
+        self.assertEqual(set(tab._panel_by_workspace_id), {"mhu-id", "vcu-id", "bcm-id"})
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), "vcu-id")
+        self.assertIs(tab.workspace_stack.currentWidget(), tab._panel_by_workspace_id["vcu-id"])
+
+    def test_coding_value_tab_restores_valid_empty_workspace_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            store.save(CodingWorkspaceState((), None))
+
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+        self.assertEqual(tab.workspace_sidebar.workspace_count(), 0)
+        self.assertEqual(tab.workspace_stack.count(), 0)
+        self.assertIsNone(tab.active_coding_value_panel())
+
+    def test_coding_value_tab_uses_default_for_corrupt_workspace_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_file = Path(tmpdir) / "workspaces.json"
+            config_file.write_text("{ bad json", encoding="utf-8")
+
+            tab = self.create_tab(CodingWorkspaceStore(config_file))
+            self.addCleanup(tab.deleteLater)
+
+            self.assertEqual(tab.workspace_sidebar.workspace_count(), 1)
+            self.assertEqual(tab.workspace_sidebar.workspaces()[0].name, "ECU 1")
+            self.assertEqual(config_file.read_text(encoding="utf-8"), "{ bad json")
+
+    def test_workspace_add_rename_delete_and_selection_persist(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+            first_workspace = tab.workspace_sidebar.workspaces()[0]
+            tab.workspace_sidebar.rename_workspace(first_workspace.id, "MHU")
+            with patch(
+                "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+                return_value=("VCU", True),
+            ):
+                tab.workspace_sidebar.btn_add.click()
+            vcu_workspace = tab.workspace_sidebar.active_workspace()
+            tab.workspace_sidebar.rename_workspace(vcu_workspace.id, "Vehicle Control")
+            tab.workspace_sidebar.select_workspace(first_workspace.id)
+            tab.workspace_sidebar.remove_workspace(vcu_workspace.id)
+
+            reloaded = self.create_tab(store)
+            self.addCleanup(reloaded.deleteLater)
+
+        self.assertEqual(
+            [(workspace.id, workspace.name) for workspace in reloaded.workspace_sidebar.workspaces()],
+            [(first_workspace.id, "MHU")],
+        )
+        self.assertEqual(reloaded.workspace_sidebar.active_workspace_id(), first_workspace.id)
+
+    def test_active_selection_persists_across_restart(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            mhu = CodingEcuWorkspace("mhu-id", "MHU")
+            vcu = CodingEcuWorkspace("vcu-id", "VCU")
+            store.save(CodingWorkspaceState((mhu, vcu), "mhu-id"))
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+            tab.workspace_sidebar.select_workspace("vcu-id")
+            reloaded = self.create_tab(store)
+            self.addCleanup(reloaded.deleteLater)
+
+        self.assertEqual(reloaded.workspace_sidebar.active_workspace_id(), "vcu-id")
+
+    def test_coding_file_association_and_definition_restore_per_workspace(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            mhu_json = self.create_definition_file(tmpdir_path, "mhu", "MHU Byte")
+            vcu_json = self.create_definition_file(tmpdir_path, "vcu", "VCU Byte")
+            store = CodingWorkspaceStore(tmpdir_path / "workspaces.json")
+            store.save(CodingWorkspaceState((
+                CodingEcuWorkspace("mhu-id", "MHU", str(mhu_json)),
+                CodingEcuWorkspace("vcu-id", "VCU", str(vcu_json)),
+            ), "vcu-id"))
+
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+        mhu_panel = tab._panel_by_workspace_id["mhu-id"]
+        vcu_panel = tab._panel_by_workspace_id["vcu-id"]
+        self.assertEqual(mhu_panel._coding_definition.rows[0].parameter, "MHU Byte")
+        self.assertEqual(vcu_panel._coding_definition.rows[0].parameter, "VCU Byte")
+        self.assertEqual(mhu_panel.txt_coding_value.toPlainText(), "")
+        self.assertEqual(vcu_panel.txt_coding_value.toPlainText(), "")
+
+    def test_missing_coding_file_keeps_workspace_and_recorded_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            missing_path = Path(tmpdir) / "missing.json"
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            store.save(CodingWorkspaceState((
+                CodingEcuWorkspace("mhu-id", "MHU", str(missing_path)),
+            ), "mhu-id"))
+
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        self.assertEqual(workspace.coding_file, str(missing_path))
+        self.assertIsNone(tab._panel_by_workspace_id["mhu-id"]._coding_definition)
+
+    def test_panel_coding_file_change_is_saved_with_captured_workspace_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            definition_path = self.create_definition_file(tmpdir_path, "mhu", "MHU Byte")
+            store = CodingWorkspaceStore(tmpdir_path / "workspaces.json")
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+            workspace = tab.workspace_sidebar.workspaces()[0]
+            panel = tab._panel_by_workspace_id[workspace.id]
+
+            self.assertTrue(panel.load_coding_definition_file(str(definition_path)))
+            reloaded = self.create_tab(store)
+            self.addCleanup(reloaded.deleteLater)
+
+        reloaded_workspace = reloaded.workspace_sidebar.workspaces()[0]
+        self.assertEqual(reloaded_workspace.coding_file, str(definition_path))
+        self.assertEqual(
+            reloaded._panel_by_workspace_id[reloaded_workspace.id]._coding_definition.rows[0].parameter,
+            "MHU Byte",
+        )
+
+    def test_imported_excel_persists_exported_json_definition_path(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Name",
+            0,
+            0,
+            8,
+            "0x01=One",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            excel_path = tmpdir_path / "mhu.xlsx"
+            workbook.save(excel_path)
+            store = CodingWorkspaceStore(tmpdir_path / "workspaces.json")
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+            workspace = tab.workspace_sidebar.workspaces()[0]
+            tab.coding_value_panel.file_path.setText(str(excel_path))
+
+            tab.coding_value_panel.import_coding_value()
+
+            reloaded = self.create_tab(store)
+            self.addCleanup(reloaded.deleteLater)
+
+        reloaded_workspace = reloaded.workspace_sidebar.workspaces()[0]
+        self.assertEqual(reloaded_workspace.id, workspace.id)
+        self.assertTrue(reloaded_workspace.coding_file.endswith("mhu.json"))
+        self.assertNotEqual(reloaded_workspace.coding_file, str(excel_path))
+        self.assertEqual(
+            reloaded.coding_value_panel._coding_definition.rows[0].parameter,
+            "Vehicle Name",
+        )
+
+    def test_transient_payload_check_filter_and_log_are_not_persisted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            definition_path = self.create_definition_file(tmpdir_path, "mhu", "MHU Byte")
+            store = CodingWorkspaceStore(tmpdir_path / "workspaces.json")
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+            panel = tab.coding_value_panel
+            panel.load_coding_definition_file(str(definition_path))
+            panel.txt_coding_value.setPlainText("AA")
+            panel.encode_coding_payload()
+            panel.table.fn_set_raw_value_at_row(0, "BB")
+            panel.check_coding_value()
+            panel.filter_no_match_rows()
+
+            reloaded = self.create_tab(store)
+            self.addCleanup(reloaded.deleteLater)
+
+        reloaded_panel = reloaded.coding_value_panel
+        self.assertEqual(reloaded_panel._coding_definition.rows[0].parameter, "MHU Byte")
+        self.assertEqual(reloaded_panel.txt_coding_value.toPlainText(), "")
+        self.assertEqual(reloaded_panel.txt_coding_preview.toPlainText(), "")
+        self.assertEqual(reloaded_panel.txt_parameter_filter.text(), "")
+        self.assertEqual(reloaded_panel.txt_working_log.toPlainText(), "")
+        self.assertFalse(reloaded_panel._has_check_results())
+
     def test_add_button_creates_independent_panel_before_selecting_workspace(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         events = []
         tab.workspace_sidebar.workspace_added.connect(
@@ -99,7 +347,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIs(events[1][2], events[0][2])
 
     def test_rename_workspace_does_not_recreate_panel(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         workspace = tab.workspace_sidebar.workspaces()[0]
         original_panel = tab._panel_by_workspace_id[workspace.id]
@@ -110,7 +358,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIs(tab.coding_value_panel, original_panel)
 
     def test_coding_value_tab_crc_routing_uses_active_panel(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         first_workspace = tab.workspace_sidebar.workspaces()[0]
         with patch(
@@ -138,7 +386,7 @@ class CodingValueTabTests(unittest.TestCase):
         first_set_crc.assert_called_once_with("99")
 
     def test_coding_value_tab_crc_routing_returns_false_without_active_panel(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         workspace = tab.workspace_sidebar.workspaces()[0]
 
@@ -148,7 +396,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertFalse(tab.fn_set_crc_value("47"))
 
     def test_coding_value_tab_theme_refresh_updates_sidebar_and_all_panels(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         first_workspace = tab.workspace_sidebar.workspaces()[0]
         with patch(
@@ -170,7 +418,7 @@ class CodingValueTabTests(unittest.TestCase):
         second_panel_theme.assert_called_once_with()
 
     def test_delete_workspace_removes_panel_and_keeps_active_fallback(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         first_workspace = tab.workspace_sidebar.workspaces()[0]
         with patch(
@@ -191,7 +439,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIs(tab.workspace_stack.currentWidget(), first_panel)
 
     def test_delete_last_workspace_and_add_after_empty_is_safe(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
         workspace = tab.workspace_sidebar.workspaces()[0]
 
@@ -212,7 +460,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIs(tab.workspace_stack.currentWidget(), tab.active_coding_value_panel())
 
     def test_switching_ecu_workspaces_preserves_independent_panel_state(self):
-        tab = CodingValueTab()
+        tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
 
         def row(parameter, byte_pos):

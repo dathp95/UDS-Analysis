@@ -6,16 +6,22 @@ from PySide6.QtWidgets import (
 )
 
 from core.coding_value_workspace import CodingEcuWorkspace
+from core.coding_value_workspace_store import (
+    CodingWorkspaceState,
+    CodingWorkspaceStore,
+)
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.ecu_workspace_sidebar import EcuWorkspaceSidebar
 
 
 class CodingValueTab(QWidget):
 
-    def __init__(self):
+    def __init__(self, workspace_store: CodingWorkspaceStore | None = None):
         super().__init__()
 
+        self._workspace_store = workspace_store or CodingWorkspaceStore()
         self._panel_by_workspace_id: dict[str, CodingValuePanel] = {}
+        self._restoring_workspaces = False
         self._setup_ui()
 
     def _setup_ui(self):
@@ -33,6 +39,9 @@ class CodingValueTab(QWidget):
         self.workspace_sidebar.workspace_added.connect(self._add_workspace_panel)
         self.workspace_sidebar.workspace_selected.connect(self._select_workspace_panel)
         self.workspace_sidebar.workspace_deleted.connect(self._remove_workspace_panel)
+        self.workspace_sidebar.workspace_renamed.connect(
+            lambda _workspace_id, _name: self._save_workspace_state()
+        )
 
         self.workspace_row = QWidget()
         workspace_layout = QHBoxLayout(self.workspace_row)
@@ -46,10 +55,7 @@ class CodingValueTab(QWidget):
             1,
         )
 
-        initial_workspace = CodingEcuWorkspace.create("ECU 1")
-        self.workspace_sidebar.add_workspace(initial_workspace)
-        self._add_workspace_panel(initial_workspace)
-        self.workspace_sidebar.select_workspace(initial_workspace.id)
+        self._restore_workspace_state()
 
     @property
     def coding_value_panel(self) -> CodingValuePanel | None:
@@ -67,8 +73,18 @@ class CodingValueTab(QWidget):
             return
 
         panel = CodingValuePanel()
+        panel.coding_file_changed.connect(
+            lambda coding_file, workspace_id=workspace.id:
+                self._on_workspace_coding_file_changed(workspace_id, coding_file)
+        )
         self._panel_by_workspace_id[workspace.id] = panel
         self.workspace_stack.addWidget(panel)
+        if workspace.coding_file:
+            panel.load_coding_definition_file(
+                workspace.coding_file,
+                emit_coding_file_changed=False,
+            )
+        self._save_workspace_state()
 
     def _remove_workspace_panel(self, workspace_id: str):
         panel = self._panel_by_workspace_id.pop(workspace_id, None)
@@ -79,6 +95,7 @@ class CodingValueTab(QWidget):
         active_panel = self.active_coding_value_panel()
         if active_panel is not None:
             self.workspace_stack.setCurrentWidget(active_panel)
+        self._save_workspace_state()
 
     def _select_workspace_panel(self, workspace_id: str):
         panel = self._panel_by_workspace_id.get(workspace_id)
@@ -86,6 +103,62 @@ class CodingValueTab(QWidget):
             return
 
         self.workspace_stack.setCurrentWidget(panel)
+        self._save_workspace_state()
+
+    def _restore_workspace_state(self):
+        self._restoring_workspaces = True
+        try:
+            state = self._workspace_store.load()
+            if state is None:
+                state = CodingWorkspaceState(
+                    workspaces=(CodingEcuWorkspace.create("ECU 1"),),
+                    active_workspace_id=None,
+                )
+
+            for workspace in state.workspaces:
+                if not self.workspace_sidebar.add_workspace(workspace, select=False):
+                    continue
+                self._add_workspace_panel(workspace)
+
+            active_workspace_id = (
+                state.active_workspace_id
+                if self.workspace_sidebar.workspace_by_id(state.active_workspace_id)
+                else None
+            )
+            if active_workspace_id is None and state.workspaces:
+                active_workspace_id = state.workspaces[0].id
+
+            if active_workspace_id is not None:
+                self.workspace_sidebar.select_workspace(
+                    active_workspace_id,
+                    emit_signal=False,
+                )
+                self._select_workspace_panel(active_workspace_id)
+        finally:
+            self._restoring_workspaces = False
+
+    def _save_workspace_state(self):
+        if self._restoring_workspaces:
+            return
+
+        self._workspace_store.save(
+            CodingWorkspaceState(
+                workspaces=tuple(self.workspace_sidebar.workspaces()),
+                active_workspace_id=self.workspace_sidebar.active_workspace_id(),
+            )
+        )
+
+    def _on_workspace_coding_file_changed(
+            self,
+            workspace_id: str,
+            coding_file: str,
+        ):
+        workspace = self.workspace_sidebar.workspace_by_id(workspace_id)
+        if workspace is None:
+            return
+
+        workspace.set_coding_file(coding_file)
+        self._save_workspace_state()
 
     def fn_set_crc_value(self, crc_value):
         panel = self.active_coding_value_panel()

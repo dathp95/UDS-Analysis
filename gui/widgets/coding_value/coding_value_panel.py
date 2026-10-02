@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QKeySequence, QShortcut, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,6 +19,7 @@ from core.coding_value import CodingDefinition
 from core.crc import calculate_crc8_sae_j1850
 from core.coding_value_definition import (
     export_coding_definition_to_json,
+    load_coding_definition,
     load_coding_definition_from_excel,
     load_coding_definition_from_json,
 )
@@ -49,6 +50,8 @@ POSITION_COPY_DATA_PAYLOAD = 3
 
 
 class CodingValuePanel(QGroupBox):
+
+    coding_file_changed = Signal(str)
 
     def __init__(self):
         super().__init__("Coding Value")
@@ -412,13 +415,52 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
-        self._set_coding_definition(definition)
+        self._set_coding_definition(
+            definition,
+            coding_file=json_path,
+        )
 
-    def _set_coding_definition(self, definition: CodingDefinition):
+    def _set_coding_definition(
+            self,
+            definition: CodingDefinition,
+            coding_file: str = "",
+            emit_coding_file_changed: bool = True,
+        ):
         self._coding_definition = definition
         self.table.set_rows(definition.rows)
         self.filter_parameter_table()
         self._update_action_states()
+        if coding_file and emit_coding_file_changed:
+            self.coding_file_changed.emit(str(coding_file))
+
+    def load_coding_definition_file(
+            self,
+            coding_file: str,
+            notify_errors: bool = False,
+            emit_coding_file_changed: bool = True,
+        ) -> bool:
+        coding_file = str(coding_file or "").strip()
+        if not coding_file:
+            return False
+
+        try:
+            definition = load_coding_definition(coding_file)
+        except Exception as exc:
+            if notify_errors:
+                QMessageBox.warning(
+                    self,
+                    "Coding value",
+                    f"Cannot import coding file:\n{exc}",
+                )
+            return False
+
+        self._set_coding_definition(
+            definition,
+            coding_file=coding_file,
+            emit_coding_file_changed=emit_coding_file_changed,
+        )
+        self._refresh_coding_json_options(coding_file)
+        return True
 
     def import_coding_value(self):
         selected_json = self.cmb_coding_json.currentData()
@@ -454,7 +496,8 @@ class CodingValuePanel(QGroupBox):
         )
         self._refresh_coding_json_options(json_path)
         self._set_coding_definition(
-            load_coding_definition_from_json(json_path)
+            load_coding_definition_from_json(json_path),
+            coding_file=str(json_path),
         )
         self.file_path.clear()
 
@@ -769,6 +812,7 @@ class CodingValuePanel(QGroupBox):
         self.table.clear_rows()
         self.txt_working_log.clear()
         self.clear_coding_preview()
+        self.coding_file_changed.emit("")
 
     def refresh_coding_preview(self):
         if self._encode_payload_to_table() == 0:
