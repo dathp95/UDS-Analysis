@@ -15,10 +15,13 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QHeaderView, QPlainText
 
 from config.paths import CONFIG_DIR, EXPORT_CODING_FILES_DIR
 from core.coding_value import CodingDefinition, CodingValueOption, CodingValueRow
+from core.coding_value_workspace import CodingEcuWorkspace
 from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
 from core.services.coding_value_report_service import CodingValueReportService
 from gui.themes.theme_manager import ThemeManager
+from gui.tabs.coding_value_tab import CodingValueTab
+from gui.widgets.coding_value.ecu_workspace_sidebar import EcuWorkspaceSidebar
 from gui.widgets.coding_value.coding_value_panel import CodingValuePanel
 from gui.widgets.coding_value.coding_value_table import CodingValueTable
 
@@ -43,6 +46,63 @@ class CodingValueTabTests(unittest.TestCase):
         )
         self.export_dir_patch.start()
         self.addCleanup(self.export_dir_patch.stop)
+
+    def test_coding_value_tab_displays_sidebar_and_single_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+
+        self.assertIsInstance(tab.workspace_sidebar, EcuWorkspaceSidebar)
+        self.assertIsInstance(tab.coding_value_panel, CodingValuePanel)
+        self.assertIsInstance(tab.workspace_row.layout(), QHBoxLayout)
+        self.assertEqual(tab.workspace_row.layout().indexOf(tab.workspace_sidebar), 0)
+        self.assertEqual(tab.workspace_row.layout().indexOf(tab.coding_value_panel), 1)
+        self.assertEqual(len(tab.findChildren(CodingValuePanel)), 1)
+
+    def test_coding_value_tab_creates_transitional_default_workspace(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+
+        self.assertEqual(tab.workspace_sidebar.workspace_count(), 1)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        self.assertEqual(workspace.name, "ECU 1")
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), workspace.id)
+
+    def test_adding_sidebar_workspace_does_not_create_another_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+
+        tab.workspace_sidebar.add_workspace(
+            CodingEcuWorkspace.create("ECU 2"),
+            select=True,
+        )
+
+        self.assertEqual(tab.workspace_sidebar.workspace_count(), 2)
+        self.assertEqual(len(tab.findChildren(CodingValuePanel)), 1)
+
+    def test_coding_value_tab_crc_routing_still_uses_single_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+
+        with patch.object(
+            tab.coding_value_panel,
+            "fn_set_crc_value",
+            return_value=True,
+        ) as set_crc:
+            result = tab.fn_set_crc_value("47")
+
+        self.assertTrue(result)
+        set_crc.assert_called_once_with("47")
+
+    def test_coding_value_tab_theme_refresh_updates_sidebar_and_panel(self):
+        tab = CodingValueTab()
+        self.addCleanup(tab.deleteLater)
+
+        with patch.object(tab.workspace_sidebar, "fn_refresh_theme") as sidebar_theme:
+            with patch.object(tab.coding_value_panel, "fn_refresh_theme") as panel_theme:
+                tab.fn_refresh_theme()
+
+        sidebar_theme.assert_called_once_with()
+        panel_theme.assert_called_once_with()
 
     def test_set_crc_value_updates_crc_parameter_row(self):
         panel = CodingValuePanel()
