@@ -876,6 +876,10 @@ class QCurrentTab(QWidget):
         self._chart_ready = False
         self._clear_current_chart()
         self.summary_widget.clear_result()
+
+        # Reset Analysis Range from the previous dataset.
+        self._reset_analysis_range_controls()
+        
         self._populate_review_table(self.current_samples)
         self._initialize_analysis_range_from_samples()
         self._update_action_states()
