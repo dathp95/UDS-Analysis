@@ -79,8 +79,8 @@ class CodingValuePanel(QGroupBox):
             width=100,
         )
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(300)
-        self.cmb_coding_json.setMaxVisibleItems(10)
+        self.cmb_coding_json.setFixedWidth(200)
+        self.cmb_coding_json.setMaxVisibleItems(5)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
         self.btn_import = PrimaryButton(
@@ -150,10 +150,9 @@ class CodingValuePanel(QGroupBox):
         input_layout = QHBoxLayout(self.payload_input_row)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
-        input_layout.addWidget(self.btn_clear, 0, Qt.AlignTop)        
-        input_layout.addWidget(self.btn_copy, 0, Qt.AlignTop)
         input_layout.addWidget(self.btn_encode, 0, Qt.AlignTop)
-        
+        input_layout.addWidget(self.btn_copy, 0, Qt.AlignTop)
+        input_layout.addWidget(self.btn_clear, 0, Qt.AlignTop)
         input_layout.addWidget(self.txt_coding_value, 1)
 
         self.payload_preview_row = QWidget()
@@ -175,7 +174,7 @@ class CodingValuePanel(QGroupBox):
         self.txt_parameter_filter = PrimaryLineEdit(
             placeholder="Filter parameter"
         )
-        filter_action_width = 256
+        filter_action_width = 220
         filter_button_width = (filter_action_width - 8) // 2
         self.btn_filter_no_m = PrimaryButton(
             "No-M",

@@ -4,7 +4,11 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from core.coding_value import load_coding_value_rows
+from core.coding_value import (
+    export_coding_value_rows_to_json,
+    load_coding_value_rows,
+    load_coding_value_rows_from_json,
+)
 
 
 class CodingValueExcelTests(unittest.TestCase):
@@ -290,9 +294,95 @@ class CodingValueExcelTests(unittest.TestCase):
         self.assertEqual(rows[0].raw_value, "0x8")
         self.assertEqual(rows[0].decoded_value, "Eight")
 
+    def test_json_round_trip_preserves_rows_and_options(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([
+            "Vehicle Variant",
+            2,
+            0,
+            8,
+            "0x01=Eco\n0x02=Sport",
+        ])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = Path(tmpdir) / "coding.xlsx"
+            json_dir = Path(tmpdir) / "json"
+            workbook.save(excel_path)
+
+            rows = load_coding_value_rows(excel_path, "00 00 02")
+            json_path = export_coding_value_rows_to_json(
+                excel_path,
+                rows,
+                json_dir,
+            )
+            loaded = load_coding_value_rows_from_json(json_path)
+
+        self.assertEqual(json_path.name, "coding.json")
+        self.assertEqual(len(loaded), 1)
+        self.assertEqual(loaded[0].parameter, "Vehicle Variant")
+        self.assertEqual(loaded[0].byte_pos, "2")
+        self.assertEqual(loaded[0].raw_value, "0x02")
+        self.assertEqual(loaded[0].decoded_value, "Sport")
+        self.assertEqual(
+            [(option.raw_value, option.label) for option in loaded[0].decoded_options],
+            [("0x01", "Eco"), ("0x02", "Sport")],
+        )
+
+    def test_skips_blank_parameter_rows_and_keeps_unmapped_raw_value(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append([None, 0, 0, 8, "0x00=Blank"])
+        sheet.append(["Unmapped Byte", 1.0, 0.0, 8.0, "0x01=One"])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            rows = load_coding_value_rows(path, "00 34")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].parameter, "Unmapped Byte")
+        self.assertEqual(rows[0].byte_pos, "1")
+        self.assertEqual(rows[0].bit_pos, "0")
+        self.assertEqual(rows[0].bit_length, "8")
+        self.assertEqual(rows[0].raw_value, "0x34")
+        self.assertEqual(rows[0].decoded_value, "0x34")
+
+    def test_extracts_multi_byte_raw_value_in_payload_order(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append([
+            "Parameter",
+            "BytePos (from 0)",
+            "BitPos",
+            "BitLength",
+            "MethodType",
+        ])
+        sheet.append(["Two Byte Field", 1, 0, 16, "0x1234=Known"])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "coding.xlsx"
+            workbook.save(path)
+
+            rows = load_coding_value_rows(path, "AA 12 34")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].raw_value, "0x1234")
+        self.assertEqual(rows[0].decoded_value, "Known")
 if __name__ == "__main__":
     unittest.main()
-
-
-
-

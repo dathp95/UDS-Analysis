@@ -1774,5 +1774,80 @@ class CodingValueTabTests(unittest.TestCase):
         )
 
 
+    def test_shared_byte_editing_preserves_other_nibble(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+        panel.table.set_rows([
+            CodingValueRow(
+                parameter="Low Nibble",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="4",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(
+                    CodingValueOption(raw_value="0x05", label="Low Five"),
+                    CodingValueOption(raw_value="0x06", label="Low Six"),
+                ),
+            ),
+            CodingValueRow(
+                parameter="High Nibble",
+                byte_pos="0",
+                bit_pos="4",
+                bit_length="4",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(
+                    CodingValueOption(raw_value="0x0A", label="High A"),
+                    CodingValueOption(raw_value="0x0B", label="High B"),
+                ),
+            ),
+        ])
+        panel.txt_coding_value.setPlainText("B6")
+        panel.encode_coding_payload()
+
+        self.assertEqual(panel.table.item(0, 4).text(), "06")
+        self.assertEqual(panel.table.item(1, 4).text(), "0B")
+        self.assertEqual(panel.txt_coding_preview.toPlainText(), "B6")
+
+        panel.table.item(0, 4).setText("05")
+
+        self.assertEqual(panel.txt_coding_preview.toPlainText(), "B5")
+        self.assertEqual(panel.table.item(1, 4).text(), "0B")
+
+        panel.table.item(1, 4).setText("0A")
+
+        self.assertEqual(panel.txt_coding_preview.toPlainText(), "A5")
+        self.assertEqual(panel.table.item(0, 4).text(), "05")
+
+    def test_two_coding_value_panels_keep_instance_state_separate(self):
+        panel_a = CodingValuePanel()
+        panel_b = CodingValuePanel()
+        self.addCleanup(panel_a.deleteLater)
+        self.addCleanup(panel_b.deleteLater)
+
+        panel_a.table.set_rows([
+            CodingValueRow(
+                parameter="Panel A Byte",
+                byte_pos="0",
+                bit_pos="0",
+                bit_length="8",
+                raw_value="",
+                decoded_value="",
+                decoded_options=(),
+            ),
+        ])
+        panel_a.txt_coding_value.setPlainText("AA")
+        panel_a.encode_coding_payload()
+
+        self.assertEqual(panel_a.table.rowCount(), 1)
+        self.assertEqual(panel_a.table.item(0, 4).text(), "AA")
+        self.assertEqual(panel_a.txt_coding_preview.toPlainText(), "AA")
+        self.assertEqual(panel_a._payload_preview_bytes, [0xAA])
+
+        self.assertEqual(panel_b.table.rowCount(), 0)
+        self.assertEqual(panel_b.txt_coding_value.toPlainText(), "")
+        self.assertEqual(panel_b.txt_coding_preview.toPlainText(), "")
+        self.assertEqual(panel_b._payload_preview_bytes, [])
 if __name__ == "__main__":
     unittest.main()
