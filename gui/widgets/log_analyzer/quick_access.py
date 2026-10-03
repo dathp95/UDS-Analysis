@@ -19,6 +19,7 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.utils.payload_format import format_payload_input
 
 from gui.themes.theme_manager import ThemeManager
+from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 
 from gui.widgets.controls.secondary_button import SecondaryButton
 from gui.themes.styles.controls.scrollbar_style import (
@@ -461,9 +462,12 @@ class QuickAccessWidget(QWidget):
 
         menu = QMenu(self)
 
+        fn_apply_menu_style(menu)
+
         action_edit = menu.addAction(
             "Edit"
         )
+        
 
         action_clone = menu.addAction("Clone")
         action_delete = menu.addAction("Delete")
@@ -476,6 +480,8 @@ class QuickAccessWidget(QWidget):
             self._fn_clone_filter(quick_filter)
         elif action == action_delete:
             self._fn_delete_filter(quick_filter)
+
+        menu.deleteLater()
 
     def fn_clone_selected(self):
         if self.selected_filter is None:
