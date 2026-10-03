@@ -186,6 +186,9 @@ class EcuWorkspaceSidebar(QWidget):
         self.list_container.customContextMenuRequested.connect(
             self._show_empty_context_menu
         )
+    def _scroll_to_bottom(self):
+        scroll_bar = self.scroll_area.verticalScrollBar()
+        scroll_bar.setValue(scroll_bar.maximum())
 
     def workspace_count(self) -> int:
         return len(self._workspaces)
@@ -229,12 +232,8 @@ class EcuWorkspaceSidebar(QWidget):
             max(0, self.list_layout.count() - 1),
             item,
         )
-        QTimer.singleShot(
-            0,
-            lambda: self.scroll_area.verticalScrollBar().setValue(
-                self.scroll_area.verticalScrollBar().maximum()
-            )
-        )
+        
+
         self.fn_refresh_theme()
         if select:
             self.select_workspace(workspace.id)
@@ -362,6 +361,11 @@ class EcuWorkspaceSidebar(QWidget):
         self.add_workspace(workspace, select=False)
         self.workspace_added.emit(workspace)
         self.select_workspace(workspace.id)
+
+        QTimer.singleShot(
+            50,
+            self._scroll_to_bottom,
+        )
 
     def _show_empty_context_menu(self, position):
         menu = self._create_empty_context_menu()
