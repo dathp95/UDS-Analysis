@@ -136,7 +136,7 @@ class ResultTable(PrimaryTable):
 
         self.setColumnWidth(
             self._fn_column_index("Response"),
-            180
+            280
         )
 
         self.setColumnWidth(
