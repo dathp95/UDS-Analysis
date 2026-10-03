@@ -11,7 +11,7 @@ from license.manager import LicenseManager
 
 
 APP_NAME = "V-CODE"
-APP_VERSION = "v2.0.6"
+APP_VERSION = "v3.0.6"
 APP_AUTHOR = "AES EEIV by DAT TRAN"
 
 

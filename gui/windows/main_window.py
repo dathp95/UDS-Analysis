@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
             RELEASE_FEATURES_FILE
         )
 
-        self.setWindowTitle("V-CODE v2.0.6 | AES EEIV by DAT TRAN")
+        self.setWindowTitle("V-CODE v3.0.6 | AES EEIV by DAT TRAN")
         self.setWindowIcon(
             IconManager.app()
         )
