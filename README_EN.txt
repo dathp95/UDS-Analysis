@@ -209,18 +209,28 @@ The License & Support tab displays:
 ============================================================
 11. Build Release
 ============================================================
-build_release.py prepares the release output under:
+Install runtime dependencies from requirements.txt and build tooling from
+requirements-build.txt before running the Windows release script.
+
+release.bat builds the Windows release with Nuitka standalone mode and then
+build_release.py prepares the final release output under:
 
 dist/EEIV Diagnostic/
 
 Copied/created release items include:
+- V-CODE.exe and Nuitka standalone runtime files
 - config
 - license
 - shortcuts
 - output
 - output/Report_LogAnalyzer
 - output/Report_CodingValue
+- output/Report_QCurrent
 - README.txt
+
+The release preparation validates that no ZIP/RAR/7Z archive files are present
+in the final directory. release_pyinstaller.bat preserves the previous
+PyInstaller workflow as a temporary rollback path.
 
 ============================================================
 12. Troubleshooting

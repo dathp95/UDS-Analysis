@@ -230,8 +230,12 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.addCleanup(window.deleteLater)
         self.addCleanup(self._clear_imported_gui_modules)
 
-        self.assertEqual(window.tabs.tabText(3), "CAN Interface")
-        self.assertFalse(window.tabs.isTabEnabled(3))
+        labels = [
+            window.tabs.tabText(index)
+            for index in range(window.tabs.count())
+        ]
+        self.assertNotIn("CAN Interface", labels)
+        self.assertEqual(window.tabs.indexOf(window.can_interface_tab), -1)
 
     def test_crc_transfer_signal_updates_coding_value_tab(self):
         with patch.dict(

@@ -30,7 +30,7 @@ UDS_USER_FILE = CONFIG_DIR / "uds_user.json"
 RELEASE_FEATURES_FILE = CONFIG_DIR / "release_features.json"
 
 if getattr(sys, "frozen", False):
-    RESOURCE_ROOT = Path(sys._MEIPASS)
+    RESOURCE_ROOT = Path(getattr(sys, "_MEIPASS", PROJECT_ROOT))
 else:
     RESOURCE_ROOT = PROJECT_ROOT
 
