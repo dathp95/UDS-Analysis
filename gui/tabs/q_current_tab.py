@@ -257,6 +257,10 @@ class QCurrentTab(QWidget):
             self._on_analysis_end_time_changed
         )
 
+        self.dataset_combo.currentIndexChanged.connect(
+            self._on_dataset_changed
+        )
+
     def _create_settings_group(self):
         group = QGroupBox("Analysis Settings")
 
@@ -437,6 +441,15 @@ class QCurrentTab(QWidget):
         self.settings_layout.addLayout(range_layout, 2, 0, 1, 4)
 
         return group
+
+    def _on_dataset_changed(self, index):
+        if index < 0:
+            return
+
+        if not self.dataset_combo.currentData():
+            return
+
+        self.load_selected_dataset()
 
     def _create_analysis_range_spinbox(self, object_name):
         spinbox = QDoubleSpinBox()
@@ -2465,27 +2478,47 @@ class QCurrentTab(QWidget):
     def _summary_to_text(self):
         return self.summary_widget.to_text()
 
-    def _refresh_dataset_combo(self, selected_db_path: Path | str | None = None):
+    def _refresh_dataset_combo(
+            self,
+            selected_db_path: Path | str | None = None,
+        ):
+
         selected_path = selected_db_path
+
         if selected_path is None:
             selected_path = self.dataset_combo.currentData()
-        if selected_path is not None:
-            selected_path = str(Path(selected_path).expanduser().resolve())
 
-        self.dataset_combo.clear()
-        for dataset in list_datasets(self._database_dir):
-            if dataset.database_path is None:
-                continue
-            db_path = dataset.database_path.resolve()
-            self.dataset_combo.addItem(
-                db_path.stem,
-                str(db_path),
+        if selected_path is not None:
+            selected_path = str(
+                Path(selected_path).expanduser().resolve()
             )
 
-        if selected_path is not None:
-            index = self.dataset_combo.findData(selected_path)
-            if index >= 0:
-                self.dataset_combo.setCurrentIndex(index)
+        with QSignalBlocker(self.dataset_combo):
+
+            self.dataset_combo.clear()
+
+            for dataset in list_datasets(self._database_dir):
+
+                if dataset.database_path is None:
+                    continue
+
+                db_path = dataset.database_path.resolve()
+
+                self.dataset_combo.addItem(
+                    db_path.stem,
+                    str(db_path),
+                )
+
+            if selected_path is not None:
+
+                index = self.dataset_combo.findData(
+                    selected_path
+                )
+
+                if index >= 0:
+                    self.dataset_combo.setCurrentIndex(
+                        index
+                    )
 
     @staticmethod
     def _is_valid_source_file(path: Path) -> bool:
