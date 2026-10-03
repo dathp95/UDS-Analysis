@@ -17,11 +17,13 @@ from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.quick_access_button import QuickAccessButton
+from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.secondary_button import SecondaryButton
 
 
 class EcuWorkspaceItemWidget(QuickAccessButton):
 
+    add_panel_requested = Signal()
     clicked = Signal(str)
     save_requested = Signal(str)
     delete_requested = Signal(str)
@@ -60,24 +62,29 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
 
     def _show_context_menu(self, position):
         menu = self._create_context_menu()
-        action = menu.exec(self.mapToGlobal(position))
-        if action is None:
-            return
-
-        if action.text() == "Save":
-            self.save_requested.emit(self.workspace.id)
-        elif action.text() == "Rename":
-            self.rename_requested.emit(self.workspace.id)
-        elif action.text() == "Delete":
-            self.delete_requested.emit(self.workspace.id)
+        menu.exec(self.mapToGlobal(position))
 
     def _create_context_menu(self):
         menu = QMenu(self)
         fn_apply_menu_style(menu)
-        menu.addAction("Save")
+        action_add = menu.addAction("+ Add Panel")
+        action_add.triggered.connect(
+            lambda _checked=False: self.add_panel_requested.emit()
+        )
         menu.addSeparator()
-        menu.addAction("Rename")
-        menu.addAction("Delete")
+        action_save = menu.addAction("Save")
+        action_save.triggered.connect(
+            lambda _checked=False: self.save_requested.emit(self.workspace.id)
+        )
+        menu.addSeparator()
+        action_rename = menu.addAction("Rename")
+        action_rename.triggered.connect(
+            lambda _checked=False: self.rename_requested.emit(self.workspace.id)
+        )
+        action_delete = menu.addAction("Delete")
+        action_delete.triggered.connect(
+            lambda _checked=False: self.delete_requested.emit(self.workspace.id)
+        )
         return menu
 
     def fn_refresh_theme(self):
@@ -89,7 +96,7 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         self.setStyleSheet(
             f"""
             QPushButton#ecuWorkspaceItem {{
-                background-color: {colors.TABLE_SELECTION};
+                background-color: {colors.SUCCESS};
                 color: {colors.TEXT_INVERT};
                 border: 1px solid {colors.BORDER};
                 border-radius: 4px;
@@ -131,9 +138,10 @@ class EcuWorkspaceSidebar(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        self.lbl_title = QLabel("ECU")
+        self.lbl_title = QLabel("PANEL")
         self.lbl_title.setObjectName("ecuWorkspaceTitle")
-        self.btn_add = SecondaryButton("+ Add ECU", width=132, height=28)
+        self.btn_add = SecondaryButton("+ Add Panel", width=132, height=28)
+        self.btn_save = PrimaryButton("Save", width=132, height=28)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -151,9 +159,11 @@ class EcuWorkspaceSidebar(QWidget):
         layout.addWidget(self.lbl_title)
         layout.addWidget(self.scroll_area, 1)
         layout.addWidget(self.btn_add)
+        layout.addWidget(self.btn_save)
 
     def _connect_signals(self):
         self.btn_add.clicked.connect(self._add_workspace_from_dialog)
+        self.btn_save.clicked.connect(self._save_active_workspace)
 
     def workspace_count(self) -> int:
         return len(self._workspaces)
@@ -187,6 +197,7 @@ class EcuWorkspaceSidebar(QWidget):
 
         self._workspaces.append(workspace)
         item = EcuWorkspaceItemWidget(workspace)
+        item.add_panel_requested.connect(self._add_workspace_from_dialog)
         item.clicked.connect(self.select_workspace)
         item.save_requested.connect(self.workspace_save_requested)
         item.delete_requested.connect(self.remove_workspace)
@@ -199,6 +210,7 @@ class EcuWorkspaceSidebar(QWidget):
         self.fn_refresh_theme()
         if select:
             self.select_workspace(workspace.id)
+        self._update_save_button_state()
         return True
 
     def set_workspace_dirty(self, workspace_id: str, dirty: bool):
@@ -216,6 +228,7 @@ class EcuWorkspaceSidebar(QWidget):
 
         self._active_workspace_id = workspace_id
         self._refresh_active_items()
+        self._update_save_button_state()
         if emit_signal:
             self.workspace_selected.emit(workspace_id)
         return True
@@ -265,6 +278,7 @@ class EcuWorkspaceSidebar(QWidget):
 
         if emit_signal:
             self.workspace_deleted.emit(workspace.id)
+        self._update_save_button_state()
         return True
 
     def _workspace_index(self, workspace_id: str) -> int:
@@ -278,6 +292,7 @@ class EcuWorkspaceSidebar(QWidget):
         if not self._workspaces:
             self._active_workspace_id = None
             self._refresh_active_items()
+            self._update_save_button_state()
             return
 
         fallback_index = min(removed_index, len(self._workspaces) - 1)
@@ -300,8 +315,8 @@ class EcuWorkspaceSidebar(QWidget):
     def _add_workspace_from_dialog(self):
         name, accepted = QInputDialog.getText(
             self,
-            "Add ECU",
-            "ECU name:",
+            "Add Panel",
+            "Panel name:",
         )
         if not accepted:
             return
@@ -311,14 +326,21 @@ class EcuWorkspaceSidebar(QWidget):
         except ValueError:
             QMessageBox.warning(
                 self,
-                "Add ECU",
-                "Please enter an ECU name.",
+                "Add Panel",
+                "Please enter a panel name.",
             )
             return
 
         self.add_workspace(workspace, select=False)
         self.workspace_added.emit(workspace)
         self.select_workspace(workspace.id)
+
+    def _save_active_workspace(self):
+        active_workspace_id = self.active_workspace_id()
+        if active_workspace_id is None:
+            return
+
+        self.workspace_save_requested.emit(active_workspace_id)
 
     def _rename_workspace_from_dialog(self, workspace_id: str):
         workspace = self.workspace_by_id(workspace_id)
@@ -327,8 +349,8 @@ class EcuWorkspaceSidebar(QWidget):
 
         name, accepted = QInputDialog.getText(
             self,
-            "Rename ECU",
-            "ECU name:",
+            "Rename Panel",
+            "Panel name:",
             text=workspace.name,
         )
         if not accepted:
@@ -337,9 +359,12 @@ class EcuWorkspaceSidebar(QWidget):
         if not self.rename_workspace(workspace_id, name):
             QMessageBox.warning(
                 self,
-                "Rename ECU",
-                "Please enter an ECU name.",
+                "Rename Panel",
+                "Please enter a panel name.",
             )
+
+    def _update_save_button_state(self):
+        self.btn_save.setEnabled(self._active_workspace_id is not None)
 
     def fn_refresh_theme(self):
         colors = ThemeManager.fn_colors()
@@ -369,6 +394,8 @@ class EcuWorkspaceSidebar(QWidget):
             """
         )
         self.btn_add.fn_refresh_theme()
+        self.btn_save.fn_refresh_theme()
+        self._update_save_button_state()
         for item in self._item_widgets():
             item.fn_refresh_theme()
         fn_apply_scrollbar_style(self.scroll_area)

@@ -21,6 +21,8 @@ env/
 logs/
 output/
 *.log
+config/coding_value_workspaces.json
+config/coding_value_workspace_snapshots/
 
 # Build/packaging artifacts
 build/

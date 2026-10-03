@@ -85,22 +85,14 @@ class CodingValueTab(QWidget):
         )
         panel.state_changed.connect(
             lambda workspace_id=workspace.id:
-                self.workspace_sidebar.set_workspace_dirty(workspace_id, True)
+                self._on_panel_state_changed(workspace_id)
         )
         self._panel_by_workspace_id[workspace.id] = panel
         self.workspace_stack.addWidget(panel)
-        snapshot = self._workspace_store.load_snapshot(workspace.id)
-        if snapshot is not None:
-            panel.restore_workspace_snapshot(
-                replace(
-                    snapshot,
-                    coding_file=self._workspace_store.path_for_use(
-                        snapshot.coding_file
-                    ),
-                )
-            )
-            workspace.set_coding_file(snapshot.coding_file)
-        elif workspace.coding_file:
+        if (
+                not self._restore_saved_workspace_snapshot(workspace.id)
+                and workspace.coding_file
+            ):
             panel.load_coding_definition_file(
                 self._workspace_store.path_for_use(workspace.coding_file),
                 emit_coding_file_changed=False,
@@ -124,6 +116,8 @@ class CodingValueTab(QWidget):
         if panel is None:
             return
 
+        if not self._restoring_workspaces:
+            self._restore_saved_workspace_snapshot(workspace_id)
         self.workspace_stack.setCurrentWidget(panel)
         self._save_workspace_state()
 
@@ -133,7 +127,7 @@ class CodingValueTab(QWidget):
             state = self._workspace_store.load()
             if state is None:
                 state = CodingWorkspaceState(
-                    workspaces=(CodingEcuWorkspace.create("ECU 1"),),
+                    workspaces=(CodingEcuWorkspace.create("Panel default"),),
                     active_workspace_id=None,
                 )
 
@@ -182,6 +176,34 @@ class CodingValueTab(QWidget):
         workspace.set_coding_file(coding_file)
         self._save_workspace_state()
 
+    def _on_panel_state_changed(self, workspace_id: str):
+        if self._restoring_workspaces:
+            return
+
+        self.workspace_sidebar.set_workspace_dirty(workspace_id, True)
+
+    def _restore_saved_workspace_snapshot(self, workspace_id: str) -> bool:
+        panel = self._panel_by_workspace_id.get(workspace_id)
+        workspace = self.workspace_sidebar.workspace_by_id(workspace_id)
+        if panel is None or workspace is None:
+            return False
+
+        snapshot = self._workspace_store.load_snapshot(workspace_id)
+        if snapshot is None:
+            return False
+
+        panel.restore_workspace_snapshot(
+            replace(
+                snapshot,
+                coding_file=self._workspace_store.path_for_use(
+                    snapshot.coding_file
+                ),
+            )
+        )
+        workspace.set_coding_file(snapshot.coding_file)
+        self.workspace_sidebar.set_workspace_dirty(workspace_id, False)
+        return True
+
     def _save_workspace_snapshot(self, workspace_id: str):
         panel = self._panel_by_workspace_id.get(workspace_id)
         workspace = self.workspace_sidebar.workspace_by_id(workspace_id)
@@ -194,8 +216,8 @@ class CodingValueTab(QWidget):
         except OSError as exc:
             QMessageBox.warning(
                 self,
-                "Save ECU",
-                f"Cannot save ECU workspace state:\n{exc}",
+                "Save Panel",
+                f"Cannot save Panel state:\n{exc}",
             )
             return
 

@@ -7,6 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from core.coding_value_workspace import CodingEcuWorkspace
+from gui.themes.theme_manager import ThemeManager
 from gui.widgets.coding_value.ecu_workspace_sidebar import EcuWorkspaceSidebar
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 
@@ -23,11 +24,18 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
 
         self.assertEqual(sidebar.workspace_count(), 0)
         self.assertIsNone(sidebar.active_workspace_id())
-        self.assertEqual(sidebar.btn_add.text(), "+ Add ECU")
+        self.assertEqual(sidebar.lbl_title.text(), "PANEL")
+        self.assertEqual(sidebar.btn_add.text(), "+ Add Panel")
+        self.assertEqual(sidebar.btn_save.text(), "Save")
+        self.assertFalse(sidebar.btn_save.isEnabled())
         root_layout = sidebar.layout()
         self.assertLess(
             root_layout.indexOf(sidebar.scroll_area),
             root_layout.indexOf(sidebar.btn_add),
+        )
+        self.assertLess(
+            root_layout.indexOf(sidebar.btn_add),
+            root_layout.indexOf(sidebar.btn_save),
         )
         self.assertLessEqual(sidebar.list_layout.spacing(), 4)
 
@@ -76,6 +84,7 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertEqual(sidebar.active_workspace_id(), vcu.id)
         self.assertEqual(selected, [vcu.id])
         self.assertNotEqual(selected[0], "VCU")
+        self.assertTrue(sidebar.btn_save.isEnabled())
 
     def test_rename_preserves_id_updates_model_and_emits(self):
         sidebar = EcuWorkspaceSidebar()
@@ -182,7 +191,7 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertFalse(item.findChildren(QPushButton))
         self.assertNotIn("*", item.text())
 
-    def test_workspace_context_menu_exposes_save_rename_and_delete_actions(self):
+    def test_workspace_context_menu_exposes_add_save_rename_and_delete_actions(self):
         sidebar = EcuWorkspaceSidebar()
         self.addCleanup(sidebar.deleteLater)
         workspace = CodingEcuWorkspace.create("MHU")
@@ -192,7 +201,26 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         menu = item._create_context_menu()
         actions = [action.text() for action in menu.actions()]
 
-        self.assertEqual(actions, ["Save", "", "Rename", "Delete"])
+        self.assertEqual(actions, ["+ Add Panel", "", "Save", "", "Rename", "Delete"])
+        menu.deleteLater()
+
+    def test_workspace_context_menu_add_panel_uses_sidebar_add_workflow(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        workspace = CodingEcuWorkspace.create("MHU")
+        sidebar.add_workspace(workspace)
+        item = sidebar._item_by_id[workspace.id]
+        called = []
+        item.add_panel_requested.connect(lambda: called.append(True))
+
+        menu = item._create_context_menu()
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("", False),
+        ):
+            menu.actions()[0].trigger()
+
+        self.assertEqual(called, [True])
         menu.deleteLater()
 
     def test_workspace_save_request_emits_clicked_workspace_id_without_selecting(self):
@@ -213,6 +241,21 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertEqual(selected, [])
         self.assertEqual(sidebar.active_workspace_id(), vcu.id)
 
+    def test_sidebar_save_button_emits_active_workspace_id(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        mhu = CodingEcuWorkspace.create("MHU")
+        vcu = CodingEcuWorkspace.create("VCU")
+        sidebar.add_workspace(mhu)
+        sidebar.add_workspace(vcu, select=True)
+        saved = []
+        sidebar.workspace_save_requested.connect(saved.append)
+
+        sidebar.btn_save.click()
+
+        self.assertEqual(saved, [vcu.id])
+        self.assertEqual(sidebar.active_workspace_id(), vcu.id)
+
     def test_dirty_marker_is_visual_only_and_preserves_workspace_name(self):
         sidebar = EcuWorkspaceSidebar()
         self.addCleanup(sidebar.deleteLater)
@@ -228,6 +271,36 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         sidebar.set_workspace_dirty(workspace.id, False)
 
         self.assertEqual(item.text(), "MHU")
+
+    def test_active_workspace_uses_theme_success_green(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        mhu = CodingEcuWorkspace.create("MHU")
+        vcu = CodingEcuWorkspace.create("VCU")
+        sidebar.add_workspace(mhu)
+        sidebar.add_workspace(vcu)
+
+        sidebar.select_workspace(mhu.id)
+
+        self.assertIn(
+            ThemeManager.fn_colors().SUCCESS,
+            sidebar._item_by_id[mhu.id].styleSheet(),
+        )
+        self.assertNotIn(
+            ThemeManager.fn_colors().SUCCESS,
+            sidebar._item_by_id[vcu.id].styleSheet(),
+        )
+
+        sidebar.select_workspace(vcu.id)
+
+        self.assertNotIn(
+            ThemeManager.fn_colors().SUCCESS,
+            sidebar._item_by_id[mhu.id].styleSheet(),
+        )
+        self.assertIn(
+            ThemeManager.fn_colors().SUCCESS,
+            sidebar._item_by_id[vcu.id].styleSheet(),
+        )
 
     def test_add_button_creates_selects_and_emits_workspace(self):
         sidebar = EcuWorkspaceSidebar()

@@ -138,7 +138,7 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertEqual(tab.workspace_sidebar.workspace_count(), 1)
         workspace = tab.workspace_sidebar.workspaces()[0]
-        self.assertEqual(workspace.name, "ECU 1")
+        self.assertEqual(workspace.name, "Panel default")
         self.assertEqual(tab.workspace_sidebar.active_workspace_id(), workspace.id)
         self.assertEqual(set(tab._panel_by_workspace_id), {workspace.id})
         self.assertIs(tab.active_coding_value_panel(), tab._panel_by_workspace_id[workspace.id])
@@ -184,7 +184,7 @@ class CodingValueTabTests(unittest.TestCase):
             self.addCleanup(tab.deleteLater)
 
             self.assertEqual(tab.workspace_sidebar.workspace_count(), 1)
-            self.assertEqual(tab.workspace_sidebar.workspaces()[0].name, "ECU 1")
+            self.assertEqual(tab.workspace_sidebar.workspaces()[0].name, "Panel default")
             self.assertEqual(config_file.read_text(encoding="utf-8"), "{ bad json")
 
     def test_workspace_add_rename_delete_and_selection_persist(self):
@@ -369,7 +369,7 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(restored_vcu.txt_coding_preview.toPlainText(), "BB 22")
         self.assertEqual(restored_vcu.table.item(0, 0).text(), "VCU Byte")
 
-    def test_unsaved_edit_does_not_survive_restart_but_stays_live_in_session(self):
+    def test_saved_panel_reloads_snapshot_on_reentry_and_discards_unsaved_edit(self):
         store = self.create_workspace_store()
         tab = self.create_tab(store)
         self.addCleanup(tab.deleteLater)
@@ -390,7 +390,12 @@ class CodingValueTabTests(unittest.TestCase):
         tab.workspace_sidebar.select_workspace(vcu_workspace.id)
         tab.workspace_sidebar.select_workspace(mhu_workspace.id)
 
-        self.assertEqual(mhu_panel.txt_coding_preview.toPlainText(), "AB")
+        self.assertEqual(mhu_panel.txt_coding_preview.toPlainText(), "AA")
+        self.assertEqual(mhu_panel.txt_coding_value.toPlainText(), "AA")
+        self.assertEqual(
+            tab.workspace_sidebar._item_by_id[mhu_workspace.id].text(),
+            "Panel default",
+        )
 
         reloaded = self.create_tab(store)
         self.addCleanup(reloaded.deleteLater)
@@ -398,6 +403,27 @@ class CodingValueTabTests(unittest.TestCase):
 
         self.assertEqual(restored_mhu.txt_coding_value.toPlainText(), "AA")
         self.assertEqual(restored_mhu.txt_coding_preview.toPlainText(), "AA")
+
+    def test_never_saved_panel_keeps_live_state_when_reselected(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+
+        first_panel = self.load_payload_on_workspace(
+            tab, first_workspace.id, "mhu", "MHU Byte", "AB"
+        )
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        tab.workspace_sidebar.select_workspace(first_workspace.id)
+
+        self.assertEqual(first_panel.txt_coding_value.toPlainText(), "AB")
+        self.assertEqual(first_panel.txt_coding_preview.toPlainText(), "AB")
 
     def test_manual_save_updated_state_survives_restart(self):
         store = self.create_workspace_store()
@@ -442,6 +468,37 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(restored_panel.table.item(0, 8).text(), "No-M")
         self.assertEqual(restored_panel.txt_parameter_filter.text(), "No-M")
         self.assertIn("Total No-M: 1", restored_panel.txt_working_log.toPlainText())
+
+    def test_saved_check_filter_and_working_log_restore_on_reentry(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+        panel = self.load_payload_on_workspace(
+            tab, first_workspace.id, "mhu", "MHU Byte", "37"
+        )
+        panel.table.fn_set_raw_value_at_row(0, "FF")
+        panel.check_coding_value()
+        panel.filter_no_match_rows()
+        tab._save_workspace_snapshot(first_workspace.id)
+        panel.table.fn_set_raw_value_at_row(0, "37")
+        panel.refresh_parameter_filter()
+        panel.txt_working_log.setPlainText("unsaved log")
+
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        tab.workspace_sidebar.select_workspace(first_workspace.id)
+
+        self.assertEqual(panel.table.item(0, 4).text(), "FF")
+        self.assertEqual(panel.table.item(0, 6).text(), "37")
+        self.assertEqual(panel.table.item(0, 8).text(), "No-M")
+        self.assertEqual(panel.txt_parameter_filter.text(), "No-M")
+        self.assertIn("Total No-M: 1", panel.txt_working_log.toPlainText())
 
     def test_rename_keeps_snapshot_by_workspace_id(self):
         store = self.create_workspace_store()
@@ -550,6 +607,31 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(store.load_snapshot(mhu_workspace.id).payload_preview, "CC")
         self.assertEqual(store.load_snapshot(vcu_workspace.id).payload_preview, "BB")
 
+    def test_sidebar_save_button_saves_current_active_panel(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+        self.load_payload_on_workspace(
+            tab, first_workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        vcu_panel = self.load_payload_on_workspace(
+            tab, vcu_workspace.id, "vcu", "VCU Byte", "BB"
+        )
+
+        tab.workspace_sidebar.btn_save.click()
+
+        self.assertEqual(store.load_snapshot(vcu_workspace.id).payload_preview, "BB")
+        self.assertIsNone(store.load_snapshot(first_workspace.id))
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), vcu_workspace.id)
+        self.assertEqual(vcu_panel.txt_coding_preview.toPlainText(), "BB")
+
     def test_dirty_marker_is_runtime_and_clears_after_manual_save(self):
         store = self.create_workspace_store()
         tab = self.create_tab(store)
@@ -560,14 +642,14 @@ class CodingValueTabTests(unittest.TestCase):
         panel = self.load_payload_on_workspace(
             tab, workspace.id, "mhu", "MHU Byte", "AA"
         )
-        self.assertEqual(item.text(), "ECU 1 *")
+        self.assertEqual(item.text(), "Panel default *")
 
         tab._save_workspace_snapshot(workspace.id)
 
-        self.assertEqual(item.text(), "ECU 1")
+        self.assertEqual(item.text(), "Panel default")
         panel.txt_coding_value.setPlainText("AB")
 
-        self.assertEqual(item.text(), "ECU 1 *")
+        self.assertEqual(item.text(), "Panel default *")
 
     def test_theme_refresh_preserves_active_sidebar_visual(self):
         tab = self.create_tab()
@@ -1087,17 +1169,59 @@ class CodingValueTabTests(unittest.TestCase):
         file_layout = panel.file_row.layout()
         self.assertEqual(file_layout.indexOf(panel.btn_browse), 1)
         self.assertEqual(file_layout.indexOf(panel.cmb_coding_json), 2)
-        self.assertEqual(file_layout.indexOf(panel.btn_import), 3)
-        self.assertEqual(file_layout.indexOf(panel.btn_default), 4)
+        self.assertEqual(file_layout.indexOf(panel.file_action_row), 3)
         self.assertEqual(panel.btn_default.text(), "Default")
         self.assertFalse(panel.btn_default.isEnabled())
-        self.assertEqual(panel.cmb_coding_json.width(), 200)
-        self.assertEqual(panel.cmb_coding_json.maxVisibleItems(), 5)
+        self.assertEqual(panel.cmb_coding_json.width(), 300)
+        self.assertEqual(panel.cmb_coding_json.maxVisibleItems(), 10)
         self.assertIn(
             "QScrollBar:vertical",
             panel.cmb_coding_json.view().verticalScrollBar().styleSheet(),
         )
         self.assertEqual(panel.cmb_coding_json.currentText(), "")
+
+    def test_action_groups_share_one_structural_width(self):
+        panel = CodingValuePanel()
+        self.addCleanup(panel.deleteLater)
+
+        self.assertEqual(panel.file_action_row.width(), panel.filter_action_row.width())
+        self.assertEqual(panel.filter_action_row.width(), panel.table_action_panel.width())
+        self.assertEqual(panel.btn_import.width(), panel.btn_default.width())
+        self.assertEqual(panel.btn_filter_no_m.width(), panel.btn_refresh_filter.width())
+        for button in (
+            panel.btn_check,
+            panel.btn_copy_data_payload,
+            panel.btn_export,
+            panel.btn_table_clear,
+        ):
+            self.assertEqual(button.width(), panel.table_action_panel.width())
+
+    def test_coding_json_options_are_newest_first_and_preserve_selected_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            export_dir = Path(tmpdir) / "config" / "export_coding_files"
+            old_json = self.create_definition_file(export_dir, "old", "Old Byte")
+            middle_json = self.create_definition_file(export_dir, "middle", "Middle Byte")
+            new_json = self.create_definition_file(export_dir, "new", "New Byte")
+            os.utime(old_json, (1000, 1000))
+            os.utime(middle_json, (2000, 2000))
+            os.utime(new_json, (3000, 3000))
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                panel = CodingValuePanel()
+                self.addCleanup(panel.deleteLater)
+                panel._refresh_coding_json_options(str(middle_json))
+
+        self.assertEqual(
+            [
+                panel.cmb_coding_json.itemText(index)
+                for index in range(panel.cmb_coding_json.count())
+            ],
+            ["new", "middle", "old"],
+        )
+        self.assert_same_path(panel.cmb_coding_json.currentData(), middle_json)
 
     def test_coding_value_shortcuts_click_expected_action_buttons(self):
         panel = CodingValuePanel()

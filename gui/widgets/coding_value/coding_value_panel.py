@@ -51,6 +51,8 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 DEFAULT_CODING_DIR = Path("config/Coding")
 POSITION_COPY_DATA_PAYLOAD = 3
+ACTION_PANEL_WIDTH = 220
+ACTION_PANEL_SPACING = 8
 
 
 class CodingValuePanel(QGroupBox):
@@ -94,18 +96,28 @@ class CodingValuePanel(QGroupBox):
             width=100,
         )
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(200)
-        self.cmb_coding_json.setMaxVisibleItems(5)
+        self.cmb_coding_json.setFixedWidth(300)
+        self.cmb_coding_json.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
+        file_button_width = (ACTION_PANEL_WIDTH - ACTION_PANEL_SPACING) // 2
         self.btn_import = PrimaryButton(
             "Import",
-            width=100,
+            width=file_button_width,
         )
+        self.btn_import.setFixedWidth(file_button_width)
         self.btn_default = PrimaryButton(
             "Default",
-            width=100,
+            width=file_button_width,
         )
+        self.btn_default.setFixedWidth(file_button_width)
+        self.file_action_row = QWidget()
+        file_action_layout = QHBoxLayout(self.file_action_row)
+        file_action_layout.setContentsMargins(0, 0, 0, 0)
+        file_action_layout.setSpacing(ACTION_PANEL_SPACING)
+        file_action_layout.addWidget(self.btn_import)
+        file_action_layout.addWidget(self.btn_default)
+        self.file_action_row.setFixedWidth(ACTION_PANEL_WIDTH)
 
         self.file_row = QWidget()
         file_layout = QHBoxLayout(self.file_row)
@@ -114,8 +126,7 @@ class CodingValuePanel(QGroupBox):
         file_layout.addWidget(self.file_path, 1)
         file_layout.addWidget(self.btn_browse)
         file_layout.addWidget(self.cmb_coding_json)
-        file_layout.addWidget(self.btn_import)
-        file_layout.addWidget(self.btn_default)
+        file_layout.addWidget(self.file_action_row)
         self._refresh_coding_json_options()
 
         self.txt_coding_value = QPlainTextEdit()
@@ -189,8 +200,7 @@ class CodingValuePanel(QGroupBox):
         self.txt_parameter_filter = PrimaryLineEdit(
             placeholder="Filter parameter"
         )
-        filter_action_width = 220
-        filter_button_width = (filter_action_width - 8) // 2
+        filter_button_width = (ACTION_PANEL_WIDTH - ACTION_PANEL_SPACING) // 2
         self.btn_filter_no_m = PrimaryButton(
             "No-M",
             width=filter_button_width,
@@ -203,10 +213,10 @@ class CodingValuePanel(QGroupBox):
         self.btn_refresh_filter.setFixedWidth(filter_button_width)
 
         self.filter_action_row = QWidget()
-        self.filter_action_row.setFixedWidth(filter_action_width)
+        self.filter_action_row.setFixedWidth(ACTION_PANEL_WIDTH)
         filter_action_layout = QHBoxLayout(self.filter_action_row)
         filter_action_layout.setContentsMargins(0, 0, 0, 0)
-        filter_action_layout.setSpacing(8)
+        filter_action_layout.setSpacing(ACTION_PANEL_SPACING)
         filter_action_layout.addWidget(self.btn_filter_no_m)
         filter_action_layout.addWidget(self.btn_refresh_filter)
 
@@ -221,22 +231,27 @@ class CodingValuePanel(QGroupBox):
 
         self.btn_check = PrimaryButton(
             "CHECK",
-            width=110,
+            width=ACTION_PANEL_WIDTH,
         )
+        self.btn_check.setFixedWidth(ACTION_PANEL_WIDTH)
         self.btn_copy_data_payload = PrimaryButton(
             "COPY DATA PAYLOAD",
-            width=160,
+            width=ACTION_PANEL_WIDTH,
         )
+        self.btn_copy_data_payload.setFixedWidth(ACTION_PANEL_WIDTH)
         self.btn_export = PrimaryButton(
             "EXPORT",
-            width=110,
+            width=ACTION_PANEL_WIDTH,
         )
+        self.btn_export.setFixedWidth(ACTION_PANEL_WIDTH)
         self.btn_table_clear = PrimaryButton(
             "CLEAR",
-            width=110,
+            width=ACTION_PANEL_WIDTH,
         )
+        self.btn_table_clear.setFixedWidth(ACTION_PANEL_WIDTH)
 
         self.table_action_panel = QWidget()
+        self.table_action_panel.setFixedWidth(ACTION_PANEL_WIDTH)
         action_layout = QVBoxLayout(self.table_action_panel)
         action_layout.setContentsMargins(0, 0, 0, 0)
         action_layout.setSpacing(8)
@@ -407,7 +422,14 @@ class CodingValuePanel(QGroupBox):
     def _refresh_coding_json_options(self, selected_path=None):
         selected = str(selected_path) if selected_path else ""
         export_dir = Path(EXPORT_CODING_FILES_DIR)
-        json_files = sorted(export_dir.glob("*.json")) if export_dir.exists() else []
+        json_files = (
+            sorted(
+                export_dir.glob("*.json"),
+                key=self._coding_json_sort_key,
+            )
+            if export_dir.exists()
+            else []
+        )
 
         self.cmb_coding_json.blockSignals(True)
         self.cmb_coding_json.clear()
@@ -424,6 +446,15 @@ class CodingValuePanel(QGroupBox):
         else:
             self.cmb_coding_json.setCurrentIndex(-1)
         self.cmb_coding_json.blockSignals(False)
+
+    @staticmethod
+    def _coding_json_sort_key(json_file: Path):
+        try:
+            modified_time = json_file.stat().st_mtime
+        except OSError:
+            modified_time = 0
+
+        return (-modified_time, json_file.name.casefold())
 
     def _find_coding_json_option(self, selected_path: str) -> int:
         for index in range(self.cmb_coding_json.count()):
