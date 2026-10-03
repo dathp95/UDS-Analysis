@@ -6,4 +6,4 @@ class IconManager:
 
     @classmethod
     def app(cls):
-        return QIcon(str(ICON_DIR / "car-diagnostics.svg"))
+        return QIcon(str(ICON_DIR / "car-diagnostics.ico"))
