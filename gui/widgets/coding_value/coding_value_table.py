@@ -49,7 +49,7 @@ class CodingValueTable(PrimaryTable):
         3: 74,
         4: 82,
         5: 240,
-        6: 96,
+        6: 130,
         7: 112,
         8: 72,
     }
