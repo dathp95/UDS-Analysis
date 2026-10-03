@@ -144,7 +144,7 @@ class EcuWorkspaceSidebar(QWidget):
 
     def _setup_ui(self):
         self.setObjectName("ecuWorkspaceSidebar")
-        self.setFixedWidth(200)
+        self.setFixedWidth(250)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)

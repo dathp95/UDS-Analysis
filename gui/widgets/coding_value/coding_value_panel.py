@@ -51,7 +51,7 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
 DEFAULT_CODING_DIR = Path("config/Coding")
 POSITION_COPY_DATA_PAYLOAD = 3
-ACTION_PANEL_WIDTH = 220
+ACTION_PANEL_WIDTH = 300
 ACTION_PANEL_SPACING = 8
 
 
