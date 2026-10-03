@@ -14,8 +14,23 @@
         {
             "id": "2c7b4f47d2704851b28fb10503015176",
             "name": "BAS",
-            "coding_file": ""
+            "coding_file": "config/export_coding_files/MINIGREEN_VOD_v.1.0.4.json"
+        },
+        {
+            "id": "81dc465df6f14380a81fa281c19d4306",
+            "name": "ACM",
+            "coding_file": "config/export_coding_files/MINIVAN_VOD_v3.0.10.json"
+        },
+        {
+            "id": "2785628370c542439812be59f61c661a",
+            "name": "1",
+            "coding_file": "config/export_coding_files/VF3_MHU_F108_v1.json"
+        },
+        {
+            "id": "841a29a6fcc446fdb389a9985c79d954",
+            "name": "2",
+            "coding_file": "config/export_coding_files/VF7_VOD_v.6.0.02.json"
         }
     ],
-    "active_workspace_id": "2c7b4f47d2704851b28fb10503015176"
+    "active_workspace_id": "841a29a6fcc446fdb389a9985c79d954"
 }
