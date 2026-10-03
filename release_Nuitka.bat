@@ -25,7 +25,7 @@ python -m nuitka ^
     --standalone ^
     --enable-plugin=pyside6 ^
     --windows-console-mode=disable ^
-    --windows-icon-from-ico=gui\resources\images\car-diagnostics.ico ^
+    --windows-icon-from-ico=gui\resources\icons\car-diagnostics.ico ^
     --output-dir=%NUITKA_BUILD_DIR% ^
     --output-filename=V-CODE.exe ^
     --include-data-dir=gui\resources=gui\resources ^
