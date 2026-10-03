@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
 from core.coding_value_workspace import CodingEcuWorkspace
@@ -34,8 +35,12 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         self.workspace = workspace
         self._active = False
         self._dirty = False
-        super().__init__(workspace.name, width=132, height=26, parent=parent, )
+        super().__init__(workspace.name, height=26, parent=parent, )
         self.setFixedHeight(26)
+        self.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Fixed,
+        )
         self.setObjectName("ecuWorkspaceItem")
         self.setCursor(Qt.PointingHandCursor)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -101,23 +106,20 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
 
     def fn_refresh_theme(self):
         super().fn_refresh_theme()
+
         if not self._active:
             return
 
         colors = ThemeManager.fn_colors()
+
+        base_style = self.styleSheet()
+
         self.setStyleSheet(
-            f"""
+            base_style
+            + f"""
             QPushButton#ecuWorkspaceItem {{
                 background-color: {colors.SUCCESS};
                 color: {colors.TEXT_INVERT};
-                border: 1px solid {colors.BORDER};
-                border-radius: 4px;
-                font-family: "Segoe UI";
-                font-size: 10pt;
-                font-weight: 600;
-                padding-left: 16px;
-                padding-right: 10px;
-                text-align: left;
             }}
             """
         )
