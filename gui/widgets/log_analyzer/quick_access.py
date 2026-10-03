@@ -506,32 +506,14 @@ class QuickAccessWidget(QWidget):
             quick_filter: dict,
         ):
         """
-        Delete a quick filter.
+        Delete a quick filter immediately.
         """
 
-        answer  = QMessageBox.question(
-
-            self,
-
-            "Delete Quick Filter",
-
-            f"Are you sure you want to delete the quick filter '{quick_filter['name']}' ?\n\nThis action cannot be undone.??",
-
-            QMessageBox.Yes | QMessageBox.No,
-
-            QMessageBox.No
-
+        self.quick_access_controller.fn_delete(
+            quick_filter["id"]
         )
 
-        if answer  == QMessageBox.Yes:
-
-            self.quick_access_controller.fn_delete(
-
-                quick_filter["id"]
-
-            )
-
-            self.fn_reload()
+        self.fn_reload()
 
     def _fn_clone_filter(self, quick_filter: dict):
         """Create an independent copy of a quick filter."""
