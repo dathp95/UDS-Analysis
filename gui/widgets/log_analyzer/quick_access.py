@@ -196,6 +196,16 @@ class QuickAccessWidget(QWidget):
                     background-color: {colors.SUCCESS};
                     color: {colors.TEXT_INVERT};
                 }}
+
+                QPushButton:hover {{
+                    background-color: {colors.SUCCESS};
+                    color: {colors.TEXT_INVERT};
+                }}
+
+                QPushButton:pressed {{
+                    background-color: {colors.SUCCESS};
+                    color: {colors.TEXT_INVERT};
+                }}
                 """
             )
     
