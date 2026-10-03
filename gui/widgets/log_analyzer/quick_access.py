@@ -18,6 +18,7 @@ from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.utils.payload_format import format_payload_input
 
+from gui.themes.theme_manager import ThemeManager
 
 from gui.widgets.controls.secondary_button import SecondaryButton
 from gui.themes.styles.controls.scrollbar_style import (
@@ -167,6 +168,37 @@ class QuickAccessWidget(QWidget):
         self.btn_import.clicked.connect(self.fn_import_filters)
         self.btn_export.clicked.connect(self.fn_export_filters)
 
+    def _fn_refresh_button_states(self):
+        selected_id = None
+
+        if isinstance(self.selected_filter, dict):
+            selected_id = self.selected_filter.get("id")
+
+        for button in self.buttons:
+            button.fn_refresh_theme()
+
+            filter_data = getattr(
+                button,
+                "_quick_filter_data",
+                {},
+            )
+
+            if filter_data.get("id") != selected_id:
+                continue
+
+            colors = ThemeManager.fn_colors()
+            base_style = button.styleSheet()
+
+            button.setStyleSheet(
+                base_style
+                + f"""
+                QPushButton {{
+                    background-color: {colors.SUCCESS};
+                    color: {colors.TEXT_INVERT};
+                }}
+                """
+            )
+    
     def fn_import_filters(self):
         dialog = ImportQuickFiltersDialog(self)
         if not dialog.exec():
@@ -400,12 +432,13 @@ class QuickAccessWidget(QWidget):
         ):
 
         self.selected_filter = filter_data
+
+        self._fn_refresh_button_states()
+
         self.quick_filter_selected.emit(
-
             filter_data
-
         )
-    
+        
     def _fn_show_context_menu(
             self,
             button,
@@ -550,6 +583,7 @@ class QuickAccessWidget(QWidget):
 
     def fn_clear_active_selection(self) -> None:
         self.selected_filter = None
+        self._fn_refresh_button_states()
     
     def fn_enable_buttons(
             self,
@@ -570,6 +604,8 @@ class QuickAccessWidget(QWidget):
         self.btn_add.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
+
+        self._fn_refresh_button_states()
 
 
 
