@@ -22,6 +22,8 @@ from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.secondary_button import SecondaryButton
 
+from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+
 
 class EcuWorkspaceItemWidget(QuickAccessButton):
 
@@ -152,6 +154,12 @@ class EcuWorkspaceSidebar(QWidget):
 
         self.lbl_title = QLabel("PANEL")
         self.lbl_title.setObjectName("ecuWorkspaceTitle")
+
+        self.edit_search = PrimaryLineEdit(
+            placeholder="Search Panel..."
+        )
+
+
         self.btn_add = SecondaryButton("+ Add Panel", width=88, height=28)
         self.btn_save = PrimaryButton("Save", width=88, height=28)
 
@@ -177,18 +185,39 @@ class EcuWorkspaceSidebar(QWidget):
         bottom_action_layout.addWidget(self.btn_save, 1)
 
         layout.addWidget(self.lbl_title)
+        layout.addWidget(self.edit_search)
+
         layout.addWidget(self.scroll_area, 1)
         layout.addWidget(self.bottom_action_row)
 
     def _connect_signals(self):
         self.btn_add.clicked.connect(self._add_workspace_from_dialog)
         self.btn_save.clicked.connect(self._save_active_workspace)
+
+        self.edit_search.textChanged.connect(self._filter_workspaces)
+
         self.list_container.customContextMenuRequested.connect(
             self._show_empty_context_menu
         )
+
     def _scroll_to_bottom(self):
         scroll_bar = self.scroll_area.verticalScrollBar()
         scroll_bar.setValue(scroll_bar.maximum())
+
+    def _filter_workspaces(self, text):
+        keyword = str(text or "").strip().lower()
+
+        for workspace_id, item in self._item_by_id.items():
+            workspace = self.workspace_by_id(workspace_id)
+
+            if workspace is None:
+                continue
+
+            name = workspace.name.lower()
+
+            item.setVisible(
+                not keyword or keyword in name
+            )
 
     def workspace_count(self) -> int:
         return len(self._workspaces)
@@ -222,6 +251,7 @@ class EcuWorkspaceSidebar(QWidget):
 
         self._workspaces.append(workspace)
         item = EcuWorkspaceItemWidget(workspace)
+
         item.add_panel_requested.connect(self._add_workspace_from_dialog)
         item.workspace_clicked.connect(self.select_workspace)
         item.save_requested.connect(self.workspace_save_requested)
@@ -231,6 +261,9 @@ class EcuWorkspaceSidebar(QWidget):
         self.list_layout.insertWidget(
             max(0, self.list_layout.count() - 1),
             item,
+        )
+        self._filter_workspaces(
+            self.edit_search.text()
         )
         
 
@@ -441,6 +474,7 @@ class EcuWorkspaceSidebar(QWidget):
         )
         self.btn_add.fn_refresh_theme()
         self.btn_save.fn_refresh_theme()
+        self.edit_search.fn_refresh_theme()
         self._update_save_button_state()
         for item in self._item_widgets():
             item.fn_refresh_theme()
