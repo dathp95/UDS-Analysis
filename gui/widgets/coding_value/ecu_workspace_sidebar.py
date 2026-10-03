@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
@@ -228,6 +228,12 @@ class EcuWorkspaceSidebar(QWidget):
         self.list_layout.insertWidget(
             max(0, self.list_layout.count() - 1),
             item,
+        )
+        QTimer.singleShot(
+            0,
+            lambda: self.scroll_area.verticalScrollBar().setValue(
+                self.scroll_area.verticalScrollBar().maximum()
+            )
         )
         self.fn_refresh_theme()
         if select:
