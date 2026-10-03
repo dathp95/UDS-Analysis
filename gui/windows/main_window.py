@@ -123,7 +123,11 @@ class MainWindow(QMainWindow):
             ),
         )
 
-        for tab, label, _feature in self._feature_tabs:
+        for tab, label, feature in self._feature_tabs:
+
+            if feature in self._deactivated_features:
+                continue
+
             self.tabs.addTab(
                 tab,
                 label,
