@@ -618,6 +618,8 @@ class QCurrentTab(QWidget):
         plot.setLabel("bottom", "Time (s)")
         plot.setLabel("left", "Current (mA)")
         plot_item = plot.getPlotItem()
+        # Hide PyQtGraph built-in auto-range button.
+        plot_item.hideButtons()
         plot_item.getAxis("bottom").enableAutoSIPrefix(False)
         plot_item.getAxis("left").enableAutoSIPrefix(False)
         plot.showGrid(x=True, y=True, alpha=0.25)
