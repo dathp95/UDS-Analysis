@@ -5,8 +5,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from config.paths import CODING_VALUE_WORKSPACES_FILE, PROJECT_ROOT
+from config.paths import (
+    CODING_VALUE_WORKSPACE_SNAPSHOTS_DIR,
+    CODING_VALUE_WORKSPACES_FILE,
+    PROJECT_ROOT,
+)
 from core.coding_value_workspace import CodingEcuWorkspace
+from core.coding_value_workspace_snapshot import CodingWorkspaceSnapshot
 
 
 CODING_WORKSPACE_CONFIG_VERSION = 1
@@ -24,6 +29,7 @@ class CodingWorkspaceStore:
             self,
             config_path: str | Path | None = None,
             project_root: str | Path | None = None,
+            snapshot_dir: str | Path | None = None,
         ):
         self.config_path = (
             Path(config_path)
@@ -35,6 +41,17 @@ class CodingWorkspaceStore:
             if project_root is not None
             else PROJECT_ROOT
         )
+        self.snapshot_dir = (
+            Path(snapshot_dir)
+            if snapshot_dir is not None
+            else self._default_snapshot_dir(config_path)
+        )
+
+    def _default_snapshot_dir(self, config_path: str | Path | None) -> Path:
+        if config_path is None:
+            return CODING_VALUE_WORKSPACE_SNAPSHOTS_DIR
+
+        return self.config_path.parent / "coding_value_workspace_snapshots"
 
     def load(self) -> CodingWorkspaceState | None:
         if not self.config_path.exists():
@@ -76,6 +93,51 @@ class CodingWorkspaceStore:
             return path_text
 
         return str(self.project_root / path)
+
+    def save_snapshot(
+            self,
+            workspace_id: str,
+            snapshot: CodingWorkspaceSnapshot,
+        ) -> None:
+        path = self.snapshot_path(workspace_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = path.with_name(f"{path.name}.tmp")
+        payload = snapshot.to_dict()
+        payload["coding_file"] = self._portable_path(payload["coding_file"])
+        temporary_path.write_text(
+            json.dumps(payload, indent=4, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        temporary_path.replace(path)
+
+    def load_snapshot(self, workspace_id: str) -> CodingWorkspaceSnapshot | None:
+        path = self.snapshot_path(workspace_id)
+        if not path.exists():
+            return None
+
+        try:
+            return CodingWorkspaceSnapshot.from_dict(
+                json.loads(path.read_text(encoding="utf-8"))
+            )
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            return None
+
+    def delete_snapshot(self, workspace_id: str) -> None:
+        try:
+            self.snapshot_path(workspace_id).unlink(missing_ok=True)
+        except OSError:
+            return
+
+    def snapshot_path(self, workspace_id: str) -> Path:
+        return self.snapshot_dir / f"{self._snapshot_file_stem(workspace_id)}.json"
+
+    @staticmethod
+    def _snapshot_file_stem(workspace_id: str) -> str:
+        text = str(workspace_id or "").strip()
+        return "".join(
+            character if character.isalnum() or character in ("-", "_") else "_"
+            for character in text
+        )
 
     def _state_from_payload(self, payload: Any) -> CodingWorkspaceState | None:
         if not isinstance(payload, dict):

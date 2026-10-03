@@ -182,7 +182,7 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertFalse(item.findChildren(QPushButton))
         self.assertNotIn("*", item.text())
 
-    def test_workspace_context_menu_exposes_rename_and_delete_actions(self):
+    def test_workspace_context_menu_exposes_save_rename_and_delete_actions(self):
         sidebar = EcuWorkspaceSidebar()
         self.addCleanup(sidebar.deleteLater)
         workspace = CodingEcuWorkspace.create("MHU")
@@ -190,10 +190,44 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         item = sidebar._item_by_id[workspace.id]
 
         menu = item._create_context_menu()
-        actions = {action.text(): action for action in menu.actions()}
+        actions = [action.text() for action in menu.actions()]
 
-        self.assertEqual(set(actions), {"Rename", "Delete"})
+        self.assertEqual(actions, ["Save", "", "Rename", "Delete"])
         menu.deleteLater()
+
+    def test_workspace_save_request_emits_clicked_workspace_id_without_selecting(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        mhu = CodingEcuWorkspace.create("MHU")
+        vcu = CodingEcuWorkspace.create("VCU")
+        sidebar.add_workspace(mhu)
+        sidebar.add_workspace(vcu, select=True)
+        saved = []
+        selected = []
+        sidebar.workspace_save_requested.connect(saved.append)
+        sidebar.workspace_selected.connect(selected.append)
+
+        sidebar._item_by_id[mhu.id].save_requested.emit(mhu.id)
+
+        self.assertEqual(saved, [mhu.id])
+        self.assertEqual(selected, [])
+        self.assertEqual(sidebar.active_workspace_id(), vcu.id)
+
+    def test_dirty_marker_is_visual_only_and_preserves_workspace_name(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        workspace = CodingEcuWorkspace.create("MHU")
+        sidebar.add_workspace(workspace)
+        item = sidebar._item_by_id[workspace.id]
+
+        sidebar.set_workspace_dirty(workspace.id, True)
+
+        self.assertEqual(item.workspace_name(), "MHU")
+        self.assertEqual(item.text(), "MHU *")
+
+        sidebar.set_workspace_dirty(workspace.id, False)
+
+        self.assertEqual(item.text(), "MHU")
 
     def test_add_button_creates_selects_and_emits_workspace(self):
         sidebar = EcuWorkspaceSidebar()

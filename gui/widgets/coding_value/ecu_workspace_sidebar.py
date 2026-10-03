@@ -23,12 +23,14 @@ from gui.widgets.controls.secondary_button import SecondaryButton
 class EcuWorkspaceItemWidget(QuickAccessButton):
 
     clicked = Signal(str)
+    save_requested = Signal(str)
     delete_requested = Signal(str)
     rename_requested = Signal(str)
 
     def __init__(self, workspace: CodingEcuWorkspace, parent=None):
         self.workspace = workspace
         self._active = False
+        self._dirty = False
         super().__init__(workspace.name, width=132, height=26, parent=parent)
         self.setObjectName("ecuWorkspaceItem")
         self.setCursor(Qt.PointingHandCursor)
@@ -41,12 +43,20 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         self._active = active
         self.fn_refresh_theme()
 
+    def set_dirty(self, dirty: bool):
+        self._dirty = dirty
+        self._refresh_text()
+
     def set_workspace_name(self, name: str):
-        self.setText(name)
+        self._refresh_text()
         self.setToolTip(name)
 
     def workspace_name(self) -> str:
-        return self.text()
+        return self.workspace.name
+
+    def _refresh_text(self):
+        suffix = " *" if self._dirty else ""
+        self.setText(f"{self.workspace.name}{suffix}")
 
     def _show_context_menu(self, position):
         menu = self._create_context_menu()
@@ -54,7 +64,9 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         if action is None:
             return
 
-        if action.text() == "Rename":
+        if action.text() == "Save":
+            self.save_requested.emit(self.workspace.id)
+        elif action.text() == "Rename":
             self.rename_requested.emit(self.workspace.id)
         elif action.text() == "Delete":
             self.delete_requested.emit(self.workspace.id)
@@ -62,6 +74,8 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
     def _create_context_menu(self):
         menu = QMenu(self)
         fn_apply_menu_style(menu)
+        menu.addAction("Save")
+        menu.addSeparator()
         menu.addAction("Rename")
         menu.addAction("Delete")
         return menu
@@ -95,6 +109,7 @@ class EcuWorkspaceSidebar(QWidget):
 
     workspace_added = Signal(object)
     workspace_selected = Signal(str)
+    workspace_save_requested = Signal(str)
     workspace_renamed = Signal(str, str)
     workspace_deleted = Signal(str)
 
@@ -173,6 +188,7 @@ class EcuWorkspaceSidebar(QWidget):
         self._workspaces.append(workspace)
         item = EcuWorkspaceItemWidget(workspace)
         item.clicked.connect(self.select_workspace)
+        item.save_requested.connect(self.workspace_save_requested)
         item.delete_requested.connect(self.remove_workspace)
         item.rename_requested.connect(self._rename_workspace_from_dialog)
         self._item_by_id[workspace.id] = item
@@ -184,6 +200,11 @@ class EcuWorkspaceSidebar(QWidget):
         if select:
             self.select_workspace(workspace.id)
         return True
+
+    def set_workspace_dirty(self, workspace_id: str, dirty: bool):
+        item = self._item_by_id.get(workspace_id)
+        if item is not None:
+            item.set_dirty(dirty)
 
     def select_workspace(
             self,

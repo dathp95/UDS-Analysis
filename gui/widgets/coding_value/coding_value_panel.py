@@ -29,6 +29,10 @@ from core.coding_value_payload import (
     parse_payload_text,
     write_raw_value,
 )
+from core.coding_value_workspace_snapshot import (
+    CodingWorkspaceRowSnapshot,
+    CodingWorkspaceSnapshot,
+)
 from core.coding_value_report_export import (
     CODING_VALUE_REPORT_HEADERS,
     CodingValueReportData,
@@ -52,6 +56,7 @@ POSITION_COPY_DATA_PAYLOAD = 3
 class CodingValuePanel(QGroupBox):
 
     coding_file_changed = Signal(str)
+    state_changed = Signal()
 
     def __init__(self):
         super().__init__("Coding Value")
@@ -60,8 +65,10 @@ class CodingValuePanel(QGroupBox):
         self._payload_baseline_bytes: list[int] = []
         self._has_encoded_payload: bool = False
         self._preview_editing: bool = False
+        self._restoring_snapshot: bool = False
         self._report_service: CodingValueReportService = CodingValueReportService()
         self._coding_definition: CodingDefinition | None = None
+        self._coding_file: str = ""
         self._setup_ui()
         self._connect_signals()
         self._setup_shortcuts()
@@ -355,6 +362,18 @@ class CodingValuePanel(QGroupBox):
         self.table.raw_value_changed.connect(
             self.update_payload_preview_from_raw
         )
+        self.table.raw_value_changed.connect(
+            lambda *_args: self._emit_state_changed()
+        )
+        self.txt_coding_value.textChanged.connect(
+            self._emit_state_changed
+        )
+        self.txt_coding_preview.textChanged.connect(
+            self._emit_state_changed
+        )
+        self.txt_parameter_filter.textChanged.connect(
+            self._emit_state_changed
+        )
         self.txt_parameter_filter.textChanged.connect(
             self.filter_parameter_table
         )
@@ -367,6 +386,12 @@ class CodingValuePanel(QGroupBox):
         self.txt_coding_value.textChanged.connect(
             self._update_action_states
         )
+
+    def _emit_state_changed(self):
+        if self._restoring_snapshot:
+            return
+
+        self.state_changed.emit()
 
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -457,11 +482,132 @@ class CodingValuePanel(QGroupBox):
             emit_coding_file_changed: bool = True,
         ):
         self._coding_definition = definition
+        self._coding_file = str(coding_file or "")
         self.table.set_rows(definition.rows)
         self.filter_parameter_table()
         self._update_action_states()
         if coding_file and emit_coding_file_changed:
             self.coding_file_changed.emit(str(coding_file))
+        self._emit_state_changed()
+
+    def create_workspace_snapshot(self) -> CodingWorkspaceSnapshot:
+        return CodingWorkspaceSnapshot(
+            coding_file=self._coding_file,
+            payload_input=self.txt_coding_value.toPlainText(),
+            payload_preview=self._format_payload_bytes(self._payload_preview_bytes),
+            baseline_payload=self._format_payload_bytes(self._payload_baseline_bytes),
+            parameter_filter=self.txt_parameter_filter.text(),
+            checked=self._has_check_results(),
+            raw_values=tuple(self._snapshot_raw_values()),
+            working_log=self.txt_working_log.toPlainText(),
+        )
+
+    def restore_workspace_snapshot(
+            self,
+            snapshot: CodingWorkspaceSnapshot,
+        ) -> bool:
+        self._restoring_snapshot = True
+        try:
+            definition_loaded = False
+            if snapshot.coding_file:
+                definition_loaded = self.load_coding_definition_file(
+                    snapshot.coding_file,
+                    emit_coding_file_changed=False,
+                )
+
+            self.txt_coding_value.setPlainText(snapshot.payload_input)
+            self._payload_baseline_bytes = self._parse_snapshot_payload(
+                snapshot.baseline_payload
+            )
+            self._payload_preview_bytes = self._parse_snapshot_payload(
+                snapshot.payload_preview
+            )
+            self.txt_coding_preview.setPlainText(
+                self._format_payload_bytes(self._payload_preview_bytes)
+            )
+            self.txt_coding_preview.setExtraSelections([])
+            self._has_encoded_payload = bool(self._payload_preview_bytes)
+
+            if definition_loaded:
+                self._restore_table_snapshot(snapshot)
+
+            self.txt_parameter_filter.setText(snapshot.parameter_filter)
+            self.filter_parameter_table()
+            if snapshot.working_log:
+                self.txt_working_log.setPlainText(snapshot.working_log)
+            self._update_action_states()
+            return True
+        finally:
+            self._finish_preview_edit()
+            self._restoring_snapshot = False
+
+    def _snapshot_raw_values(self):
+        for row_index in range(self.table.rowCount()):
+            raw_item = self.table.item(row_index, 4)
+            raw_value = raw_item.text() if raw_item is not None else ""
+            yield CodingWorkspaceRowSnapshot(
+                parameter=self._table_item_text(row_index, 0),
+                byte_pos=self._table_item_text(row_index, 1),
+                bit_pos=self._table_item_text(row_index, 2),
+                bit_length=self._table_item_text(row_index, 3),
+                raw_value=raw_value,
+            )
+
+    def _restore_table_snapshot(self, snapshot: CodingWorkspaceSnapshot):
+        if snapshot.baseline_payload:
+            self.table.encode_payload(
+                snapshot.baseline_payload,
+                update_original=True,
+            )
+
+        row_by_key = {
+            self._snapshot_row_key(row_index): row_index
+            for row_index in range(self.table.rowCount())
+        }
+        for raw_snapshot in snapshot.raw_values:
+            row_index = row_by_key.get(self._snapshot_key(raw_snapshot))
+            if row_index is None:
+                continue
+
+            self.table.fn_set_raw_value_at_row(
+                row_index,
+                raw_snapshot.raw_value,
+                emit_raw_change=False,
+            )
+
+        if snapshot.checked:
+            self.table.apply_check_results()
+            if not snapshot.working_log:
+                self._write_check_working_log()
+
+    def _snapshot_row_key(self, row_index: int) -> tuple[str, str, str, str]:
+        return (
+            self._table_item_text(row_index, 0),
+            self._table_item_text(row_index, 1),
+            self._table_item_text(row_index, 2),
+            self._table_item_text(row_index, 3),
+        )
+
+    @staticmethod
+    def _snapshot_key(
+            raw_snapshot: CodingWorkspaceRowSnapshot,
+        ) -> tuple[str, str, str, str]:
+        return (
+            raw_snapshot.parameter,
+            raw_snapshot.byte_pos,
+            raw_snapshot.bit_pos,
+            raw_snapshot.bit_length,
+        )
+
+    @staticmethod
+    def _parse_snapshot_payload(payload: str) -> list[int]:
+        if not str(payload or "").strip():
+            return []
+
+        try:
+            return parse_payload_text(payload)
+        except ValueError:
+            return []
 
     def load_coding_definition_file(
             self,
@@ -839,6 +985,7 @@ class CodingValuePanel(QGroupBox):
 
     def clear_table_coding_values(self):
         self._coding_definition = None
+        self._coding_file = ""
         self.table.clear_rows()
         self.txt_working_log.clear()
         self.clear_coding_preview()

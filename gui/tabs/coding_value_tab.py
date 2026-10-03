@@ -1,5 +1,8 @@
+from dataclasses import replace
+
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QMessageBox,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -38,6 +41,9 @@ class CodingValueTab(QWidget):
         self.workspace_stack = QStackedWidget()
         self.workspace_sidebar.workspace_added.connect(self._add_workspace_panel)
         self.workspace_sidebar.workspace_selected.connect(self._select_workspace_panel)
+        self.workspace_sidebar.workspace_save_requested.connect(
+            self._save_workspace_snapshot
+        )
         self.workspace_sidebar.workspace_deleted.connect(self._remove_workspace_panel)
         self.workspace_sidebar.workspace_renamed.connect(
             lambda _workspace_id, _name: self._save_workspace_state()
@@ -77,9 +83,24 @@ class CodingValueTab(QWidget):
             lambda coding_file, workspace_id=workspace.id:
                 self._on_workspace_coding_file_changed(workspace_id, coding_file)
         )
+        panel.state_changed.connect(
+            lambda workspace_id=workspace.id:
+                self.workspace_sidebar.set_workspace_dirty(workspace_id, True)
+        )
         self._panel_by_workspace_id[workspace.id] = panel
         self.workspace_stack.addWidget(panel)
-        if workspace.coding_file:
+        snapshot = self._workspace_store.load_snapshot(workspace.id)
+        if snapshot is not None:
+            panel.restore_workspace_snapshot(
+                replace(
+                    snapshot,
+                    coding_file=self._workspace_store.path_for_use(
+                        snapshot.coding_file
+                    ),
+                )
+            )
+            workspace.set_coding_file(snapshot.coding_file)
+        elif workspace.coding_file:
             panel.load_coding_definition_file(
                 self._workspace_store.path_for_use(workspace.coding_file),
                 emit_coding_file_changed=False,
@@ -95,6 +116,7 @@ class CodingValueTab(QWidget):
         active_panel = self.active_coding_value_panel()
         if active_panel is not None:
             self.workspace_stack.setCurrentWidget(active_panel)
+        self._workspace_store.delete_snapshot(workspace_id)
         self._save_workspace_state()
 
     def _select_workspace_panel(self, workspace_id: str):
@@ -158,6 +180,27 @@ class CodingValueTab(QWidget):
             return
 
         workspace.set_coding_file(coding_file)
+        self._save_workspace_state()
+
+    def _save_workspace_snapshot(self, workspace_id: str):
+        panel = self._panel_by_workspace_id.get(workspace_id)
+        workspace = self.workspace_sidebar.workspace_by_id(workspace_id)
+        if panel is None or workspace is None:
+            return
+
+        snapshot = panel.create_workspace_snapshot()
+        try:
+            self._workspace_store.save_snapshot(workspace_id, snapshot)
+        except OSError as exc:
+            QMessageBox.warning(
+                self,
+                "Save ECU",
+                f"Cannot save ECU workspace state:\n{exc}",
+            )
+            return
+
+        workspace.set_coding_file(snapshot.coding_file)
+        self.workspace_sidebar.set_workspace_dirty(workspace_id, False)
         self._save_workspace_state()
 
     def fn_set_crc_value(self, crc_value):

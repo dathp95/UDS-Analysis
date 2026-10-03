@@ -11,6 +11,10 @@ from core.coding_value_workspace_store import (
     CodingWorkspaceState,
     CodingWorkspaceStore,
 )
+from core.coding_value_workspace_snapshot import (
+    CodingWorkspaceRowSnapshot,
+    CodingWorkspaceSnapshot,
+)
 
 
 class CodingWorkspaceStoreTests(unittest.TestCase):
@@ -210,6 +214,59 @@ class CodingWorkspaceStoreTests(unittest.TestCase):
                 str(project_root / "config" / "export_coding_files" / "mhu.json"),
             )
             self.assertEqual(store.path_for_use(""), "")
+
+    def test_workspace_snapshot_saves_loads_and_deletes_by_workspace_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            store = CodingWorkspaceStore(
+                project_root / "config" / "coding_value_workspaces.json",
+                project_root=project_root,
+                snapshot_dir=project_root / "config" / "coding_value_workspace_snapshots",
+            )
+            coding_file = project_root / "config" / "export_coding_files" / "mhu.json"
+            snapshot = CodingWorkspaceSnapshot(
+                coding_file=str(coding_file),
+                payload_input="62 F1 08 37",
+                payload_preview="62 F1 08 FF",
+                baseline_payload="62 F1 08 37",
+                parameter_filter="No-M",
+                checked=True,
+                raw_values=(
+                    CodingWorkspaceRowSnapshot("Param", "3", "0", "8", "FF"),
+                ),
+                working_log="Total No-M: 1",
+            )
+
+            store.save_snapshot("mhu-id", snapshot)
+            loaded = store.load_snapshot("mhu-id")
+
+            self.assertEqual(
+                loaded.coding_file,
+                "config/export_coding_files/mhu.json",
+            )
+            self.assertEqual(loaded.payload_preview, "62 F1 08 FF")
+            self.assertEqual(loaded.raw_values[0].raw_value, "FF")
+            self.assertEqual(
+                store.snapshot_path("mhu-id").parent.name,
+                "coding_value_workspace_snapshots",
+            )
+
+            store.delete_snapshot("mhu-id")
+
+            self.assertIsNone(store.load_snapshot("mhu-id"))
+
+    def test_invalid_snapshot_returns_none_without_breaking_store(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(
+                Path(tmpdir) / "coding_value_workspaces.json",
+                snapshot_dir=Path(tmpdir) / "snapshots",
+            )
+            path = store.snapshot_path("mhu-id")
+            path.parent.mkdir(parents=True)
+            path.write_text("{ bad json", encoding="utf-8")
+
+            self.assertIsNone(store.load_snapshot("mhu-id"))
+            self.assertEqual(path.read_text(encoding="utf-8"), "{ bad json")
 
     def test_store_module_has_no_qt_dependency(self):
         sys.modules.pop("core.coding_value_workspace_store", None)

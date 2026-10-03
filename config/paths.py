@@ -16,6 +16,7 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 Q_CURRENT_DATABASE_DIR = CONFIG_DIR / "database_qcurrent"
 Q_CURRENT_CONFIG_FILE = CONFIG_DIR / "q_current_config.json"
 CODING_VALUE_WORKSPACES_FILE = CONFIG_DIR / "coding_value_workspaces.json"
+CODING_VALUE_WORKSPACE_SNAPSHOTS_DIR = CONFIG_DIR / "coding_value_workspace_snapshots"
 EXPORT_CODING_FILES_DIR = CONFIG_DIR / "export_coding_files"
 DIAGNOSTIC_SEQUENCES_DIR = CONFIG_DIR / "diagnostic_sequences"
 

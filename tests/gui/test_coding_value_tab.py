@@ -20,6 +20,7 @@ from core.coding_value_workspace_store import (
     CodingWorkspaceState,
     CodingWorkspaceStore,
 )
+from core.coding_value_workspace_snapshot import CodingWorkspaceSnapshot
 from core.excel_styles import COLOR_HEADER, COLOR_WARNING
 from core.crc import calculate_crc8_sae_j1850
 from core.coding_value_definition import export_coding_definition_to_json
@@ -96,6 +97,26 @@ class CodingValueTabTests(unittest.TestCase):
             for workspace_id, item in tab.workspace_sidebar._item_by_id.items()
             if item._active
         ]
+
+    def load_payload_on_workspace(
+            self,
+            tab,
+            workspace_id,
+            definition_name,
+            parameter,
+            payload,
+        ):
+        tab.workspace_sidebar.select_workspace(workspace_id)
+        panel = tab._panel_by_workspace_id[workspace_id]
+        definition_path = self.create_definition_file(
+            Path(self.export_dir_handle.name) / "config" / "export_coding_files",
+            definition_name,
+            parameter,
+        )
+        self.assertTrue(panel.load_coding_definition_file(str(definition_path)))
+        panel.txt_coding_value.setPlainText(payload)
+        panel.encode_coding_payload()
+        return panel
 
     def test_coding_value_tab_displays_sidebar_and_initial_stack_panel(self):
         tab = self.create_tab()
@@ -312,6 +333,241 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIsNone(vcu_panel._coding_definition)
         self.assert_same_path(mhu_panel.cmb_coding_json.currentData(), definition_path)
         self.assertEqual(vcu_panel.cmb_coding_json.currentIndex(), -1)
+
+    def test_manual_save_restores_independent_workspace_snapshots_after_restart(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        tab.workspace_sidebar.rename_workspace(mhu_workspace.id, "MHU")
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+
+        mhu_panel = self.load_payload_on_workspace(
+            tab, mhu_workspace.id, "mhu", "MHU Byte", "AA 11"
+        )
+        tab._save_workspace_snapshot(mhu_workspace.id)
+        vcu_panel = self.load_payload_on_workspace(
+            tab, vcu_workspace.id, "vcu", "VCU Byte", "BB 22"
+        )
+        tab._save_workspace_snapshot(vcu_workspace.id)
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+
+        restored_mhu = reloaded._panel_by_workspace_id[mhu_workspace.id]
+        restored_vcu = reloaded._panel_by_workspace_id[vcu_workspace.id]
+        self.assertEqual(mhu_panel.txt_coding_value.toPlainText(), "AA 11")
+        self.assertEqual(vcu_panel.txt_coding_value.toPlainText(), "BB 22")
+        self.assertEqual(restored_mhu.txt_coding_value.toPlainText(), "AA 11")
+        self.assertEqual(restored_mhu.txt_coding_preview.toPlainText(), "AA 11")
+        self.assertEqual(restored_mhu.table.item(0, 0).text(), "MHU Byte")
+        self.assertEqual(restored_vcu.txt_coding_value.toPlainText(), "BB 22")
+        self.assertEqual(restored_vcu.txt_coding_preview.toPlainText(), "BB 22")
+        self.assertEqual(restored_vcu.table.item(0, 0).text(), "VCU Byte")
+
+    def test_unsaved_edit_does_not_survive_restart_but_stays_live_in_session(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+
+        mhu_panel = self.load_payload_on_workspace(
+            tab, mhu_workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        tab._save_workspace_snapshot(mhu_workspace.id)
+        mhu_panel.txt_coding_value.setPlainText("AB")
+        mhu_panel.refresh_coding_preview()
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        tab.workspace_sidebar.select_workspace(mhu_workspace.id)
+
+        self.assertEqual(mhu_panel.txt_coding_preview.toPlainText(), "AB")
+
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+        restored_mhu = reloaded._panel_by_workspace_id[mhu_workspace.id]
+
+        self.assertEqual(restored_mhu.txt_coding_value.toPlainText(), "AA")
+        self.assertEqual(restored_mhu.txt_coding_preview.toPlainText(), "AA")
+
+    def test_manual_save_updated_state_survives_restart(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        panel = self.load_payload_on_workspace(
+            tab, workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        tab._save_workspace_snapshot(workspace.id)
+
+        panel.txt_coding_value.setPlainText("AB")
+        panel.refresh_coding_preview()
+        tab._save_workspace_snapshot(workspace.id)
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+
+        restored_panel = reloaded._panel_by_workspace_id[workspace.id]
+        self.assertEqual(restored_panel.txt_coding_value.toPlainText(), "AB")
+        self.assertEqual(restored_panel.txt_coding_preview.toPlainText(), "AB")
+
+    def test_snapshot_restore_preserves_baseline_and_reconstructs_check_state(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        panel = self.load_payload_on_workspace(
+            tab, workspace.id, "mhu", "MHU Byte", "37"
+        )
+
+        panel.table.fn_set_raw_value_at_row(0, "FF")
+        panel.check_coding_value()
+        panel.filter_no_match_rows()
+        tab._save_workspace_snapshot(workspace.id)
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+
+        restored_panel = reloaded._panel_by_workspace_id[workspace.id]
+        self.assertEqual(restored_panel._payload_baseline_bytes, [0x37])
+        self.assertEqual(restored_panel._payload_preview_bytes, [0xFF])
+        self.assertEqual(restored_panel.table.item(0, 6).text(), "37")
+        self.assertEqual(restored_panel.table.item(0, 8).text(), "No-M")
+        self.assertEqual(restored_panel.txt_parameter_filter.text(), "No-M")
+        self.assertIn("Total No-M: 1", restored_panel.txt_working_log.toPlainText())
+
+    def test_rename_keeps_snapshot_by_workspace_id(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        self.load_payload_on_workspace(
+            tab, workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        tab._save_workspace_snapshot(workspace.id)
+
+        tab.workspace_sidebar.rename_workspace(workspace.id, "Main Head Unit")
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+
+        restored_panel = reloaded._panel_by_workspace_id[workspace.id]
+        self.assertEqual(
+            reloaded.workspace_sidebar.workspace_by_id(workspace.id).name,
+            "Main Head Unit",
+        )
+        self.assertEqual(restored_panel.txt_coding_preview.toPlainText(), "AA")
+
+    def test_delete_workspace_removes_saved_snapshot(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        first_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+        self.load_payload_on_workspace(
+            tab, vcu_workspace.id, "vcu", "VCU Byte", "BB"
+        )
+        tab._save_workspace_snapshot(vcu_workspace.id)
+        self.assertTrue(store.snapshot_path(vcu_workspace.id).exists())
+
+        tab.workspace_sidebar.select_workspace(first_workspace.id)
+        tab.workspace_sidebar.remove_workspace(vcu_workspace.id)
+
+        self.assertFalse(store.snapshot_path(vcu_workspace.id).exists())
+        reloaded = self.create_tab(store)
+        self.addCleanup(reloaded.deleteLater)
+        self.assertIsNone(reloaded.workspace_sidebar.workspace_by_id(vcu_workspace.id))
+
+    def test_corrupt_snapshot_does_not_block_other_workspace_restore(self):
+        store = self.create_workspace_store()
+        mhu = CodingEcuWorkspace("mhu-id", "MHU")
+        vcu = CodingEcuWorkspace("vcu-id", "VCU")
+        store.save(CodingWorkspaceState((mhu, vcu), "vcu-id"))
+        vcu_definition = self.create_definition_file(
+            Path(self.export_dir_handle.name) / "config" / "export_coding_files",
+            "vcu",
+            "VCU Byte",
+        )
+        store.snapshot_path("mhu-id").parent.mkdir(parents=True, exist_ok=True)
+        store.snapshot_path("mhu-id").write_text("{ bad json", encoding="utf-8")
+        store.save_snapshot(
+            "vcu-id",
+            CodingWorkspaceSnapshot(
+                coding_file=str(vcu_definition),
+                payload_input="BB",
+                payload_preview="BB",
+                baseline_payload="BB",
+                raw_values=(),
+            ),
+        )
+
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+
+        self.assertIsNone(tab._panel_by_workspace_id["mhu-id"]._coding_definition)
+        self.assertEqual(
+            tab._panel_by_workspace_id["vcu-id"].txt_coding_preview.toPlainText(),
+            "BB",
+        )
+
+    def test_save_non_active_workspace_does_not_switch_active_or_save_other_panel(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+        mhu_panel = self.load_payload_on_workspace(
+            tab, mhu_workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        vcu_panel = self.load_payload_on_workspace(
+            tab, vcu_workspace.id, "vcu", "VCU Byte", "BB"
+        )
+        tab._save_workspace_snapshot(vcu_workspace.id)
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        mhu_panel.txt_coding_value.setPlainText("CC")
+        mhu_panel.refresh_coding_preview()
+
+        tab.workspace_sidebar.workspace_save_requested.emit(mhu_workspace.id)
+
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), vcu_workspace.id)
+        self.assertEqual(vcu_panel.txt_coding_preview.toPlainText(), "BB")
+        self.assertEqual(store.load_snapshot(mhu_workspace.id).payload_preview, "CC")
+        self.assertEqual(store.load_snapshot(vcu_workspace.id).payload_preview, "BB")
+
+    def test_dirty_marker_is_runtime_and_clears_after_manual_save(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        item = tab.workspace_sidebar._item_by_id[workspace.id]
+
+        panel = self.load_payload_on_workspace(
+            tab, workspace.id, "mhu", "MHU Byte", "AA"
+        )
+        self.assertEqual(item.text(), "ECU 1 *")
+
+        tab._save_workspace_snapshot(workspace.id)
+
+        self.assertEqual(item.text(), "ECU 1")
+        panel.txt_coding_value.setPlainText("AB")
+
+        self.assertEqual(item.text(), "ECU 1 *")
 
     def test_theme_refresh_preserves_active_sidebar_visual(self):
         tab = self.create_tab()
