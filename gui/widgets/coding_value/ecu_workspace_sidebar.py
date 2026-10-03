@@ -34,7 +34,8 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         self.workspace = workspace
         self._active = False
         self._dirty = False
-        super().__init__(workspace.name, width=132, height=26, parent=parent)
+        super().__init__(workspace.name, width=132, height=26, parent=parent, )
+        self.setFixedHeight(26)
         self.setObjectName("ecuWorkspaceItem")
         self.setCursor(Qt.PointingHandCursor)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -114,14 +115,12 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
                 font-family: "Segoe UI";
                 font-size: 10pt;
                 font-weight: 600;
-                min-height: 24px;
                 padding-left: 16px;
                 padding-right: 10px;
                 text-align: left;
             }}
             """
         )
-
 
 class EcuWorkspaceSidebar(QWidget):
 
