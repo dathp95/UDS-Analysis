@@ -49,7 +49,7 @@ def _format_table_sheet(
         for cell in row:
             cell.border = THIN_BORDER
 
-    sheet.freeze_panes = "A3    "
+    sheet.freeze_panes = "A3"
 
     if sheet.max_column > 0:
         sheet.auto_filter.ref = sheet.dimensions
