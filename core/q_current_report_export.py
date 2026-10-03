@@ -51,7 +51,7 @@ def export_q_current_report(report_data: QCurrentReportData, output_file: str | 
     data_sheet.title = "Data Review"
     report_sheet = workbook.create_sheet("Report")
 
-    workbook.properties.creator = "V-CODE EEIV by DAT TRAN"
+    workbook.properties.creator = "V-CODE EEIV - author: DAT TRAN"
     workbook.properties.title = "Q Current Analysis Report"
     workbook.properties.subject = "Vehicle Sleep Current Analysis"
 
