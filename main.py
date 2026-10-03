@@ -7,6 +7,7 @@ from core.services.startup_service import ensure_directories
 from PySide6.QtWidgets import QApplication
 
 from gui.windows.main_window import MainWindow
+from gui.themes.icon_manager import IconManager
 from license.manager import LicenseManager
 
 
@@ -33,7 +34,13 @@ def fn_window_title(license_status) -> str:
 
 def main() -> int:
     ensure_directories()
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "AES.EEIV.VCODE"
+        )
     app = QApplication(sys.argv)
+    app.setWindowIcon(IconManager.app())
 
     license_status = LicenseManager.get_status()
 
