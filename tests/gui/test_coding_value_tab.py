@@ -118,6 +118,28 @@ class CodingValueTabTests(unittest.TestCase):
         panel.encode_coding_payload()
         return panel
 
+    def add_panel(self, tab, name: str):
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=(name, True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        return tab.workspace_sidebar.active_workspace()
+
+    def create_named_panels(self, tab, names):
+        workspaces = {tab.workspace_sidebar.workspaces()[0].name: tab.workspace_sidebar.workspaces()[0]}
+        for name in names:
+            workspace = self.add_panel(tab, name)
+            workspaces[name] = workspace
+        return workspaces
+
+    def assert_panel_selected(self, tab, workspace):
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), workspace.id)
+        self.assertIs(
+            tab.workspace_stack.currentWidget(),
+            tab._panel_by_workspace_id[workspace.id],
+        )
+
     def test_coding_value_tab_displays_sidebar_and_initial_stack_panel(self):
         tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
@@ -333,6 +355,106 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIsNone(vcu_panel._coding_definition)
         self.assert_same_path(mhu_panel.cmb_coding_json.currentData(), definition_path)
         self.assertEqual(vcu_panel.cmb_coding_json.currentIndex(), -1)
+
+    def test_six_panel_click_sequence_keeps_sidebar_and_stack_in_sync(self):
+        tab = self.create_tab()
+        self.addCleanup(tab.deleteLater)
+        workspaces = self.create_named_panels(tab, ["MHU", "BCM", "VCU", "MCU", "123"])
+
+        for name in ("Panel default", "MHU", "BCM", "VCU", "MCU", "123", "MHU", "123", "BCM"):
+            workspace = workspaces[name]
+            tab.workspace_sidebar._item_by_id[workspace.id].click()
+            self.assert_panel_selected(tab, workspace)
+
+    def test_saved_snapshot_navigation_restores_each_panel_without_cross_contamination(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspaces = self.create_named_panels(tab, ["MHU", "BCM", "VCU", "MCU", "123"])
+        expected_payloads = {
+            name: f"{index:02X}"
+            for index, name in enumerate(workspaces, start=1)
+        }
+        for name, workspace in workspaces.items():
+            panel = tab._panel_by_workspace_id[workspace.id]
+            panel.txt_coding_value.setPlainText(expected_payloads[name])
+            panel.set_payload_preview(expected_payloads[name])
+            tab._save_workspace_snapshot(workspace.id)
+            panel.txt_coding_value.setPlainText("FF")
+            panel.set_payload_preview("FF")
+
+        for name in ("Panel default", "MHU", "BCM", "VCU", "MCU", "123", "MHU", "123", "BCM"):
+            workspace = workspaces[name]
+            tab.workspace_sidebar._item_by_id[workspace.id].click()
+            self.assert_panel_selected(tab, workspace)
+            panel = tab._panel_by_workspace_id[workspace.id]
+            self.assertEqual(panel.txt_coding_value.toPlainText(), expected_payloads[name])
+            self.assertEqual(panel.txt_coding_preview.toPlainText(), expected_payloads[name])
+
+    def test_mixed_saved_and_never_saved_panels_all_remain_selectable(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspaces = self.create_named_panels(tab, ["MHU", "BCM", "VCU", "123"])
+        saved_payloads = {
+            "MHU": "AA",
+            "VCU": "CC",
+        }
+        never_saved_payloads = {
+            "BCM": "BB",
+            "123": "DD",
+        }
+        for name, payload in {**saved_payloads, **never_saved_payloads}.items():
+            panel = tab._panel_by_workspace_id[workspaces[name].id]
+            panel.txt_coding_value.setPlainText(payload)
+            panel.set_payload_preview(payload)
+            if name in saved_payloads:
+                tab._save_workspace_snapshot(workspaces[name].id)
+
+        for name in ("MHU", "BCM", "VCU", "123", "BCM", "MHU", "123"):
+            workspace = workspaces[name]
+            tab.workspace_sidebar._item_by_id[workspace.id].click()
+            self.assert_panel_selected(tab, workspace)
+            expected = saved_payloads.get(name, never_saved_payloads.get(name))
+            self.assertEqual(
+                tab._panel_by_workspace_id[workspace.id].txt_coding_value.toPlainText(),
+                expected,
+            )
+
+    def test_restore_failure_does_not_block_requested_panel_selection(self):
+        tab = self.create_tab()
+        self.addCleanup(tab.deleteLater)
+        workspaces = self.create_named_panels(tab, ["MHU", "BCM", "123"])
+        target = workspaces["MHU"]
+        tab.workspace_sidebar._item_by_id[workspaces["123"].id].click()
+
+        with patch.object(
+            tab,
+            "_restore_saved_workspace_snapshot",
+            side_effect=RuntimeError("restore failed"),
+        ):
+            tab.workspace_sidebar._item_by_id[target.id].click()
+
+        self.assert_panel_selected(tab, target)
+
+    def test_redundant_active_click_does_not_restore_saved_snapshot(self):
+        store = self.create_workspace_store()
+        tab = self.create_tab(store)
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.active_workspace()
+        panel = tab._panel_by_workspace_id[workspace.id]
+        panel.txt_coding_value.setPlainText("AA")
+        panel.set_payload_preview("AA")
+        tab._save_workspace_snapshot(workspace.id)
+        panel.txt_coding_value.setPlainText("LIVE")
+        panel.set_payload_preview("LIVE")
+
+        with patch.object(tab, "_restore_saved_workspace_snapshot") as restore_snapshot:
+            tab.workspace_sidebar._item_by_id[workspace.id].click()
+
+        restore_snapshot.assert_not_called()
+        self.assert_panel_selected(tab, workspace)
+        self.assertEqual(panel.txt_coding_value.toPlainText(), "LIVE")
 
     def test_manual_save_restores_independent_workspace_snapshots_after_restart(self):
         store = self.create_workspace_store()
@@ -1185,7 +1307,9 @@ class CodingValueTabTests(unittest.TestCase):
         self.addCleanup(panel.deleteLater)
 
         self.assertEqual(panel.file_action_row.width(), panel.filter_action_row.width())
-        self.assertEqual(panel.filter_action_row.width(), panel.table_action_panel.width())
+        self.assertEqual(panel.filter_action_row.width(), panel.table_side_panel.width())
+        self.assertEqual(panel.table_side_panel.width(), panel.table_action_panel.width())
+        self.assertEqual(panel.txt_working_log.width(), panel.table_side_panel.width())
         self.assertEqual(panel.btn_import.width(), panel.btn_default.width())
         self.assertEqual(panel.btn_filter_no_m.width(), panel.btn_refresh_filter.width())
         for button in (
@@ -1784,9 +1908,9 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertIsInstance(payload_layout, QVBoxLayout)
         self.assertIsInstance(input_layout, QHBoxLayout)
         self.assertIsInstance(preview_layout, QHBoxLayout)
-        self.assertEqual(input_layout.indexOf(panel.btn_encode), 0)
+        self.assertEqual(input_layout.indexOf(panel.btn_clear), 0)
         self.assertEqual(input_layout.indexOf(panel.btn_copy), 1)
-        self.assertEqual(input_layout.indexOf(panel.btn_clear), 2)
+        self.assertEqual(input_layout.indexOf(panel.btn_encode), 2)
         self.assertEqual(input_layout.indexOf(panel.txt_coding_value), 3)
         self.assertEqual(preview_layout.indexOf(panel.btn_preview_refresh), 0)
         self.assertEqual(preview_layout.indexOf(panel.btn_copy_preview), 1)
@@ -2664,6 +2788,10 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(action_layout.indexOf(panel.btn_copy_data_payload), 1)
         self.assertEqual(action_layout.indexOf(panel.btn_export), 2)
         self.assertEqual(action_layout.indexOf(panel.btn_table_clear), 3)
+        self.assertEqual(panel.filter_action_row.width(), 220)
+        self.assertEqual(panel.table_side_panel.width(), 220)
+        self.assertEqual(panel.table_action_panel.width(), 220)
+        self.assertEqual(panel.txt_working_log.width(), 220)
         self.assertTrue(panel.txt_working_log.isReadOnly())
         self.assertIn(
             "QScrollBar:vertical",

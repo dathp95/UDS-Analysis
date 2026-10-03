@@ -116,9 +116,18 @@ class CodingValueTab(QWidget):
         if panel is None:
             return
 
-        if not self._restoring_workspaces:
-            self._restore_saved_workspace_snapshot(workspace_id)
+        if (
+                self.workspace_sidebar.active_workspace_id() == workspace_id
+                and self.workspace_stack.currentWidget() is panel
+            ):
+            return
+
         self.workspace_stack.setCurrentWidget(panel)
+        if not self._restoring_workspaces:
+            try:
+                self._restore_saved_workspace_snapshot(workspace_id)
+            except Exception:
+                pass
         self._save_workspace_state()
 
     def _restore_workspace_state(self):

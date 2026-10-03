@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QPushButton
 
 from core.coding_value_workspace import CodingEcuWorkspace
 from gui.themes.theme_manager import ThemeManager
@@ -27,16 +27,25 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         self.assertEqual(sidebar.lbl_title.text(), "PANEL")
         self.assertEqual(sidebar.btn_add.text(), "+ Add Panel")
         self.assertEqual(sidebar.btn_save.text(), "Save")
+        self.assertEqual(sidebar.width(), 200)
         self.assertFalse(sidebar.btn_save.isEnabled())
         root_layout = sidebar.layout()
         self.assertLess(
             root_layout.indexOf(sidebar.scroll_area),
-            root_layout.indexOf(sidebar.btn_add),
+            root_layout.indexOf(sidebar.bottom_action_row),
         )
-        self.assertLess(
-            root_layout.indexOf(sidebar.btn_add),
-            root_layout.indexOf(sidebar.btn_save),
+        self.assertEqual(root_layout.indexOf(sidebar.btn_add), -1)
+        self.assertEqual(root_layout.indexOf(sidebar.btn_save), -1)
+        bottom_layout = sidebar.bottom_action_row.layout()
+        self.assertIsInstance(bottom_layout, QHBoxLayout)
+        self.assertEqual(bottom_layout.indexOf(sidebar.btn_add), 0)
+        self.assertEqual(bottom_layout.indexOf(sidebar.btn_save), 1)
+        self.assertEqual(
+            bottom_layout.stretch(bottom_layout.indexOf(sidebar.btn_add)),
+            bottom_layout.stretch(bottom_layout.indexOf(sidebar.btn_save)),
         )
+        self.assertEqual(sidebar.btn_add.minimumHeight(), sidebar.btn_save.minimumHeight())
+        self.assertEqual(sidebar.btn_add.minimumWidth(), sidebar.btn_save.minimumWidth())
         self.assertLessEqual(sidebar.list_layout.spacing(), 4)
 
     def test_add_existing_workspace_preserves_id_and_display_name(self):
@@ -202,6 +211,10 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
         actions = [action.text() for action in menu.actions()]
 
         self.assertEqual(actions, ["+ Add Panel", "", "Save", "", "Rename", "Delete"])
+        self.assertEqual(
+            [action.data() for action in menu.actions()],
+            ["add_panel", None, "save", None, "rename", "delete"],
+        )
         menu.deleteLater()
 
     def test_workspace_context_menu_add_panel_uses_sidebar_add_workflow(self):
@@ -218,9 +231,21 @@ class EcuWorkspaceSidebarTests(unittest.TestCase):
             "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
             return_value=("", False),
         ):
-            menu.actions()[0].trigger()
+            item._handle_context_action(menu.actions()[0])
 
         self.assertEqual(called, [True])
+        menu.deleteLater()
+
+    def test_empty_space_context_menu_exposes_only_add_panel(self):
+        sidebar = EcuWorkspaceSidebar()
+        self.addCleanup(sidebar.deleteLater)
+        sidebar.add_workspace(CodingEcuWorkspace.create("MHU"))
+
+        menu = sidebar._create_empty_context_menu()
+        actions = [action.text() for action in menu.actions()]
+
+        self.assertEqual(actions, ["+ Add Panel"])
+        self.assertEqual([action.data() for action in menu.actions()], ["add_panel"])
         menu.deleteLater()
 
     def test_workspace_save_request_emits_clicked_workspace_id_without_selecting(self):

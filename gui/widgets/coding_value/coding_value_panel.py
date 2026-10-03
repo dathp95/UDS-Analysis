@@ -176,9 +176,9 @@ class CodingValuePanel(QGroupBox):
         input_layout = QHBoxLayout(self.payload_input_row)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(8)
-        input_layout.addWidget(self.btn_encode, 0, Qt.AlignTop)
-        input_layout.addWidget(self.btn_copy, 0, Qt.AlignTop)
         input_layout.addWidget(self.btn_clear, 0, Qt.AlignTop)
+        input_layout.addWidget(self.btn_copy, 0, Qt.AlignTop)
+        input_layout.addWidget(self.btn_encode, 0, Qt.AlignTop)
         input_layout.addWidget(self.txt_coding_value, 1)
 
         self.payload_preview_row = QWidget()
@@ -266,12 +266,13 @@ class CodingValuePanel(QGroupBox):
             "Working log"
         )
         self.txt_working_log.setReadOnly(True)
-        self.txt_working_log.setMinimumWidth(220)
+        self.txt_working_log.setFixedWidth(ACTION_PANEL_WIDTH)
         self.txt_working_log.setVerticalScrollBarPolicy(
             Qt.ScrollBarAsNeeded
         )
 
         self.table_side_panel = QWidget()
+        self.table_side_panel.setFixedWidth(ACTION_PANEL_WIDTH)
         side_layout = QVBoxLayout(self.table_side_panel)
         side_layout.setContentsMargins(0, 0, 0, 0)
         side_layout.setSpacing(8)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QHBoxLayout,
     QInputDialog,
     QLabel,
     QMenu,
@@ -24,7 +25,7 @@ from gui.widgets.controls.secondary_button import SecondaryButton
 class EcuWorkspaceItemWidget(QuickAccessButton):
 
     add_panel_requested = Signal()
-    clicked = Signal(str)
+    workspace_clicked = Signal(str)
     save_requested = Signal(str)
     delete_requested = Signal(str)
     rename_requested = Signal(str)
@@ -38,7 +39,9 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
         self.setCursor(Qt.PointingHandCursor)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
-        super().clicked.connect(lambda checked=False: self.clicked.emit(self.workspace.id))
+        super().clicked.connect(
+            lambda checked=False: self.workspace_clicked.emit(self.workspace.id)
+        )
         self.setToolTip(self.workspace.name)
 
     def set_active(self, active: bool):
@@ -62,30 +65,38 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
 
     def _show_context_menu(self, position):
         menu = self._create_context_menu()
-        menu.exec(self.mapToGlobal(position))
+        action = menu.exec(self.mapToGlobal(position))
+        self._handle_context_action(action)
+        menu.deleteLater()
 
     def _create_context_menu(self):
         menu = QMenu(self)
         fn_apply_menu_style(menu)
         action_add = menu.addAction("+ Add Panel")
-        action_add.triggered.connect(
-            lambda _checked=False: self.add_panel_requested.emit()
-        )
+        action_add.setData("add_panel")
         menu.addSeparator()
         action_save = menu.addAction("Save")
-        action_save.triggered.connect(
-            lambda _checked=False: self.save_requested.emit(self.workspace.id)
-        )
+        action_save.setData("save")
         menu.addSeparator()
         action_rename = menu.addAction("Rename")
-        action_rename.triggered.connect(
-            lambda _checked=False: self.rename_requested.emit(self.workspace.id)
-        )
+        action_rename.setData("rename")
         action_delete = menu.addAction("Delete")
-        action_delete.triggered.connect(
-            lambda _checked=False: self.delete_requested.emit(self.workspace.id)
-        )
+        action_delete.setData("delete")
         return menu
+
+    def _handle_context_action(self, action):
+        if action is None:
+            return
+
+        action_id = action.data()
+        if action_id == "add_panel":
+            self.add_panel_requested.emit()
+        elif action_id == "save":
+            self.save_requested.emit(self.workspace.id)
+        elif action_id == "rename":
+            self.rename_requested.emit(self.workspace.id)
+        elif action_id == "delete":
+            self.delete_requested.emit(self.workspace.id)
 
     def fn_refresh_theme(self):
         super().fn_refresh_theme()
@@ -132,7 +143,7 @@ class EcuWorkspaceSidebar(QWidget):
 
     def _setup_ui(self):
         self.setObjectName("ecuWorkspaceSidebar")
-        self.setFixedWidth(170)
+        self.setFixedWidth(200)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -140,8 +151,8 @@ class EcuWorkspaceSidebar(QWidget):
 
         self.lbl_title = QLabel("PANEL")
         self.lbl_title.setObjectName("ecuWorkspaceTitle")
-        self.btn_add = SecondaryButton("+ Add Panel", width=132, height=28)
-        self.btn_save = PrimaryButton("Save", width=132, height=28)
+        self.btn_add = SecondaryButton("+ Add Panel", width=88, height=28)
+        self.btn_save = PrimaryButton("Save", width=88, height=28)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -150,20 +161,30 @@ class EcuWorkspaceSidebar(QWidget):
         self.scroll_area.setFrameShape(QFrame.NoFrame)
 
         self.list_container = QWidget()
+        self.list_container.setContextMenuPolicy(Qt.CustomContextMenu)
         self.list_layout = QVBoxLayout(self.list_container)
         self.list_layout.setContentsMargins(6, 6, 6, 6)
         self.list_layout.setSpacing(4)
         self.list_layout.addStretch(1)
         self.scroll_area.setWidget(self.list_container)
 
+        self.bottom_action_row = QWidget()
+        bottom_action_layout = QHBoxLayout(self.bottom_action_row)
+        bottom_action_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_action_layout.setSpacing(8)
+        bottom_action_layout.addWidget(self.btn_add, 1)
+        bottom_action_layout.addWidget(self.btn_save, 1)
+
         layout.addWidget(self.lbl_title)
         layout.addWidget(self.scroll_area, 1)
-        layout.addWidget(self.btn_add)
-        layout.addWidget(self.btn_save)
+        layout.addWidget(self.bottom_action_row)
 
     def _connect_signals(self):
         self.btn_add.clicked.connect(self._add_workspace_from_dialog)
         self.btn_save.clicked.connect(self._save_active_workspace)
+        self.list_container.customContextMenuRequested.connect(
+            self._show_empty_context_menu
+        )
 
     def workspace_count(self) -> int:
         return len(self._workspaces)
@@ -198,7 +219,7 @@ class EcuWorkspaceSidebar(QWidget):
         self._workspaces.append(workspace)
         item = EcuWorkspaceItemWidget(workspace)
         item.add_panel_requested.connect(self._add_workspace_from_dialog)
-        item.clicked.connect(self.select_workspace)
+        item.workspace_clicked.connect(self.select_workspace)
         item.save_requested.connect(self.workspace_save_requested)
         item.delete_requested.connect(self.remove_workspace)
         item.rename_requested.connect(self._rename_workspace_from_dialog)
@@ -334,6 +355,20 @@ class EcuWorkspaceSidebar(QWidget):
         self.add_workspace(workspace, select=False)
         self.workspace_added.emit(workspace)
         self.select_workspace(workspace.id)
+
+    def _show_empty_context_menu(self, position):
+        menu = self._create_empty_context_menu()
+        action = menu.exec(self.list_container.mapToGlobal(position))
+        if action is not None and action.data() == "add_panel":
+            self._add_workspace_from_dialog()
+        menu.deleteLater()
+
+    def _create_empty_context_menu(self):
+        menu = QMenu(self.list_container)
+        fn_apply_menu_style(menu)
+        action_add = menu.addAction("+ Add Panel")
+        action_add.setData("add_panel")
+        return menu
 
     def _save_active_workspace(self):
         active_workspace_id = self.active_workspace_id()
