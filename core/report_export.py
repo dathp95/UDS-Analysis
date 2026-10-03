@@ -52,7 +52,9 @@ def _format_table_sheet(
     sheet.freeze_panes = "A3"
 
     if sheet.max_column > 0:
-        sheet.auto_filter.ref = sheet.dimensions
+        sheet.auto_filter.ref = (
+            f"A2:{sheet.cell(row=sheet.max_row, column=sheet.max_column).coordinate}"
+        )
 
 def _export_summary_sheet(
         summary,

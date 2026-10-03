@@ -148,7 +148,9 @@ def _format_coding_export_sheet(sheet) -> None:
     sheet.freeze_panes = "A3"
 
     if sheet.max_column > 0:
-        sheet.auto_filter.ref = sheet.dimensions
+        sheet.auto_filter.ref = (
+            f"A2:{sheet.cell(row=sheet.max_row, column=sheet.max_column).coordinate}"
+        )
 
 
 def _apply_no_match_export_fill(row_cells) -> None:
