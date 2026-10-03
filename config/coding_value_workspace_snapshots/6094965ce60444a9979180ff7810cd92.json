@@ -1,0 +1,159 @@
+{
+    "version": 1,
+    "coding_file": "config/export_coding_files/VF5NP_BCM_F108.json",
+    "payload_input": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "payload_preview": "00 00 00 00 00 00 00 00 00 00 00 00 00 01 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 61",
+    "baseline_payload": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+    "parameter_filter": "",
+    "checked": true,
+    "raw_values": [
+        {
+            "parameter": "Format Byte",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "16",
+            "raw_value": "00 00"
+        },
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "5",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "00 00 00 00 00 00 00"
+        },
+        {
+            "parameter": "Model Year",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Vehicle Name",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "01"
+        },
+        {
+            "parameter": "Vehicle type",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "10"
+        },
+        {
+            "parameter": "Market",
+            "byte_pos": "15",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Sale area - (Country code)",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Reserved",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Reserved",
+            "byte_pos": "18",
+            "bit_pos": "4",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Evaporator Temperature Sensor",
+            "byte_pos": "19",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Ambient temp sensor",
+            "byte_pos": "19",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "TPMS",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Position Lamp",
+            "byte_pos": "20",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Reserved",
+            "byte_pos": "21",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Daytime running lamp (DRL)",
+            "byte_pos": "22",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "Reserved",
+            "byte_pos": "22",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "ORVM: power adjust",
+            "byte_pos": "23",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "ORVM: power folding",
+            "byte_pos": "23",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "ORVM: LED turning signal",
+            "byte_pos": "24",
+            "bit_pos": "0",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "ORVM: heated",
+            "byte_pos": "24",
+            "bit_pos": "4",
+            "bit_length": "4",
+            "raw_value": "00"
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "61",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "61"
+        }
+    ],
+    "working_log": "Total No-M: 3\n\nChanges: Decode value before -> after\n\nByte 13: Unsupported -> VF3NP\nByte 14: Unsupported -> STANDARD\nByte 61: 00 -> 61\n\nCRC: 00 -> 61"
+}
