@@ -1,271 +1,201 @@
-V-CODE v2.0.1 - EEIV Diagnostic Tool
+V-CODE v3.0.6
+EEIV Diagnostic Tool
 AES EEIV by DAT TRAN
 
 ============================================================
-1. Introduction
+1. INTRODUCTION
 ============================================================
-V-CODE is a Windows desktop application for vehicle diagnostic log analysis, ECU configuration management, coding value review, CRC calculation, and data conversion.
 
-Main tabs:
-- Log Analyzer: Load diagnostic logs, analyze UDS/CAN messages, filter data, copy results, and export reports.
-- Coding value: Import coding definitions from Excel/JSON, encode payloads, edit raw/decoded values, compare before/after data, transfer CRC values, and export reports.
-- CRC_Converter: Calculate CRC8_SAE_J1850, convert data between common formats, and generate QR codes.
-- Vehicle Manager: Manage vehicle packages, ECU lists, request/response IDs, resources, shortcuts, and import/export ECU data.
-- License & Support: Display support information, QR support image, and contact details.
+V-CODE is an automotive engineering tool for diagnostic log,
+Coding Value, and vehicle Sleep Current analysis.
 
-============================================================
-2. System Requirements
-============================================================
-Release package:
-- Windows 10/11 x64.
-- No Python installation is required.
-- Keep all runtime folders in the extracted release directory.
-
-Source code:
-- Python 3.x.
-- Dependencies listed in requirements.txt.
-- Valid license files in the license/ directory.
-
-============================================================
-3. Running the Release Version
-============================================================
-1. Extract the full ZIP/release package.
-2. Do not move the EXE file out of the extracted folder.
-3. Make sure these folders stay beside the EXE:
-   - config
-   - license
-   - shortcuts
-   - output
-4. Run the application EXE.
-5. If the license is missing, invalid, or expired, the app will start in Limited Mode.
-
-============================================================
-4. Running from Source Code
-============================================================
-1. Create and activate a virtual environment:
-
-   python -m venv .venv
-   .venv\Scripts\activate
-
-2. Install dependencies:
-
-   pip install -r requirements.txt
-
-3. Run the application:
-
-   python main.py
-
-Note: The application validates the license at startup. Required license files must be available in the license/ folder.
-
-============================================================
-5. Important Directory Structure
-============================================================
-config/
-- vehicles/: Vehicle packages and ECU configuration data.
-- quick_filters.json: Quick filter configuration for Log Analyzer.
-- display_names.json: Display name and display rule mapping.
-- uds_services.json, uds_user.json: UDS service definitions and user-defined service rules.
-- export_coding_files/: JSON coding definition files exported from Excel for reuse.
-- Coding/: Default folder for Excel coding files.
-
-license/
-- License files, public key, and license validation resources.
-
-shortcuts/
-- shortcuts.json: Keyboard shortcut configuration. Shortcuts are active only in the Log Analyzer tab.
-
-output/
-- Report_LogAnalyzer/: Exported reports from Log Analyzer.
-- Report_CodingValue/: Exported reports from Coding value.
-
-report/
-- Legacy report folder. Current versions export reports under output/.
-
-gui/resources/images/
-- Runtime images and icons, including support.qr.jpg for the License & Support tab.
-
-============================================================
-6. Log Analyzer
-============================================================
 Main features:
-- Select vehicle package and log file.
-- Analyze CAN/UDS diagnostic logs.
-- Search/filter messages by keyword or key data.
-- Use Quick Filter presets.
-- Import/export filters.
-- Copy analyzed results.
-- Export reports to output/Report_LogAnalyzer/<date>/.
+- CAN/UDS diagnostic log analysis.
+- ECU Request/Response search and filtering.
+- Coding Value analysis and comparison.
+- CRC calculation and data conversion.
+- Q Current / Sleep Current analysis.
+- Vehicle and ECU management.
+- Excel report generation.
 
-Notes:
-- Select a valid vehicle and log file before analyzing.
-- Switching Quick Filter clears previous table selections.
-- Keyboard shortcuts are active only while the Log Analyzer tab is active.
 
 ============================================================
-7. Coding value
+2. LOG ANALYZER
 ============================================================
-Main features:
-- Browse Excel coding files from config/Coding.
-- Import Excel coding definitions into JSON files under config/export_coding_files/.
-- Select coding JSON from the dropdown and load table data without re-importing Excel.
-- Read only Excel columns whose headers start with $, for example:
-  $Parameter
-  $BytePos (from 0)
-  $BitPos
-  $BitLength
-  $MethodType
-- Encode payload data into Raw value cells based on Byte Pos, Bit Pos, and Bit Length.
-- Edit Raw value or Decoded Value (Editable), with synchronized decoded/raw display.
-- Support bit-field decoding, for example one byte can contain multiple 4-bit values.
-- Preview the current payload and highlight bytes changed by table edits.
-- CHECK to create comparison columns:
-  Raw value (before)
-  Decoded value (before)
-  Result
-- Result status uses MATCH or No-M.
-- Working log shows Total No-M, changed bytes, before/after decoded values, and CRC change.
-- COPY concatenates Raw value cells into a payload string formatted as XX XX XX.
-- EXPORT opens a save dialog and exports the visible table to Excel under output/Report_CodingValue/<date>/.
-- No-M rows are highlighted with warning formatting in exported Excel reports.
-- Parameter filter supports searching Parameter and Result values.
-- No-M filter and Refresh filter buttons are available above the table.
-- CRC values can be received from the CRC_Converter tab through Transfer CRC.
 
-MethodType format:
-- Both = and : delimiters are accepted.
-- Examples:
-  0x0=Unsupported
-  0x1: Brahminy White
-  0x2: De Sat Silver
+Used to analyze CAN/UDS diagnostic logs.
+
+Features:
+- Read ASC/BLF log files.
+- Select Vehicle and Log Channel.
+- Analyze UDS Request/Response transactions.
+- Identify ECU from Request/Response IDs.
+- Display Response Time and transaction status.
+- Search analyzed data.
+- Create and use Quick Filters.
+- Copy Request / Response / Transaction.
+- Export Excel reports.
+
 
 ============================================================
-8. CRC_Converter
+3. CODING VALUE
 ============================================================
-CRC8_SAE_J1850:
-- Calculate CRC from HEX byte input.
-- Accepts spaces and newlines.
-- Accepts upper/lowercase HEX.
-- Invalid input is rejected without crashing the app.
-- COPY CRC copies the calculated CRC value.
-- Transfer CRC sends the calculated CRC to the CRC row in Coding value.
-- COPY CRC and Transfer CRC are disabled while the CRC output is empty.
 
-CRC parameters:
-- poly = 0x1D
-- init = 0xFF
-- refin = False
-- refout = False
-- xorout = 0xFF
+Used to read, edit, and verify ECU Coding Values.
+
+Features:
+- Multiple independent Coding Panels.
+- Load Coding Definitions.
+- Decode Raw Values into readable values.
+- Edit Raw Value or Decoded Value.
+- Preview payload.
+- Highlight changed data.
+- Compare Before / After values.
+- Display MATCH / No-M results.
+- Search and filter Parameters.
+- Receive CRC from CRC_Converter.
+- Copy payload.
+- Export Excel reports.
+
+
+============================================================
+4. CRC_CONVERTER
+============================================================
+
+Provides quick data processing tools.
+
+CRC:
+- Calculate CRC8_SAE_J1850.
+- Copy CRC.
+- Transfer CRC to Coding Value.
 
 Converter:
-- Convert data between:
-  Hexadecimal
-  Decimal
-  ASCII
-  Binary
-  TXT
-  Octa
-- From and To formats must be different.
-- Supported examples:
-  HEX to DEC:   41 42 43 -> 65 66 67
-  HEX to ASCII: 41 42 43 -> ABC
-  DEC to HEX:   65 66 67 -> 41 42 43
-  ASCII to HEX: ABC -> 41 42 43
+- HEX
+- Decimal
+- ASCII
+- Binary
+- TXT
+- Octa
 
-QR Code Generator:
-- Generate a QR code from text input.
-- Preview the QR image in the tab.
-- Copy QR image to clipboard.
-- Clear QR input and preview.
+QR Code:
+- Generate QR Code from text.
+- Preview and Copy QR Code.
+
 
 ============================================================
-9. Vehicle Manager
+5. Q CURRENT
 ============================================================
-Main features:
-- Create/delete vehicle packages.
-- Add/delete/edit ECUs.
-- Import ECU list.
-- Export selected vehicle ECU list.
-- Import Display Names JSON.
+
+Used to analyze vehicle Sleep Current.
+
+Features:
+- Import CSV/XLSX data.
+- Save and reload imported datasets.
+- Configure Standard Current.
+- Configure Wake Up Limit.
+- Configure Wake Duration.
+- Select the analysis time range.
+- Configure Sampling Duration.
+
+Current Chart:
+- Zoom and Scroll.
+- Fit All.
+- Pin.
+- Cursor A/B.
+- Delta Time / Delta Current measurement.
+- Capture.
+- Invert Y Axis.
+- Sleep Limit display.
+- Wake-up Event highlighting.
+
+Analysis results:
+- PASSED / FAILED.
+- Average Sleep Current.
+- Minimum Current.
+- Maximum Current.
+- Wake-up Events.
+- Start / End Time.
+- Duration.
+- Total Samples.
+- Sample Interval.
+
+Excel reports can include the source data, analysis results,
+and Current Chart.
+
+
+============================================================
+6. VEHICLE MANAGER
+============================================================
+
+Used to manage Vehicle and ECU configurations.
+
+Features:
+- Create / Delete Vehicle.
+- Add / Delete ECU.
+- Edit ECU information.
+- Manage Request ID / Response ID.
+- Import ECU List.
+- Export Vehicle.
+- Import Display Names.
 - Import Rules Display Names.
-- Configure keyboard shortcuts.
+- Configure Keyboard Shortcuts.
 
-Notes:
-- Click Save after editing vehicle/ECU data.
-- Renaming an ECU saves the new name while preserving unchanged request/response IDs.
-- Duplicate request/response IDs are checked only when those IDs are actually changed.
 
 ============================================================
-10. License & Support
+7. LICENSE & SUPPORT
 ============================================================
-The License & Support tab displays:
-- Development support message.
-- Support QR image.
-- Contact email:
-  tranducdat.eng@gmail.com | tranducdatks95@gmail.com
-- Phone:
-  0329000529
 
-============================================================
-11. Build Release
-============================================================
-Install runtime dependencies from requirements.txt and build tooling from
-requirements-build.txt before running the Windows release script.
+V-CODE uses a license system to manage feature access.
 
-release.bat builds the Windows release with Nuitka standalone mode and then
-build_release.py prepares the final release output under:
+Valid license:
+- Licensed features operate normally.
 
-dist/EEIV Diagnostic/
+Invalid or expired license:
+- V-CODE starts in Limited Mode.
 
-Copied/created release items include:
-- V-CODE.exe and Nuitka standalone runtime files
-- config
-- license
-- shortcuts
-- output
-- output/Report_LogAnalyzer
-- output/Report_CodingValue
-- output/Report_QCurrent
-- README.txt
+Support:
 
-The release preparation validates that no ZIP/RAR/7Z archive files are present
-in the final directory. release_pyinstaller.bat preserves the previous
-PyInstaller workflow as a temporary rollback path.
+Email:
+tranducdat.eng@gmail.com
+tranducdatks95@gmail.com
+
+Phone:
+0329000529
+
 
 ============================================================
-12. Troubleshooting
+8. REPORTS
 ============================================================
-Limited Mode
-- The app can still open without a valid license.
-- CRC_Converter and License & Support remain available.
-- Check that the license/ folder exists.
-- Check that the license file and public key are present.
-- Check that the license is still valid.
 
-Cannot Find Exported Reports
-- Check output/Report_LogAnalyzer or output/Report_CodingValue.
-- If an Excel report file is open, close it and export again.
+Reports are stored in:
 
-Failed to Load Coding JSON
-- Check the selected JSON file in config/export_coding_files/.
-- If the JSON is invalid, import it again from the original Excel coding file.
+output/Report_LogAnalyzer/
 
-Coding Table Is Empty After Import
-- Confirm that the Excel sheet contains supported $ columns.
-- Confirm that Byte Pos, Bit Pos, Bit Length, Parameter, and MethodType columns are present.
+output/Report_CodingValue/
 
-CRC Transfer Does Nothing
-- Calculate CRC first.
-- Transfer CRC is disabled when CRC output is empty.
-- Ensure the Coding value table has a CRC parameter row loaded.
+output/Report_QCurrent/
 
-Support QR Code Is Not Displayed
-- Check gui/resources/images/support.qr.jpg.
-- If missing, the app may fall back to support_qr.jpg.
+If a report cannot be exported:
+- Check whether the existing Excel file is open.
+- Close the Excel file and try exporting again.
+
 
 ============================================================
-13. Developer / Contact
+9. VERSION INFORMATION
 ============================================================
-Name: DAT TRAN - AES Company
-Email: tranducdat.eng@gmail.com | tranducdatks95@gmail.com
-Phone: 0329000529
+
+Application:
+V-CODE v3.0.6
+
+Product:
+EEIV Diagnostic Tool
+
+Platform:
+Windows 10/11 x64
+
+Developer:
+DAT TRAN - AES EEIV
+
+============================================================
+END
+============================================================
