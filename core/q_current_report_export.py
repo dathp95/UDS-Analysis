@@ -51,7 +51,7 @@ def export_q_current_report(report_data: QCurrentReportData, output_file: str | 
     data_sheet.title = "Data Review"
     report_sheet = workbook.create_sheet("Report")
 
-    workbook.properties.creator = "V-CODE EEIV - author: DAT TRAN"
+    workbook.properties.creator = "V-CODE EEIV Diagnostic"
     workbook.properties.title = "Q Current Analysis Report"
     workbook.properties.subject = "Vehicle Sleep Current Analysis"
 
@@ -113,7 +113,7 @@ def _populate_report_sheet(
     sheet["A1"].alignment = Alignment(horizontal="center")
 
     sheet.merge_cells("A2:D2")
-    sheet["A2"] = "by Dat Tran"
+    sheet["A2"] = "by V-CODE EEIV Diagnostic"
     sheet["A2"].alignment = Alignment(horizontal="center")
 
     sheet.merge_cells("A3:D3")
