@@ -197,6 +197,20 @@ class CodingWorkspaceStoreTests(unittest.TestCase):
                 "config/Coding/MHU.json",
             )
 
+    def test_relative_paths_are_expanded_for_runtime_use(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            store = CodingWorkspaceStore(
+                project_root / "config" / "coding_value_workspaces.json",
+                project_root=project_root,
+            )
+
+            self.assertEqual(
+                store.path_for_use("config/export_coding_files/mhu.json"),
+                str(project_root / "config" / "export_coding_files" / "mhu.json"),
+            )
+            self.assertEqual(store.path_for_use(""), "")
+
     def test_store_module_has_no_qt_dependency(self):
         sys.modules.pop("core.coding_value_workspace_store", None)
         before = {name for name in sys.modules if name.startswith("PySide6")}

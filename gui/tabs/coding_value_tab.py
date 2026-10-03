@@ -81,7 +81,7 @@ class CodingValueTab(QWidget):
         self.workspace_stack.addWidget(panel)
         if workspace.coding_file:
             panel.load_coding_definition_file(
-                workspace.coding_file,
+                self._workspace_store.path_for_use(workspace.coding_file),
                 emit_coding_file_changed=False,
             )
         self._save_workspace_state()

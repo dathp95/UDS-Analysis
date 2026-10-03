@@ -84,6 +84,19 @@ class CodingValueTabTests(unittest.TestCase):
         )
         return export_coding_definition_to_json(definition, directory / f"{name}.json")
 
+    def assert_same_path(self, left, right):
+        self.assertEqual(
+            Path(str(left)).resolve(strict=False),
+            Path(str(right)).resolve(strict=False),
+        )
+
+    def active_sidebar_item_ids(self, tab):
+        return [
+            workspace_id
+            for workspace_id, item in tab.workspace_sidebar._item_by_id.items()
+            if item._active
+        ]
+
     def test_coding_value_tab_displays_sidebar_and_initial_stack_panel(self):
         tab = self.create_tab()
         self.addCleanup(tab.deleteLater)
@@ -215,6 +228,170 @@ class CodingValueTabTests(unittest.TestCase):
         self.assertEqual(vcu_panel._coding_definition.rows[0].parameter, "VCU Byte")
         self.assertEqual(mhu_panel.txt_coding_value.toPlainText(), "")
         self.assertEqual(vcu_panel.txt_coding_value.toPlainText(), "")
+
+    def test_relative_coding_files_restore_distinct_panels_and_combo_selection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            export_dir = project_root / "config" / "export_coding_files"
+            mhu_json = self.create_definition_file(export_dir, "mhu", "MHU Byte")
+            vcu_json = self.create_definition_file(export_dir, "vcu", "VCU Byte")
+            bcm_json = self.create_definition_file(export_dir, "bcm", "BCM Byte")
+            store = CodingWorkspaceStore(
+                project_root / "config" / "coding_value_workspaces.json",
+                project_root=project_root,
+            )
+            store.save(CodingWorkspaceState((
+                CodingEcuWorkspace(
+                    "mhu-id",
+                    "MHU",
+                    "config/export_coding_files/mhu.json",
+                ),
+                CodingEcuWorkspace(
+                    "vcu-id",
+                    "VCU",
+                    "config/export_coding_files/vcu.json",
+                ),
+                CodingEcuWorkspace(
+                    "bcm-id",
+                    "BCM",
+                    "config/export_coding_files/bcm.json",
+                ),
+            ), "vcu-id"))
+
+            with patch(
+                "gui.widgets.coding_value.coding_value_panel.EXPORT_CODING_FILES_DIR",
+                export_dir,
+            ):
+                tab = self.create_tab(store)
+                self.addCleanup(tab.deleteLater)
+
+        mhu_panel = tab._panel_by_workspace_id["mhu-id"]
+        vcu_panel = tab._panel_by_workspace_id["vcu-id"]
+        bcm_panel = tab._panel_by_workspace_id["bcm-id"]
+        self.assertEqual(mhu_panel._coding_definition.rows[0].parameter, "MHU Byte")
+        self.assertEqual(vcu_panel._coding_definition.rows[0].parameter, "VCU Byte")
+        self.assertEqual(bcm_panel._coding_definition.rows[0].parameter, "BCM Byte")
+        self.assert_same_path(mhu_panel.cmb_coding_json.currentData(), mhu_json)
+        self.assert_same_path(vcu_panel.cmb_coding_json.currentData(), vcu_json)
+        self.assert_same_path(bcm_panel.cmb_coding_json.currentData(), bcm_json)
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), "vcu-id")
+        self.assertEqual(self.active_sidebar_item_ids(tab), ["vcu-id"])
+        self.assertIs(tab.workspace_stack.currentWidget(), vcu_panel)
+        self.assertEqual(
+            [workspace.coding_file for workspace in tab.workspace_sidebar.workspaces()],
+            [
+                "config/export_coding_files/mhu.json",
+                "config/export_coding_files/vcu.json",
+                "config/export_coding_files/bcm.json",
+            ],
+        )
+
+    def test_new_workspace_starts_without_copying_active_definition(self):
+        tab = self.create_tab()
+        self.addCleanup(tab.deleteLater)
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        definition_path = self.create_definition_file(
+            Path(self.export_dir_handle.name) / "config" / "export_coding_files",
+            "mhu",
+            "MHU Byte",
+        )
+        mhu_panel = tab._panel_by_workspace_id[mhu_workspace.id]
+
+        self.assertTrue(mhu_panel.load_coding_definition_file(str(definition_path)))
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+        vcu_panel = tab._panel_by_workspace_id[vcu_workspace.id]
+        self.assertEqual(mhu_workspace.coding_file, str(definition_path))
+        self.assertEqual(vcu_workspace.coding_file, "")
+        self.assertIsNotNone(mhu_panel._coding_definition)
+        self.assertIsNone(vcu_panel._coding_definition)
+        self.assert_same_path(mhu_panel.cmb_coding_json.currentData(), definition_path)
+        self.assertEqual(vcu_panel.cmb_coding_json.currentIndex(), -1)
+
+    def test_theme_refresh_preserves_active_sidebar_visual(self):
+        tab = self.create_tab()
+        self.addCleanup(tab.deleteLater)
+        mhu_workspace = tab.workspace_sidebar.workspaces()[0]
+        with patch(
+            "gui.widgets.coding_value.ecu_workspace_sidebar.QInputDialog.getText",
+            return_value=("VCU", True),
+        ):
+            tab.workspace_sidebar.btn_add.click()
+        vcu_workspace = tab.workspace_sidebar.active_workspace()
+
+        tab.workspace_sidebar.select_workspace(mhu_workspace.id)
+        tab.workspace_sidebar.select_workspace(vcu_workspace.id)
+        tab.fn_refresh_theme()
+
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), vcu_workspace.id)
+        self.assertEqual(self.active_sidebar_item_ids(tab), [vcu_workspace.id])
+
+    def test_rename_preserves_active_definition_and_combo_selection(self):
+        tab = self.create_tab()
+        self.addCleanup(tab.deleteLater)
+        workspace = tab.workspace_sidebar.workspaces()[0]
+        definition_path = self.create_definition_file(
+            Path(self.export_dir_handle.name) / "config" / "export_coding_files",
+            "mhu",
+            "MHU Byte",
+        )
+        panel = tab._panel_by_workspace_id[workspace.id]
+        self.assertTrue(panel.load_coding_definition_file(str(definition_path)))
+
+        self.assertTrue(tab.workspace_sidebar.rename_workspace(workspace.id, "MHU"))
+
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), workspace.id)
+        self.assertIs(tab.workspace_stack.currentWidget(), panel)
+        self.assertEqual(workspace.coding_file, str(definition_path))
+        self.assertEqual(panel._coding_definition.rows[0].parameter, "MHU Byte")
+        self.assert_same_path(panel.cmb_coding_json.currentData(), definition_path)
+
+    def test_delete_active_workspace_falls_back_and_persists_active(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            mhu = CodingEcuWorkspace("mhu-id", "MHU")
+            vcu = CodingEcuWorkspace("vcu-id", "VCU")
+            bcm = CodingEcuWorkspace("bcm-id", "BCM")
+            store.save(CodingWorkspaceState((mhu, vcu, bcm), "vcu-id"))
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+            self.assertTrue(tab.workspace_sidebar.remove_workspace("vcu-id"))
+            saved_state = store.load()
+
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), "bcm-id")
+        self.assertEqual(self.active_sidebar_item_ids(tab), ["bcm-id"])
+        self.assertIs(
+            tab.workspace_stack.currentWidget(),
+            tab._panel_by_workspace_id["bcm-id"],
+        )
+        self.assertEqual(saved_state.active_workspace_id, "bcm-id")
+
+    def test_delete_non_active_workspace_keeps_active_selection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = CodingWorkspaceStore(Path(tmpdir) / "workspaces.json")
+            mhu = CodingEcuWorkspace("mhu-id", "MHU")
+            vcu = CodingEcuWorkspace("vcu-id", "VCU")
+            bcm = CodingEcuWorkspace("bcm-id", "BCM")
+            store.save(CodingWorkspaceState((mhu, vcu, bcm), "mhu-id"))
+            tab = self.create_tab(store)
+            self.addCleanup(tab.deleteLater)
+
+            self.assertTrue(tab.workspace_sidebar.remove_workspace("bcm-id"))
+            saved_state = store.load()
+
+        self.assertEqual(tab.workspace_sidebar.active_workspace_id(), "mhu-id")
+        self.assertEqual(self.active_sidebar_item_ids(tab), ["mhu-id"])
+        self.assertIs(
+            tab.workspace_stack.currentWidget(),
+            tab._panel_by_workspace_id["mhu-id"],
+        )
+        self.assertEqual(saved_state.active_workspace_id, "mhu-id")
 
     def test_missing_coding_file_keeps_workspace_and_recorded_path(self):
         with tempfile.TemporaryDirectory() as tmpdir:

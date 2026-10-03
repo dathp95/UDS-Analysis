@@ -394,11 +394,41 @@ class CodingValuePanel(QGroupBox):
 
         if selected:
             self.cmb_coding_json.setCurrentIndex(
-                self.cmb_coding_json.findData(selected)
+                self._find_coding_json_option(selected)
             )
         else:
             self.cmb_coding_json.setCurrentIndex(-1)
         self.cmb_coding_json.blockSignals(False)
+
+    def _find_coding_json_option(self, selected_path: str) -> int:
+        for index in range(self.cmb_coding_json.count()):
+            if self._same_coding_json_path(
+                self.cmb_coding_json.itemData(index),
+                selected_path,
+            ):
+                return index
+
+        return -1
+
+    @staticmethod
+    def _same_coding_json_path(left, right) -> bool:
+        left_text = str(left or "").strip()
+        right_text = str(right or "").strip()
+        if not left_text or not right_text:
+            return False
+
+        left_path = Path(left_text)
+        right_path = Path(right_text)
+        try:
+            return (
+                left_path.resolve(strict=False)
+                == right_path.resolve(strict=False)
+            )
+        except (OSError, RuntimeError, ValueError):
+            return (
+                left_text.replace("\\", "/").casefold()
+                == right_text.replace("\\", "/").casefold()
+            )
 
     def load_selected_coding_json(self):
         json_path = self.cmb_coding_json.currentData()

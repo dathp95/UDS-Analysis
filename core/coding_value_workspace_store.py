@@ -66,6 +66,17 @@ class CodingWorkspaceStore:
         )
         temporary_path.replace(path)
 
+    def path_for_use(self, value: str) -> str:
+        path_text = str(value or "").strip()
+        if not path_text:
+            return ""
+
+        path = Path(path_text)
+        if path.is_absolute():
+            return path_text
+
+        return str(self.project_root / path)
+
     def _state_from_payload(self, payload: Any) -> CodingWorkspaceState | None:
         if not isinstance(payload, dict):
             return None
