@@ -48,6 +48,8 @@ def main() -> int:
         license_status=license_status,
     )
 
+  
+
     window.setWindowTitle(
         fn_window_title(license_status)
     )

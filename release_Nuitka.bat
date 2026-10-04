@@ -35,6 +35,11 @@ python -m nuitka ^
     --include-package=pandas ^
     --include-package=pyqtgraph ^
     --include-package=cryptography ^
+    --company-name="AES EEIV" ^
+    --product-name="V-CODE" ^
+    --file-description="V-CODE EEIV Diagnostic Tool" ^
+    --file-version=3.0.6.0 ^
+    --product-version=3.0.6.0 ^
     main.py
 
 if errorlevel 1 (
