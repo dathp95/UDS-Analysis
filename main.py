@@ -34,11 +34,11 @@ def fn_window_title(license_status) -> str:
 
 def main() -> int:
     ensure_directories()
-    if sys.platform == "win32":
-        import ctypes
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-            "AES.EEIV.VCODE"
-        )
+    # if sys.platform == "win32":
+    #     import ctypes
+    #     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+    #         "AES.EEIV.VCODE"
+    #     )
     app = QApplication(sys.argv)
     app.setWindowIcon(IconManager.app())
 
