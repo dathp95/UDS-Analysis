@@ -10,6 +10,8 @@ from gui.windows.main_window import MainWindow
 from gui.themes.icon_manager import IconManager
 from license.manager import LicenseManager
 
+from utils.windows_shortcut import ensure_start_menu_shortcut
+
 
 APP_NAME = "V-CODE"
 APP_VERSION = "v3.0.6"
@@ -34,11 +36,8 @@ def fn_window_title(license_status) -> str:
 
 def main() -> int:
     ensure_directories()
-    # if sys.platform == "win32":
-    #     import ctypes
-    #     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-    #         "AES.EEIV.VCODE"
-    #     )
+    ensure_start_menu_shortcut()
+   
     app = QApplication(sys.argv)
     app.setWindowIcon(IconManager.app())
 
