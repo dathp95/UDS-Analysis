@@ -213,32 +213,75 @@ class LicenseSupportTab(QWidget):
         panel = self._create_panel()
         layout = self._create_panel_layout(panel)
 
-        self.guide_title_label = self._create_title_label("User Guide")
+        # -------------------------------------------------
+        # Fixed header
+        # -------------------------------------------------
+        self.guide_title_label = self._create_title_label(
+            "User Guide"
+        )
+
         self.guide_summary_label = self._create_body_label(
             "Step-by-step license support notes."
         )
-        self.guide_details_button = DetailsButton()
-        self.guide_details_container = self._create_details_container()
-        details_layout = self.guide_details_container.layout()
 
-        self.guide_browser = QTextBrowser()
-        self.guide_browser.setObjectName("guide_browser")
-        self.guide_browser.setReadOnly(True)
-        self.guide_browser.setOpenExternalLinks(False)
-        self.guide_browser.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.guide_browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.guide_browser.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding,
-        )
-        fn_apply_scrollbar_style(self.guide_browser)
-        self._load_guide()
+        self.guide_details_button = DetailsButton()
 
         layout.addWidget(self.guide_title_label)
         layout.addWidget(self.guide_summary_label)
         layout.addWidget(self.guide_details_button)
-        layout.addWidget(self.guide_details_container, 1)
-        details_layout.addWidget(self.guide_browser, 1)
+
+        # -------------------------------------------------
+        # Expandable guide area
+        # -------------------------------------------------
+        self.guide_details_container = QWidget()
+        self.guide_details_container.setVisible(False)
+        self.guide_details_container.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding,
+        )
+
+        details_layout = QVBoxLayout(
+            self.guide_details_container
+        )
+        details_layout.setContentsMargins(0, 0, 0, 0)
+        details_layout.setSpacing(0)
+
+        # -------------------------------------------------
+        # Scrollable README / Guide
+        # -------------------------------------------------
+        self.guide_browser = QTextBrowser()
+        self.guide_browser.setObjectName("guide_browser")
+        self.guide_browser.setReadOnly(True)
+        self.guide_browser.setOpenExternalLinks(False)
+
+        self.guide_browser.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )
+        self.guide_browser.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+
+        self.guide_browser.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding,
+        )
+
+        fn_apply_scrollbar_style(
+            self.guide_browser
+        )
+
+        self._load_guide()
+
+        details_layout.addWidget(
+            self.guide_browser,
+            1,
+        )
+
+        # Only this area expands vertically.
+        layout.addWidget(
+            self.guide_details_container,
+            1,
+        )
 
         return panel
 
