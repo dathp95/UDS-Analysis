@@ -340,8 +340,14 @@ class MainWindowShortcutTests(unittest.TestCase):
 
         tab = window.license_support_tab
         self.assertIsInstance(tab, LicenseSupportTab)
-        self.assertIn("Support the development", tab.title_label.text())
-        self.assertIn("continued development", tab.description_label.text())
+        self.assertEqual(tab.title_label.text(), "License & Support")
+        self.assertEqual(tab.license_details_button.text(), "< Details")
+        self.assertTrue(tab.license_details_container.isHidden())
+
+        tab.license_details_button.click()
+
+        self.assertEqual(tab.license_details_button.text(), "^ Details")
+        self.assertFalse(tab.license_details_container.isHidden())
         self.assertFalse(tab.qr_label.pixmap().isNull())
         self.assertFalse(tab.qr_label.hasScaledContents())
         original_pixmap = tab.support_qr_pixmap

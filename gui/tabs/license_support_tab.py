@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from config.paths import IMAGE_DIR, RESOURCE_DIR
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+from gui.widgets.controls.details_button import DetailsButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
@@ -60,6 +61,9 @@ class LicenseSupportTab(QWidget):
         self.plan_title_label = self._create_section_label("License Plan")
         self.trial_name_label = self._create_value_label("Free Trial")
         self.trial_detail_label = self._create_body_label("First 2 months FREE")
+        self.license_details_button = DetailsButton()
+        self.license_details_container = self._create_details_container()
+        details_layout = self.license_details_container.layout()
 
         self.duration_label = self._create_field_label("Duration")
         self.duration_combo = PrimaryComboBox()
@@ -96,19 +100,20 @@ class LicenseSupportTab(QWidget):
         layout.addWidget(self.plan_title_label)
         layout.addWidget(self.trial_name_label)
         layout.addWidget(self.trial_detail_label)
-        layout.addSpacing(6)
-        layout.addWidget(self.duration_label)
-        layout.addWidget(self.duration_combo)
-        layout.addWidget(self.price_label)
-        layout.addWidget(self.price_value_label)
-        layout.addSpacing(8)
-        layout.addWidget(self.payment_label)
-        layout.addWidget(self.qr_label, 0, Qt.AlignHCenter)
-        layout.addWidget(self.payment_helper_label)
-        layout.addSpacing(6)
-        layout.addWidget(self.contact_title_label)
-        layout.addWidget(self.email_label)
-        layout.addWidget(self.phone_label)
+        layout.addWidget(self.license_details_button)
+        layout.addWidget(self.license_details_container)
+        details_layout.addWidget(self.duration_label)
+        details_layout.addWidget(self.duration_combo)
+        details_layout.addWidget(self.price_label)
+        details_layout.addWidget(self.price_value_label)
+        details_layout.addSpacing(8)
+        details_layout.addWidget(self.payment_label)
+        details_layout.addWidget(self.qr_label, 0, Qt.AlignHCenter)
+        details_layout.addWidget(self.payment_helper_label)
+        details_layout.addSpacing(6)
+        details_layout.addWidget(self.contact_title_label)
+        details_layout.addWidget(self.email_label)
+        details_layout.addWidget(self.phone_label)
         layout.addStretch(1)
 
         return panel
@@ -118,6 +123,13 @@ class LicenseSupportTab(QWidget):
         layout = self._create_panel_layout(panel)
 
         self.activation_title_label = self._create_title_label("Product Activation")
+        self.activation_summary_label = self._create_body_label(
+            "Payment and activation inputs are prepared for administrator support."
+        )
+        self.activation_details_button = DetailsButton()
+        self.activation_details_container = self._create_details_container()
+        details_layout = self.activation_details_container.layout()
+
         self.device_id_label = self._create_field_label("Device ID")
         self.device_id_edit = PrimaryLineEdit()
         self.device_id_edit.setObjectName("device_id_edit")
@@ -161,35 +173,38 @@ class LicenseSupportTab(QWidget):
         self.remaining_value_label = self._create_body_label("--")
 
         layout.addWidget(self.activation_title_label)
-        layout.addSpacing(4)
-        layout.addWidget(self.device_id_label)
-        layout.addLayout(device_row)
-        layout.addWidget(self.activation_helper_label)
-        layout.addSpacing(8)
-        layout.addWidget(self.activation_key_label)
-        layout.addWidget(self.activation_key_edit)
-        layout.addWidget(self.activate_button, 0, Qt.AlignLeft)
-        layout.addSpacing(10)
-        layout.addWidget(self.status_title_label)
-        layout.addWidget(self.status_value_label)
-        layout.addLayout(
+        layout.addWidget(self.activation_summary_label)
+        layout.addWidget(self.activation_details_button)
+        layout.addWidget(self.activation_details_container)
+        details_layout.addWidget(self.device_id_label)
+        details_layout.addLayout(device_row)
+        details_layout.addWidget(self.activation_helper_label)
+        details_layout.addSpacing(8)
+        details_layout.addWidget(self.activation_key_label)
+        details_layout.addWidget(self.activation_key_edit)
+        details_layout.addWidget(self.activate_button, 0, Qt.AlignLeft)
+        details_layout.addSpacing(10)
+        details_layout.addWidget(self.status_title_label)
+        details_layout.addWidget(self.status_value_label)
+        details_layout.addLayout(
             self._create_info_row(
                 self.edition_label,
                 self.edition_value_label,
             )
         )
-        layout.addLayout(
+        details_layout.addLayout(
             self._create_info_row(
                 self.expire_date_label,
                 self.expire_date_value_label,
             )
         )
-        layout.addLayout(
+        details_layout.addLayout(
             self._create_info_row(
                 self.remaining_label,
                 self.remaining_value_label,
             )
         )
+        layout.addSpacing(4)
         layout.addStretch(1)
 
         return panel
@@ -199,6 +214,13 @@ class LicenseSupportTab(QWidget):
         layout = self._create_panel_layout(panel)
 
         self.guide_title_label = self._create_title_label("User Guide")
+        self.guide_summary_label = self._create_body_label(
+            "Step-by-step license support notes."
+        )
+        self.guide_details_button = DetailsButton()
+        self.guide_details_container = self._create_details_container()
+        details_layout = self.guide_details_container.layout()
+
         self.guide_browser = QTextBrowser()
         self.guide_browser.setObjectName("guide_browser")
         self.guide_browser.setReadOnly(True)
@@ -213,13 +235,25 @@ class LicenseSupportTab(QWidget):
         self._load_guide()
 
         layout.addWidget(self.guide_title_label)
-        layout.addWidget(self.guide_browser, 1)
+        layout.addWidget(self.guide_summary_label)
+        layout.addWidget(self.guide_details_button)
+        layout.addWidget(self.guide_details_container, 1)
+        details_layout.addWidget(self.guide_browser, 1)
 
         return panel
 
     def _connect_signals(self):
         self.duration_combo.currentTextChanged.connect(self._update_price_label)
         self.copy_device_id_button.clicked.connect(self.copy_device_id)
+        self.license_details_button.expandedChanged.connect(
+            self.license_details_container.setVisible
+        )
+        self.activation_details_button.expandedChanged.connect(
+            self.activation_details_container.setVisible
+        )
+        self.guide_details_button.expandedChanged.connect(
+            self.guide_details_container.setVisible
+        )
 
     @staticmethod
     def _create_panel():
@@ -234,6 +268,15 @@ class LicenseSupportTab(QWidget):
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(8)
         return layout
+
+    @staticmethod
+    def _create_details_container():
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        container.setVisible(False)
+        return container
 
     @staticmethod
     def _create_title_label(text):
@@ -369,6 +412,9 @@ class LicenseSupportTab(QWidget):
         self.device_id_edit.fn_refresh_theme()
         self.copy_device_id_button.fn_refresh_theme()
         self.activate_button.fn_refresh_theme()
+        self.license_details_button.fn_refresh_theme()
+        self.activation_details_button.fn_refresh_theme()
+        self.guide_details_button.fn_refresh_theme()
         fn_apply_scrollbar_style(self.duration_combo.view())
         fn_apply_scrollbar_style(self.activation_key_edit)
         fn_apply_scrollbar_style(self.guide_browser)
