@@ -226,6 +226,7 @@ class LicenseSupportTab(QWidget):
 
         self.guide_details_button = DetailsButton()
 
+        # Header luôn nằm cố định phía trên
         layout.addWidget(self.guide_title_label)
         layout.addWidget(self.guide_summary_label)
         layout.addWidget(self.guide_details_button)
@@ -235,10 +236,6 @@ class LicenseSupportTab(QWidget):
         # -------------------------------------------------
         self.guide_details_container = QWidget()
         self.guide_details_container.setVisible(False)
-        self.guide_details_container.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding,
-        )
 
         details_layout = QVBoxLayout(
             self.guide_details_container
@@ -277,11 +274,14 @@ class LicenseSupportTab(QWidget):
             1,
         )
 
-        # Only this area expands vertically.
+        # Không đặt stretch=1 cho container ở đây.
+        # Điều này giữ Details ngay dưới summary khi đang collapsed.
         layout.addWidget(
-            self.guide_details_container,
-            1,
+            self.guide_details_container
         )
+
+        # Khoảng trống luôn nằm phía dưới toàn bộ nội dung
+        layout.addStretch(1)
 
         return panel
 
