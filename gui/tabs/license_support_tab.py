@@ -213,9 +213,7 @@ class LicenseSupportTab(QWidget):
         panel = self._create_panel()
         layout = self._create_panel_layout(panel)
 
-        # -------------------------------------------------
-        # Fixed header
-        # -------------------------------------------------
+        # Fixed content
         self.guide_title_label = self._create_title_label(
             "User Guide"
         )
@@ -230,16 +228,9 @@ class LicenseSupportTab(QWidget):
         layout.addWidget(self.guide_summary_label)
         layout.addWidget(self.guide_details_button)
 
-        # -------------------------------------------------
-        # Expandable guide area
-        # -------------------------------------------------
+        # Expandable details container
         self.guide_details_container = QWidget()
         self.guide_details_container.setVisible(False)
-
-        self.guide_details_container.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding,
-        )
 
         details_layout = QVBoxLayout(
             self.guide_details_container
@@ -247,9 +238,7 @@ class LicenseSupportTab(QWidget):
         details_layout.setContentsMargins(0, 0, 0, 0)
         details_layout.setSpacing(0)
 
-        # -------------------------------------------------
-        # Scrollable README / Guide
-        # -------------------------------------------------
+        # Guide browser
         self.guide_browser = QTextBrowser()
         self.guide_browser.setObjectName("guide_browser")
         self.guide_browser.setReadOnly(True)
@@ -258,14 +247,8 @@ class LicenseSupportTab(QWidget):
         self.guide_browser.setVerticalScrollBarPolicy(
             Qt.ScrollBarAsNeeded
         )
-
         self.guide_browser.setHorizontalScrollBarPolicy(
             Qt.ScrollBarAlwaysOff
-        )
-
-        self.guide_browser.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding,
         )
 
         fn_apply_scrollbar_style(
@@ -275,18 +258,15 @@ class LicenseSupportTab(QWidget):
         self._load_guide()
 
         details_layout.addWidget(
-            self.guide_browser,
-            1,
+            self.guide_browser
         )
 
-        # Container chiếm toàn bộ phần chiều cao còn lại khi visible
         layout.addWidget(
             self.guide_details_container,
             1,
         )
 
         return panel
-
     def _connect_signals(self):
         self.duration_combo.currentTextChanged.connect(self._update_price_label)
         self.copy_device_id_button.clicked.connect(self.copy_device_id)
@@ -297,21 +277,10 @@ class LicenseSupportTab(QWidget):
             self.activation_details_container.setVisible
         )
         self.guide_details_button.expandedChanged.connect(
-            self._toggle_guide_details
+            self.guide_details_container.setVisible
         )
 
-    def _toggle_guide_details(self, expanded):
-        self.guide_details_container.setVisible(expanded)
-
-        layout = self.guide_panel.layout()
-        index = layout.indexOf(self.guide_details_container)
-
-        if expanded:
-            layout.setStretch(index, 1)
-        else:
-            layout.setStretch(index, 0)
-            layout.setAlignment(Qt.AlignTop)
-
+    
     @staticmethod
     def _create_panel():
         panel = QFrame()
