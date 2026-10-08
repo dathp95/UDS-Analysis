@@ -473,7 +473,9 @@ class LicenseSupportTab(QWidget):
         self.status_value_label.setToolTip("")
         self.edition_value_label.setText(license_model.edition)
         self.expire_date_value_label.setText(
-            license_model.expire_date.strftime("%d/%m/%Y %H:%M:%S")
+            license_model.expire_date.astimezone().strftime(
+                "%d/%m/%Y %H:%M:%S"
+            )
         )
         self.remaining_value_label.setText(
             f"{max(license_model.days_remaining, 0)} day(s)"
