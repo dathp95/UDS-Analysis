@@ -48,7 +48,7 @@ class LicenseSupportDetailsTests(unittest.TestCase):
         self.assertTrue(tab.activation_details_container.isHidden())
         self.assertTrue(tab.guide_details_container.isHidden())
         self.assertEqual(tab.license_details_button.text(), "^ Details")
-        self.assertEqual(tab.activation_details_button.text(), "< Details")
+        self.assertEqual(tab.activation_details_button.text(), "> Details")
 
         tab.activation_details_button.click()
 

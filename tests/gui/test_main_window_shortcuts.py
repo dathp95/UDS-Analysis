@@ -341,7 +341,7 @@ class MainWindowShortcutTests(unittest.TestCase):
         tab = window.license_support_tab
         self.assertIsInstance(tab, LicenseSupportTab)
         self.assertEqual(tab.title_label.text(), "License & Support")
-        self.assertEqual(tab.license_details_button.text(), "< Details")
+        self.assertEqual(tab.license_details_button.text(), "> Details")
         self.assertTrue(tab.license_details_container.isHidden())
 
         tab.license_details_button.click()

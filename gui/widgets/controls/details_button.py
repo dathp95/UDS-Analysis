@@ -44,5 +44,5 @@ class DetailsButton(QPushButton):
         self.setStyleSheet(fn_details_button_style())
 
     def _update_text(self):
-        marker = "^" if self._expanded else "<"
+        marker = "^" if self._expanded else ">"
         self.setText(f"{marker} Details")

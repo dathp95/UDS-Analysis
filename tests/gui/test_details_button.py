@@ -22,7 +22,7 @@ class DetailsButtonTests(unittest.TestCase):
         button.expandedChanged.connect(emitted.append)
 
         self.assertFalse(button.is_expanded())
-        self.assertEqual(button.text(), "< Details")
+        self.assertEqual(button.text(), "> Details")
         self.assertEqual(button.cursor().shape(), Qt.PointingHandCursor)
 
         button.click()
@@ -34,7 +34,7 @@ class DetailsButtonTests(unittest.TestCase):
         button.click()
 
         self.assertFalse(button.is_expanded())
-        self.assertEqual(button.text(), "< Details")
+        self.assertEqual(button.text(), "> Details")
         self.assertEqual(emitted, [True, False])
 
     def test_set_expanded_is_idempotent(self):
@@ -49,7 +49,7 @@ class DetailsButtonTests(unittest.TestCase):
         button.set_expanded(False)
 
         self.assertEqual(emitted, [True, False])
-        self.assertEqual(button.text(), "< Details")
+        self.assertEqual(button.text(), "> Details")
 
 
 if __name__ == "__main__":
