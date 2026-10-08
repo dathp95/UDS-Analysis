@@ -170,6 +170,8 @@ class LicenseSupportTab(QWidget):
 
         self.status_title_label = self._create_section_label("Activation Status")
         self.status_value_label = self._create_value_label("Not Activated")
+        self.status_value_label.setObjectName("activationStatusValue")
+        self.status_value_label.setProperty("activated", False)
         self.edition_label = self._create_field_label("Edition:")
         self.edition_value_label = self._create_body_label("--")
         self.expire_date_label = self._create_field_label("Expire Date:")
@@ -465,6 +467,8 @@ class LicenseSupportTab(QWidget):
 
     def _show_activated_license(self, license_model):
         self.status_value_label.setText("Activated")
+        self.status_value_label.style().unpolish(self.status_value_label)
+        self.status_value_label.style().polish(self.status_value_label)
         self.status_value_label.setToolTip("")
         self.edition_value_label.setText(license_model.edition)
         self.expire_date_value_label.setText(
@@ -476,6 +480,9 @@ class LicenseSupportTab(QWidget):
 
     def _show_inactive_license(self, status_text, tooltip=""):
         self.status_value_label.setText(status_text)
+        self.status_value_label.setProperty("activated", False)
+        self.status_value_label.style().unpolish(self.status_value_label)
+        self.status_value_label.style().polish(self.status_value_label)
         self.status_value_label.setToolTip(tooltip)
         self.edition_value_label.setText("--")
         self.expire_date_value_label.setText("--")
@@ -519,6 +526,9 @@ class LicenseSupportTab(QWidget):
             QLabel#licenseSupportValueLabel {{
                 font-size: 14px;
                 font-weight: 700;
+            }}
+            QLabel#activationStatusValue[activated="true"] {{
+                color: {colors.SUCCESS};
             }}
             QLabel#licenseSupportQr {{
                 background: {colors.WINDOW};
