@@ -466,7 +466,8 @@ class LicenseSupportTab(QWidget):
         self._show_inactive_license("Not Activated", status.error_message)
 
     def _show_activated_license(self, license_model):
-        self.status_value_label.setText("Activated")
+        self.status_value_label.setText(" ● Activated ")
+        self.status_value_label.setProperty("activated", True)
         self.status_value_label.style().unpolish(self.status_value_label)
         self.status_value_label.style().polish(self.status_value_label)
         self.status_value_label.setToolTip("")
@@ -529,6 +530,8 @@ class LicenseSupportTab(QWidget):
             }}
             QLabel#activationStatusValue[activated="true"] {{
                 color: {colors.SUCCESS};
+                font-size: 14px;
+                font-weight: 700;
             }}
             QLabel#licenseSupportQr {{
                 background: {colors.WINDOW};
