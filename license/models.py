@@ -9,7 +9,7 @@ No business logic, file I/O or cryptography.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from .exceptions import (
@@ -37,7 +37,7 @@ class License:
         """
         Return True if the license has expired.
         """
-        return datetime.now() > self.expire_date
+        return self._now_for(self.expire_date) > self.expire_date
 
     @property
     def days_remaining(self) -> int:
@@ -51,7 +51,14 @@ class License:
             Zero     -> expires today
             Negative -> already expired
         """
-        return (self.expire_date - datetime.now()).days
+        return (self.expire_date - self._now_for(self.expire_date)).days
+
+    @staticmethod
+    def _now_for(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return datetime.now()
+
+        return datetime.now(UTC)
 
     @property
     def status(self) -> str:

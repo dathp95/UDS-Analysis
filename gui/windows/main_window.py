@@ -19,6 +19,7 @@ from gui.tabs.vehicle_manager_tab import VehicleManagerTab
 from gui.themes.icon_manager import IconManager
 from gui.themes.styles.containers.window_style import fn_window_style
 from config.paths import RELEASE_FEATURES_FILE, SHORTCUTS_FILE
+from license.manager import LicenseStatus
 from shortcuts.shortcut_manager import load_shortcuts
 
 
@@ -134,6 +135,9 @@ class MainWindow(QMainWindow):
             )
 
         self._apply_feature_access()
+        self.license_support_tab.activationSucceeded.connect(
+            self._on_license_activated
+        )
 
         self.vehicle_manager_tab.vehicle_data_changed.connect(
             lambda _vehicle_name: self.log_analyzer_tab.fn_refresh_vehicles()
@@ -170,9 +174,13 @@ class MainWindow(QMainWindow):
 
     def _license_is_valid(self):
         if self.license_status is None:
-            return True
+            return False
 
         return bool(self.license_status.is_valid)
+
+    def _on_license_activated(self, license_model):
+        self.license_status = LicenseStatus.valid(license_model)
+        self._apply_feature_access()
 
     def fn_refresh_theme(self):
         self.setStyleSheet(

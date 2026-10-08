@@ -12,11 +12,16 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from .activation import (
+    ActivationResult,
+    ActivationStorage,
+    validate_activation_token,
+)
+from .device_identity import DeviceIdentity
 from .exceptions import LicenseError
 from .models import License
 from .paths import (
-    LICENSE_FILE_PATH,
-    PUBLIC_KEY_PATH,
+    ACTIVATION_FILE_PATH,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +62,7 @@ class LicenseManager:
     @staticmethod
     def validate() -> License:
         """
-        Read and validate the current license.
+        Read and validate the current machine-bound activation.
 
         Returns
         -------
@@ -70,22 +75,18 @@ class LicenseManager:
             If the license is invalid.
         """
 
-        logger.debug("Starting license validation.")
+        logger.debug("Starting activation validation.")
 
-        from .loader import read_license
-        from .validator import validate_license
+        active_device_id = LicenseManager.get_device_id()
+        activation_token = ActivationStorage(ACTIVATION_FILE_PATH).read()
 
-        raw_license = read_license(
-            LICENSE_FILE_PATH
-        )
-
-        license_model = validate_license(
-            raw_license=raw_license,
-            public_key_path=PUBLIC_KEY_PATH,
+        license_model = validate_activation_token(
+            activation_token,
+            expected_device_id=active_device_id,
         )
 
         logger.info(
-            "License validated successfully: %s (%s)",
+            "Activation validated successfully: %s (%s)",
             license_model.customer,
             license_model.edition,
         )
@@ -121,3 +122,27 @@ class LicenseManager:
         """
 
         return LicenseManager.get_status().is_valid
+
+    @staticmethod
+    def get_device_id() -> str:
+        return DeviceIdentity().get_device_id()
+
+    @staticmethod
+    def activate(activation_key: str) -> ActivationResult:
+        try:
+            active_device_id = LicenseManager.get_device_id()
+            license_model = validate_activation_token(
+                activation_key,
+                expected_device_id=active_device_id,
+            )
+            ActivationStorage(ACTIVATION_FILE_PATH).save(activation_key)
+        except LicenseError as error:
+            logger.info("Activation failed: %s", error)
+            return ActivationResult.failed(str(error))
+
+        logger.info(
+            "Activation saved successfully: %s (%s)",
+            license_model.customer,
+            license_model.edition,
+        )
+        return ActivationResult.ok(license_model)

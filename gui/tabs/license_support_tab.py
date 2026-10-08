@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -20,11 +20,14 @@ from gui.widgets.controls.details_button import DetailsButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from license.manager import LicenseManager
 
 
 class LicenseSupportTab(QWidget):
 
-    DEVICE_ID_PLACEHOLDER = "VC-XXXX-XXXX-XXXX-XXXX"
+    activationSucceeded = Signal(object)
+
+    DEVICE_ID_PLACEHOLDER = "VC-XXXX-XXXX-XXXX-XXXX-XXXX"
     GUIDE_PATH = RESOURCE_DIR / "docs" / "license_support.md"
     DURATION_PRICES = {
         "1 Month": "Demo price: 150,000 VND",
@@ -40,6 +43,7 @@ class LicenseSupportTab(QWidget):
         self._setup_ui()
         self._connect_signals()
         self.fn_refresh_theme()
+        self._refresh_activation_status_from_backend()
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
@@ -134,7 +138,7 @@ class LicenseSupportTab(QWidget):
         self.device_id_label = self._create_field_label("Device ID")
         self.device_id_edit = PrimaryLineEdit()
         self.device_id_edit.setObjectName("device_id_edit")
-        self.device_id_edit.setText(self.DEVICE_ID_PLACEHOLDER)
+        self.device_id_edit.setText(self._device_id_text())
         self.device_id_edit.setReadOnly(True)
 
         self.copy_device_id_button = PrimaryButton("Copy ID", width=100)
@@ -302,6 +306,7 @@ class LicenseSupportTab(QWidget):
     def _connect_signals(self):
         self.duration_combo.currentTextChanged.connect(self._update_price_label)
         self.copy_device_id_button.clicked.connect(self.copy_device_id)
+        self.activate_button.clicked.connect(self.activate_license)
         self.license_details_button.expandedChanged.connect(
             self.license_details_container.setVisible
         )
@@ -439,6 +444,49 @@ class LicenseSupportTab(QWidget):
 
     def copy_device_id(self):
         QApplication.clipboard().setText(self.device_id_edit.text())
+
+    def activate_license(self):
+        activation_key = self.activation_key_edit.toPlainText().strip()
+        result = LicenseManager.activate(activation_key)
+        if not result.success or result.license is None:
+            self._show_inactive_license("Activation Failed", result.error_message)
+            return
+
+        self._show_activated_license(result.license)
+        self.activationSucceeded.emit(result.license)
+
+    def _refresh_activation_status_from_backend(self):
+        status = LicenseManager.get_status()
+        if status.is_valid and status.license is not None:
+            self._show_activated_license(status.license)
+            return
+
+        self._show_inactive_license("Not Activated", status.error_message)
+
+    def _show_activated_license(self, license_model):
+        self.status_value_label.setText("Activated")
+        self.status_value_label.setToolTip("")
+        self.edition_value_label.setText(license_model.edition)
+        self.expire_date_value_label.setText(
+            license_model.expire_date.strftime("%d/%m/%Y %H:%M:%S")
+        )
+        self.remaining_value_label.setText(
+            f"{max(license_model.days_remaining, 0)} day(s)"
+        )
+
+    def _show_inactive_license(self, status_text, tooltip=""):
+        self.status_value_label.setText(status_text)
+        self.status_value_label.setToolTip(tooltip)
+        self.edition_value_label.setText("--")
+        self.expire_date_value_label.setText("--")
+        self.remaining_value_label.setText("--")
+
+    @staticmethod
+    def _device_id_text():
+        try:
+            return LicenseManager.get_device_id()
+        except Exception:
+            return LicenseSupportTab.DEVICE_ID_PLACEHOLDER
 
     def fn_refresh_theme(self):
         colors = ThemeManager.fn_colors()

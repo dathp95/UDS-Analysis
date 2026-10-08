@@ -23,11 +23,20 @@ output/
 *.log
 config/coding_value_workspaces.json
 config/coding_value_workspace_snapshots/
+activation.dat
+activation.dat.tmp
+activation-*.json
 
 # Build/packaging artifacts
 build/
 dist/
 *.spec
+
+# License key material
+private.pem
+*.private.pem
+*.key
+LicenseGenerator/output/
 
 # OS files
 Thumbs.db

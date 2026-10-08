@@ -1,9 +1,11 @@
 """
 generate_keys.py
 
-Generate RSA key pair for Python UDS Analyzer License System.
+Generate RSA key pair for V-CODE activation signing.
 
-Run this script ONLY ONCE.
+Run this script only in an administrator/offline key-generation location.
+Do not run it inside the application repository unless you are generating
+throwaway development keys.
 
 Output:
     - private.pem
@@ -22,7 +24,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 # Configuration
 # =============================================================================
 
-KEY_SIZE = 2048
+KEY_SIZE = 3072
 PUBLIC_EXPONENT = 65537
 
 PRIVATE_KEY_FILE = Path("private.pem")
@@ -63,7 +65,7 @@ def generate_key_pair() -> None:
     )
 
     print("Done.")
-    print(f"Private Key : {PRIVATE_KEY_FILE.resolve()}")
+    print(f"Private Key : {PRIVATE_KEY_FILE.resolve()} (DO NOT COMMIT)")
     print(f"Public Key  : {PUBLIC_KEY_FILE.resolve()}")
 
 

@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+﻿from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QPushButton, QSizePolicy
 
 from gui.themes.styles.controls.details_button_style import (
@@ -44,5 +44,5 @@ class DetailsButton(QPushButton):
         self.setStyleSheet(fn_details_button_style())
 
     def _update_text(self):
-        marker = "^" if self._expanded else "›"
+        marker = "^" if self._expanded else "<"
         self.setText(f"{marker} Details")
