@@ -167,6 +167,7 @@ class LicenseSupportTab(QWidget):
 
         self.activate_button = PrimaryButton("Activate", width=120)
         self.activate_button.setObjectName("activate_button")
+        self.activate_button.setEnabled(False)
 
         self.status_title_label = self._create_section_label("Activation Status")
         self.status_value_label = self._create_value_label("Not Activated")
@@ -318,6 +319,15 @@ class LicenseSupportTab(QWidget):
         self.guide_details_button.expandedChanged.connect(
             self._toggle_guide_details
         )
+        self.activation_key_edit.textChanged.connect(
+            self._update_activate_button
+        )
+
+    def _update_activate_button(self):
+        has_key = bool(
+            self.activation_key_edit.toPlainText().strip()
+        )
+        self.activate_button.setEnabled(has_key)
 
     def _toggle_guide_details(self, expanded):
         self.guide_details_container.setVisible(expanded)
@@ -449,12 +459,23 @@ class LicenseSupportTab(QWidget):
 
     def activate_license(self):
         activation_key = self.activation_key_edit.toPlainText().strip()
+        if not activation_key:
+            return
+
         result = LicenseManager.activate(activation_key)
+
         if not result.success or result.license is None:
-            self._show_inactive_license("Activation Failed", result.error_message)
+            self._show_inactive_license(
+                "Activation Failed",
+                result.error_message,
+            )
             return
 
         self._show_activated_license(result.license)
+
+        # Clear triggers textChanged and disables the Activate button.
+        self.activation_key_edit.clear()
+
         self.activationSucceeded.emit(result.license)
 
     def _refresh_activation_status_from_backend(self):
