@@ -24,7 +24,7 @@ def fn_window_title(license_status) -> str:
             f"{APP_NAME} {APP_VERSION} | "
             f"{APP_AUTHOR} | "
             f"Valid until "
-            f"{license_status.license.expire_date.strftime('%d/%m/%Y %H:%M:%S')}"
+            f"{license_status.license.expire_date.astimezone().strftime('%d/%m/%Y %H:%M:%S')}"
         )
 
     return (

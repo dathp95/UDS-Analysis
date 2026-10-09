@@ -182,6 +182,13 @@ class MainWindow(QMainWindow):
         self.license_status = LicenseStatus.valid(license_model)
         self._apply_feature_access()
 
+        expire_text = license_model.expire_date.astimezone().strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
+        self.setWindowTitle(
+            f"V-CODE v3.0.6 | AES EEIV by DAT TRAN | Valid until {expire_text}"
+        )
+
     def fn_refresh_theme(self):
         self.setStyleSheet(
             fn_window_style()
