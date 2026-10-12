@@ -1,0 +1,20 @@
+{
+    "name": "WILD",
+    "manufacturer": "",
+    "version": "1.0.0",
+    "description": "",
+    "ecus": [
+        "ACU",
+        "BCM_FL",
+        "WCBS",
+        "EPS",
+        "BMS",
+        "CVC",
+        "EVCC",
+        "BCM_FR",
+        "EMS",
+        "MHU",
+        "PCU",
+        "SS"
+    ]
+}
