@@ -8,5 +8,15 @@
             "request": "22 F1 90",
             "response": "62 F1 90 52 4C 4E 56 35 4A 5A 5A 30 54 54 39 39 30 39 30 36"
         }
+    },
+    {
+        "id": 2,
+        "name": "2",
+        "enabled": true,
+        "filters": {
+            "ecu": "BCM_FR",
+            "request": "22 F1 90",
+            "response": "62 F1 90 52 4E 58 56 4E 55 58 57 35 54 48 38 30 37 30 32 35"
+        }
     }
 ]
