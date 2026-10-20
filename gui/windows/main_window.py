@@ -63,9 +63,12 @@ class MainWindow(QMainWindow):
             if not sequence or action is None:
                 continue
             shortcut = QShortcut(QKeySequence(sequence), self)
-            shortcut.activated.connect(
-                lambda action=action: self._run_log_analyzer_shortcut(action)
-            )
+            if item.get("action") == "toggle_theme":
+                shortcut.activated.connect(action)
+            else:
+                shortcut.activated.connect(
+                    lambda action=action: self._run_log_analyzer_shortcut(action)
+                )
             self._shortcuts.append(shortcut)
 
     def _run_log_analyzer_shortcut(self, action):

@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -536,13 +536,16 @@ class CodingValueTable(PrimaryTable):
         return to_int(value)
 
     def fn_refresh_theme(self):
-        super().fn_refresh_theme()
+        # Item color changes emit itemChanged too; styling is not a raw edit.
+        with QSignalBlocker(self):
+            super().fn_refresh_theme()
 
-        for row in range(self.rowCount()):
-            combo = self.cellWidget(row, 5)
-            if hasattr(combo, "fn_refresh_theme"):
-                combo.fn_refresh_theme()
+            for row in range(self.rowCount()):
+                combo = self.cellWidget(row, 5)
+                if hasattr(combo, "fn_refresh_theme"):
+                    with QSignalBlocker(combo):
+                        combo.fn_refresh_theme()
 
-            result_item = self.item(row, 8)
-            if result_item is not None:
-                self._apply_result_style(row, result_item.text())
+                result_item = self.item(row, 8)
+                if result_item is not None:
+                    self._apply_result_style(row, result_item.text())
