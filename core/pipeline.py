@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from core.log_parsers.diagnostics import ParserDiagnostics
 from core.asc_reader import (
     load_log,
     extract_negative_responses,
@@ -40,7 +43,13 @@ def run_pipeline(
         else:
             logger(f"Reading Channel {channel}...")
 
-    messages = load_log(asc_file, channel=channel)
+    parser_diagnostics = None
+    if Path(asc_file).suffix.lower() == ".txt":
+        parser_diagnostics = ParserDiagnostics()
+        messages = load_log(asc_file, channel=channel, diagnostics=parser_diagnostics)
+        parser_diagnostics.pipeline_frames = len(messages)
+    else:
+        messages = load_log(asc_file, channel=channel)
 
     if logger:
         logger("Loading vehicle configuration...")
@@ -89,10 +98,13 @@ def run_pipeline(
     summary = build_summary_report(ecu_reports)
 
     if logger:
-        logger("Completed")
+        logger("Completed with parser warnings" if parser_diagnostics and parser_diagnostics.has_warnings else "Completed")
 
-    return {
+    result = {
         "summary": summary,
         "ecu_reports": ecu_reports,
         "transactions": transactions
     }
+    if parser_diagnostics is not None:
+        result["parser_diagnostics"] = parser_diagnostics
+    return result

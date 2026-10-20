@@ -38,6 +38,7 @@ class ActionPanel(QWidget):
 
     def __init__(self):
         super().__init__()
+        self._parser_diagnostics = None
         self._setup_ui()
         self._connect_signals()
         self.fn_clear_detail_panels()
@@ -64,6 +65,10 @@ class ActionPanel(QWidget):
         self.grp_analysis_progress.layout().addWidget(
             self.progress_analysis
         )
+        self.lbl_parser_diagnostics = PrimaryLabel()
+        self.lbl_parser_diagnostics.setWordWrap(True)
+        self.lbl_parser_diagnostics.hide()
+        self.grp_analysis_progress.layout().addWidget(self.lbl_parser_diagnostics)
 
         self.btn_run = PrimaryButton(
             "Analyze",
@@ -228,7 +233,10 @@ class ActionPanel(QWidget):
         )
 
     def fn_set_log_loaded(self) -> None:
-        self.lbl_analysis_status.setText("Log loaded")
+        self.lbl_analysis_status.setText(
+            "Log loaded with warnings" if self._parser_diagnostics and self._parser_diagnostics.has_warnings
+            else "Log loaded"
+        )
         self.progress_analysis.setRange(0, 100)
         self.progress_analysis.setValue(100)
         self.btn_run.setText("Analyze")
@@ -247,7 +255,10 @@ class ActionPanel(QWidget):
             self.lbl_analysis_status.setText(text)
 
     def fn_set_analysis_completed(self) -> None:
-        self.lbl_analysis_status.setText("Completed")
+        self.lbl_analysis_status.setText(
+            "Completed with warnings" if self._parser_diagnostics and self._parser_diagnostics.has_warnings
+            else "Completed"
+        )
         self.progress_analysis.setRange(0, 100)
         self.progress_analysis.setValue(100)
         self.btn_run.setText("Analyze")
@@ -260,6 +271,49 @@ class ActionPanel(QWidget):
         self.progress_analysis.setRange(0, 100)
         self.progress_analysis.setValue(0)
         self.btn_run.setText("Analyze")
+
+    def fn_set_parser_diagnostics(self, diagnostics) -> None:
+        self._parser_diagnostics = diagnostics
+        self.lbl_parser_diagnostics.setVisible(diagnostics is not None)
+        if diagnostics is None:
+            self.lbl_parser_diagnostics.clear()
+            self.lbl_parser_diagnostics.setToolTip("")
+            return
+        channel = diagnostics.selected_channel
+        selected = "Select channel" if channel is None else f"Channel {channel}: {diagnostics.selected_channel_frames:,}"
+        lines = [
+            f"{diagnostics.format_name} | Channels: {len(diagnostics.channels)}",
+            f"File: {diagnostics.parsed_frames:,} frames | {selected}",
+            f"Malformed: {diagnostics.malformed_frames:,} | Unsupported: {diagnostics.unsupported_frames:,}",
+        ]
+        if diagnostics.other_skipped_can_frames or diagnostics.timestamp_discontinuities:
+            lines.append(f"Other skipped: {diagnostics.other_skipped_can_frames:,} | Backwards time: {diagnostics.timestamp_discontinuities:,}")
+        if diagnostics.has_warnings:
+            lines.append("Parser warnings: transactions may be incomplete.")
+        self.lbl_parser_diagnostics.setText("\n".join(lines))
+        self.lbl_parser_diagnostics.setToolTip("\n".join([
+            f"Log Format: {diagnostics.format_name}",
+            f"Detected Channels: {diagnostics.channels}",
+            f"Selected Channel: {channel if channel is not None else 'Not selected'}",
+            f"Total CAN records (file): {diagnostics.total_can_records:,}",
+            f"Parsed CAN frames (file): {diagnostics.parsed_frames:,}",
+            f"Selected channel frames: {diagnostics.selected_channel_frames:,}",
+            f"Frames supplied to UDS: {diagnostics.pipeline_frames:,}",
+            f"Malformed Frames: {diagnostics.malformed_frames:,}",
+            f"Unsupported Frames: {diagnostics.unsupported_frames:,}",
+            f"Other skipped CAN frames: {diagnostics.other_skipped_can_frames:,}",
+            f"Timestamp discontinuities (file): {diagnostics.timestamp_discontinuities:,}",
+            *diagnostics.warnings,
+            *diagnostics.examples,
+        ]))
+        self._fn_style_parser_diagnostics()
+
+    def _fn_style_parser_diagnostics(self):
+        colors = ThemeManager.fn_colors()
+        warning = self._parser_diagnostics and self._parser_diagnostics.has_warnings
+        self.lbl_parser_diagnostics.setStyleSheet(
+            f"QLabel {{ color: {colors.WARNING if warning else colors.TEXT}; }}"
+        )
 
     def fn_set_quick_filter_info(
             self,
@@ -365,6 +419,7 @@ class ActionPanel(QWidget):
         self.btn_copy.fn_refresh_theme()
         self.btn_clear.fn_refresh_theme()
         self.lbl_analysis_status.fn_refresh_theme()
+        self._fn_style_parser_diagnostics()
 
         colors = ThemeManager.fn_colors()
 

@@ -25,6 +25,98 @@ class DSATextParserTests(unittest.TestCase):
         self.path.write_text(content, encoding="utf-8")
         return self.path
 
+    def test_structured_diagnostics_account_for_every_can_record_without_leaking_data(self):
+        from core.log_parsers.diagnostics import ParserDiagnostics
+        private = "PRIVATE_DIAGNOSTIC_CONTENT"
+        self.write(HEADER + "$Log.Channels = 2\n$Log.Ch000.BusType = CAN_HS\n"
+                   + "$Log.Ch000.BaudRate = 500000 [Baud]\n"
+                   + dsa_frame(channel=0) + dsa_frame(channel=3)
+                   + dsa_frame(dlc=7) + dsa_frame(frame_type=private)
+                   + "Ch000(CAN) Unhandled record\n# ordinary comment\n")
+        diagnostics = ParserDiagnostics()
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING") as logs:
+            messages = load_log(self.path, channel=0, diagnostics=diagnostics)
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(diagnostics.total_can_records, 5)
+        self.assertEqual(diagnostics.parsed_frames, 2)
+        self.assertEqual(diagnostics.malformed_frames, 1)
+        self.assertEqual(diagnostics.unsupported_frames, 1)
+        self.assertEqual(diagnostics.other_skipped_can_frames, 1)
+        self.assertEqual(diagnostics.total_can_records, diagnostics.parsed_frames + diagnostics.skipped_frames)
+        self.assertEqual(diagnostics.channels, [0, 3])
+        self.assertEqual(diagnostics.frames_by_channel, {0: 1, 3: 1})
+        self.assertEqual(diagnostics.selected_channel, 0)
+        self.assertEqual(diagnostics.selected_channel_frames, 1)
+        self.assertEqual(diagnostics.pipeline_frames, 0)
+        self.assertEqual(diagnostics.declared_channel_count, 2)
+        self.assertEqual(diagnostics.bus_types, {0: "CAN_HS"})
+        self.assertEqual(diagnostics.baud_rates, {0: 500000})
+        self.assertTrue(diagnostics.scan_complete)
+        self.assertTrue(diagnostics.has_warnings)
+        self.assertNotIn(private, str(diagnostics))
+        self.assertNotIn(private, str(logs.output))
+        self.assertNotIn(str(self.path), str(logs.output))
+        self.assertEqual(set(messages[0]), {"timestamp", "channel", "can_id", "dlc", "data"})
+
+    def test_diagnostics_preserve_timestamp_precision_order_and_discontinuities(self):
+        from core.log_parsers.diagnostics import ParserDiagnostics
+        self.write(HEADER + dsa_frame(timestamp="00:00:22.915.223")
+                   + dsa_frame(timestamp="00:00:22.919.897")
+                   + dsa_frame(timestamp="00:00:21.000.001"))
+        diagnostics = ParserDiagnostics()
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            messages = load_log(self.path, channel=0, diagnostics=diagnostics)
+        self.assertAlmostEqual((messages[1]["timestamp"] - messages[0]["timestamp"]) * 1000, 4.674, places=9)
+        self.assertEqual(diagnostics.timestamp_discontinuities, 1)
+        self.assertEqual(diagnostics.first_timestamp, 22.915223)
+        self.assertEqual(diagnostics.last_timestamp, 21.000001)
+        self.assertEqual(messages[-1]["timestamp"], 21.000001)
+
+    def test_diagnostics_reset_per_call_and_errors_stay_at_file_level(self):
+        from core.log_parsers.diagnostics import ParserDiagnostics
+        diagnostics = ParserDiagnostics()
+        malformed = dsa_frame().replace("Ch000(CAN)", "Ch?(CAN)")
+        self.write(HEADER + malformed * 20 + dsa_frame())
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            self.assertEqual(get_log_channels(self.path, diagnostics=diagnostics), [0])
+        self.assertEqual(diagnostics.malformed_frames, 20)
+        self.assertEqual(diagnostics.frames_by_channel, {0: 1})
+        self.assertLessEqual(len(diagnostics.examples), 5)
+        self.write(HEADER + dsa_frame(channel=1))
+        get_log_channels(self.path, diagnostics=diagnostics)
+        self.assertEqual(diagnostics.parsed_frames, 1)
+        self.assertEqual(diagnostics.malformed_frames, 0)
+        self.assertEqual(diagnostics.channels, [1])
+        self.assertFalse(diagnostics.has_warnings)
+        self.write("Unsupported header\n")
+        with self.assertRaises(ValueError):
+            get_log_channels(self.path, diagnostics=diagnostics)
+        self.assertFalse(diagnostics.scan_complete)
+        self.assertEqual(diagnostics.parsed_frames, 0)
+
+    def test_no_valid_frames_still_populates_failure_diagnostics(self):
+        from core.log_parsers.diagnostics import ParserDiagnostics
+        self.write(HEADER + dsa_frame(dlc=7) + dsa_frame(frame_type="29n"))
+        diagnostics = ParserDiagnostics()
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            with self.assertRaisesRegex(ValueError, "No valid.*CAN"):
+                get_log_channels(self.path, diagnostics=diagnostics)
+        self.assertEqual(diagnostics.total_can_records, 2)
+        self.assertEqual(diagnostics.parsed_frames, 0)
+        self.assertEqual(diagnostics.malformed_frames, 1)
+        self.assertEqual(diagnostics.unsupported_frames, 1)
+
+    def test_missing_channel_is_file_level_error_and_lin_is_not_a_can_error(self):
+        from core.log_parsers.diagnostics import ParserDiagnostics
+        self.write(HEADER + dsa_frame() + dsa_frame().replace("Ch000(CAN)", "")
+                   + dsa_frame().replace("(CAN)", "(LIN)"))
+        diagnostics = ParserDiagnostics()
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            get_log_channels(self.path, diagnostics=diagnostics)
+        self.assertEqual(diagnostics.total_can_records, 2)
+        self.assertEqual(diagnostics.malformed_frames, 1)
+        self.assertEqual(diagnostics.frames_by_channel, {0: 1})
+
     def test_detects_both_signatures_with_bom_and_assignment_whitespace(self):
         from core.log_parsers.dsa_txt_parser import DSATextParser
         from core.log_parsers.registry import detect_txt_parser

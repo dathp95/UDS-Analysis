@@ -93,6 +93,62 @@ class DSALogAnalyzerTests(unittest.TestCase):
         self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
         self.assertIsNone(self.tab.analysis_controller.pipeline_result)
 
+    def test_diagnostics_are_visible_after_discovery_and_analysis_with_nonblocking_warning(self):
+        content = (HEADER + dsa_frame(can_id="682", data="02 10 03 AA AA AA AA AA")
+                   + dsa_frame(timestamp="00:00:21.098.604", data="06 50 03 00 32 00 C8 CC")
+                   + dsa_frame(channel=3) + dsa_frame(dlc=7) + dsa_frame(frame_type="29n"))
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            self.load(content)
+        panel = self.tab.right_panel.action_panel
+        self.assertIn("warnings", panel.lbl_analysis_status.text().lower())
+        self.assertFalse(panel.lbl_parser_diagnostics.isHidden())
+        self.assertIn("Malformed: 1", panel.lbl_parser_diagnostics.text())
+        self.assertIn("Unsupported: 1", panel.lbl_parser_diagnostics.text())
+        self.warning.assert_not_called()
+        self.info.assert_not_called()
+        self.tab.channel_selector.cmb_channel.setCurrentIndex(0)
+        self.assertIn("Channel 0: 2", panel.lbl_parser_diagnostics.text())
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            self.tab.fn_run_clicked()
+            self.wait_for(lambda: self.tab._analysis_thread is None)
+        self.assertEqual(panel.lbl_analysis_status.text(), "Completed with warnings")
+        self.assertEqual(self.tab.analysis_controller.pipeline_result["parser_diagnostics"].pipeline_frames, 2)
+        self.assertIn("incomplete", panel.lbl_parser_diagnostics.text().lower())
+        self.assertIn("Frames supplied to UDS: 2", panel.lbl_parser_diagnostics.toolTip())
+        self.tab.fn_log_file_changed("")
+        self.assertTrue(panel.lbl_parser_diagnostics.isHidden())
+
+    def test_no_valid_frames_prevents_analyze_and_clears_diagnostics(self):
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            self.load(HEADER + dsa_frame(dlc=7) + dsa_frame(frame_type="29n"))
+        self.assertFalse(self.tab.right_panel.action_panel.btn_run.isEnabled())
+        self.assertIsNone(self.tab.channel_selector.fn_channel())
+        self.assertTrue(self.tab.right_panel.action_panel.lbl_parser_diagnostics.isHidden())
+        self.warning.assert_called_once()
+
+    def test_parser_summary_preserves_theme_and_is_removed_for_other_formats(self):
+        from gui.themes.theme import ThemeType
+        from gui.themes.theme_manager import ThemeManager
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            self.load(HEADER + dsa_frame() + dsa_frame(dlc=7))
+        panel = self.tab.right_panel.action_panel
+        original_theme = ThemeManager.fn_theme()
+        try:
+            for theme in (ThemeType.LIGHT, ThemeType.DARK):
+                ThemeManager.fn_set_theme(theme)
+                self.tab.fn_refresh_theme()
+                self.assertIn(ThemeManager.fn_colors().WARNING, panel.lbl_parser_diagnostics.styleSheet())
+                self.assertTrue(panel.lbl_parser_diagnostics.wordWrap())
+        finally:
+            ThemeManager.fn_set_theme(original_theme)
+        asc = self.path.with_suffix(".asc")
+        asc.write_text("0.001 1 682 Rx d 8 02 10 03 AA AA AA AA AA\n", encoding="utf-8")
+        self.tab.log_selector.set_path(str(asc))
+        self.tab.fn_log_file_changed(str(asc))
+        self.wait_for(lambda: self.tab._log_channel_thread is None)
+        self.assertTrue(panel.lbl_parser_diagnostics.isHidden())
+        self.assertEqual(panel.lbl_analysis_status.text(), "Log loaded")
+
 
 if __name__ == "__main__":
     unittest.main()

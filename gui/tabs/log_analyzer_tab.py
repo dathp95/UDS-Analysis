@@ -38,6 +38,7 @@ class LogAnalyzerTab(QWidget):
         self._log_loading = False
         self._log_channel_thread = None
         self._log_channel_worker = None
+        self._parser_diagnostics = None
 
         # Controllers
         self._create_controllers()
@@ -365,12 +366,25 @@ class LogAnalyzerTab(QWidget):
     def _invalidate_analysis_result(self) -> None:
         self.analysis_controller.pipeline_result = None
         self.filter_box.fn_set_refresh_enabled(False)
+        if self._parser_diagnostics is not None:
+            self._parser_diagnostics.pipeline_frames = 0
+        self._fn_refresh_parser_diagnostics()
+
+    def _fn_parser_diagnostics_ready(self, diagnostics) -> None:
+        self._parser_diagnostics = diagnostics
+        self._fn_refresh_parser_diagnostics()
+
+    def _fn_refresh_parser_diagnostics(self) -> None:
+        if self._parser_diagnostics is not None:
+            self._parser_diagnostics.selected_channel = self.channel_selector.fn_channel()
+        self.right_panel.action_panel.fn_set_parser_diagnostics(self._parser_diagnostics)
 
     def fn_log_file_changed(
         self,
         file_path: str,
     ):
 
+        self._parser_diagnostics = None
         self._invalidate_analysis_result()
         self.channel_selector.fn_clear()
         self.right_panel.action_panel.fn_set_analysis_ready()
@@ -401,6 +415,7 @@ class LogAnalyzerTab(QWidget):
         self._log_channel_worker.moveToThread(
             self._log_channel_thread
         )
+        self._log_channel_worker.diagnostics_ready.connect(self._fn_parser_diagnostics_ready)
 
         self._log_channel_thread.started.connect(
             self._log_channel_worker.run
@@ -447,12 +462,16 @@ class LogAnalyzerTab(QWidget):
 
         self._log_loading = False
         self.channel_selector.fn_set_channels(valid_channels)
+        self._fn_refresh_parser_diagnostics()
         self._fn_set_log_loading_inputs_enabled(True)
         self.right_panel.action_panel.fn_set_log_loaded()
         self._update_analyze_state()
 
         channel_count = len(valid_channels)
         plural = "s" if channel_count != 1 else ""
+
+        if self._parser_diagnostics is not None and self._parser_diagnostics.has_warnings:
+            return
 
         QMessageBox.information(
             self,
@@ -468,6 +487,7 @@ class LogAnalyzerTab(QWidget):
         message: str,
     ) -> None:
         self._log_loading = False
+        self._parser_diagnostics = None
         self._invalidate_analysis_result()
         self.channel_selector.fn_set_channels([])
         self._fn_set_log_loading_inputs_enabled(True)
@@ -593,6 +613,8 @@ class LogAnalyzerTab(QWidget):
     ):
         self._analysis_running = False
         self._fn_set_analysis_inputs_enabled(True)
+        self._parser_diagnostics = result.get("parser_diagnostics")
+        self._fn_refresh_parser_diagnostics()
 
         rows = fn_build_transaction_rows(
             result["transactions"]

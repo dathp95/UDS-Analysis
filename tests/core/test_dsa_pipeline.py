@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import can
@@ -52,6 +53,51 @@ class DSAPipelineTests(unittest.TestCase):
         self.assertEqual(security["positive_response"]["payload"],
                          "67 03 AA 6F BC AD F1 77 23 21 BB C3 61 0F CA C7 49 BD")
         self.assertAlmostEqual(security["response_time"], 0.001001, places=9)
+
+    def test_analysis_result_contains_file_and_selected_channel_diagnostics(self):
+        with self.path.open("a", encoding="utf-8") as log:
+            log.write(dsa_frame(channel=3))
+            log.write(dsa_frame(dlc=7))
+        with self.assertLogs("core.log_parsers.dsa_txt_parser", level="WARNING"):
+            statuses = []
+            result = run_pipeline(str(self.path), self.vehicle, channel=0, logger=statuses.append)
+        diagnostics = result["parser_diagnostics"]
+        self.assertEqual(diagnostics.parsed_frames, 11)
+        self.assertEqual(diagnostics.selected_channel_frames, 10)
+        self.assertEqual(diagnostics.pipeline_frames, 10)
+        self.assertEqual(diagnostics.channels, [0, 3])
+        self.assertEqual(diagnostics.malformed_frames, 1)
+        self.assertEqual(len(result["transactions"]), 3)
+        self.assertEqual(statuses[-1], "Completed with parser warnings")
+
+    def test_optional_local_validator_is_read_only_and_skips_missing_file(self):
+        from tools.validate_dsa_log import validate_log
+        before = self.path.read_bytes()
+        with patch("tools.validate_dsa_log._uds_summary", return_value={"status": "not_validated"}):
+            report = validate_log(self.path)
+        self.assertEqual(report["status"], "validated")
+        self.assertEqual(report["diagnostics"]["total_can_records"], 10)
+        self.assertTrue(report["source_file_unchanged"])
+        self.assertTrue(report["representative_records_match_including_padding"])
+        self.assertNotIn(str(self.path), str(report))
+        self.assertNotIn("AA 6F BC AD", str(report))
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(validate_log(self.path.with_name("absent.txt"))["status"], "skipped")
+
+    def test_security_access_key_and_routine_control_regression(self):
+        with self.path.open("a", encoding="utf-8") as log:
+            for timestamp, can_id, data in (
+                ("00:00:24.000.001", "682", "04 27 04 11 22 AA AA AA"),
+                ("00:00:24.001.002", "602", "02 67 04 CC CC CC CC CC"),
+                ("00:00:25.000.001", "682", "04 31 01 02 06 AA AA AA"),
+                ("00:00:25.001.002", "602", "04 71 01 02 06 CC CC CC"),
+            ):
+                log.write(dsa_frame(timestamp=timestamp, can_id=can_id, data=data))
+        result = run_pipeline(str(self.path), self.vehicle, channel=0)
+        key, routine = result["transactions"][-2:]
+        self.assertEqual(key["positive_response"]["payload"], "67 04")
+        self.assertEqual(routine["positive_response"]["payload"], "71 01 02 06")
+        self.assertAlmostEqual(routine["response_time"], 0.001001, places=9)
 
     def test_multiframe_reassembly_is_isolated_by_selected_channel_and_can_id(self):
         with self.path.open("a", encoding="utf-8") as log:

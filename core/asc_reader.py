@@ -117,7 +117,7 @@ def _get_asc_channels(file_name):
     return sorted(channels)
 
 
-def get_log_channels(log_file):
+def get_log_channels(log_file, *, diagnostics=None):
 
     suffix = Path(log_file).suffix.lower()
 
@@ -128,13 +128,16 @@ def get_log_channels(log_file):
         return get_blf_channels(log_file)
 
     if suffix == ".txt":
+        if diagnostics is not None:
+            diagnostics.reset()
+            return detect_txt_parser(log_file).get_channels(log_file, diagnostics=diagnostics)
         return detect_txt_parser(log_file).get_channels(log_file)
 
     raise ValueError(f"Unsupported log format: {suffix}")
 
 
 
-def load_log(log_file, channel=None):
+def load_log(log_file, channel=None, *, diagnostics=None):
 
     suffix = Path(log_file).suffix.lower()
 
@@ -146,6 +149,9 @@ def load_log(log_file, channel=None):
         return load_asc(asc_file, channel=channel)
 
     if suffix == ".txt":
+        if diagnostics is not None:
+            diagnostics.reset(channel)
+            return detect_txt_parser(log_file).load_messages(log_file, channel=channel, diagnostics=diagnostics)
         return detect_txt_parser(log_file).load_messages(log_file, channel=channel)
 
     raise ValueError(f"Unsupported log format: {suffix}")

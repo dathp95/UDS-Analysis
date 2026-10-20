@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from core.log_parsers.diagnostics import ParserDiagnostics
+
 
 HEADER_LIMIT = 8192
 
@@ -26,9 +28,10 @@ class BaseTextLogParser(ABC):
         """Identify this format from a bounded file prefix."""
 
     @abstractmethod
-    def get_channels(self, file_path: str | Path) -> list[int]:
+    def get_channels(self, file_path: str | Path, *, diagnostics: ParserDiagnostics | None = None) -> list[int]:
         """Return sorted unique channels from valid CAN records."""
 
     @abstractmethod
-    def load_messages(self, file_path: str | Path, channel: int | None = None) -> list[dict]:
+    def load_messages(self, file_path: str | Path, channel: int | None = None,
+                      *, diagnostics: ParserDiagnostics | None = None) -> list[dict]:
         """Load normalized messages, raising when no valid/selected channel exists."""
