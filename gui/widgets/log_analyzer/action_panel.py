@@ -83,7 +83,7 @@ class ActionPanel(QWidget):
         )
 
         self.btn_copy = PrimaryButton(
-            "COPY ASC DATA",
+            "COPY DATA TABLE",
             width=160,
             height=40,
         )
@@ -93,6 +93,7 @@ class ActionPanel(QWidget):
             width=160,
             height=40,
         )
+        self.btn_copy.setEnabled(False)
 
         self.grp_quick_filter_info = self._fn_create_detail_group(
             "Quick Filter"
@@ -193,14 +194,14 @@ class ActionPanel(QWidget):
             clear=False,
         )
 
-    def fn_set_analyzed_state(self) -> None:
+    def fn_set_analyzed_state(self, has_data: bool = True) -> None:
         """Update action buttons after analysis is complete."""
 
         self.btn_run.setText("Analyze")
         self._fn_enable_buttons(
             run=True,
             export=True,
-            copy=True,
+            copy=has_data,
             clear=True,
         )
 

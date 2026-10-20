@@ -627,7 +627,7 @@ class LogAnalyzerTab(QWidget):
         self.right_panel.action_panel.fn_clear_transaction_info()
 
         self.right_panel.action_panel.fn_set_analysis_completed()
-        self.right_panel.action_panel.fn_set_analyzed_state()
+        self.right_panel.action_panel.fn_set_analyzed_state(has_data=bool(rows))
         self.left_panel.fn_enable_quick_access()
 
     def _fn_analysis_failed(
@@ -659,7 +659,7 @@ class LogAnalyzerTab(QWidget):
     def fn_copy_clicked(self):
         self.clipboard_controller.fn_copy(
             parent=self,
-            log_file=self.log_selector.path(),
+            rows=self.tbl_result.fn_visible_rows(),
         )
 
     def fn_clear_clicked(self) -> None:

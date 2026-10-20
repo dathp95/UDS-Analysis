@@ -3,14 +3,10 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from core.services.clipboard_service import ClipboardService
+from core.transaction_formatter import fn_format_transaction_rows_tsv
 
 
 class ClipboardController:
-
-    def __init__(self):
-
-        self.clipboard_service = ClipboardService()
 
     # ==========================================
     # Public
@@ -19,16 +15,16 @@ class ClipboardController:
     def fn_copy(
         self,
         parent,
-        log_file: str,
+        rows: list[dict],
     ):
 
         try:
 
-            asc_file, content = (
-                self.clipboard_service.fn_read_asc_content(
-                    log_file
-                )
-            )
+            if not rows:
+                QMessageBox.information(parent, "Copy", "No visible transactions to copy.")
+                return
+
+            content = fn_format_transaction_rows_tsv(rows)
 
             QApplication.clipboard().setText(
                 content
@@ -37,7 +33,7 @@ class ClipboardController:
             QMessageBox.information(
                 parent,
                 "Copy",
-                f"Copied ASC log:\n\n{asc_file}",
+                f"Copied {len(rows)} transaction{'s' if len(rows) != 1 else ''}.",
             )
 
         except Exception as error:

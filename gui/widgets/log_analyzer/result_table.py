@@ -14,21 +14,14 @@ from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.menu_style import fn_apply_menu_style
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.utils.payload_format import format_payload_input
+from core.transaction_formatter import TRANSACTION_COLUMNS
 
 
 class ResultTable(PrimaryTable):
     create_quick_filter_requested = Signal(dict)
     transaction_selected = Signal(dict)
 
-    TRANSACTION_FIELDS = [
-        "ECU",
-        "Time",
-        "Activity",
-        "Request",
-        "Response",
-        "RT (ms)",
-        "Status",
-    ]
+    TRANSACTION_FIELDS = list(TRANSACTION_COLUMNS)
 
     def __init__(self):
         super().__init__()
@@ -98,13 +91,9 @@ class ResultTable(PrimaryTable):
 
         for row, item in enumerate(data):
 
-            self.setItem(row, 0, self.fn_create_item(item["ECU"], row))
-            self.setItem(row, 1, self.fn_create_item(item["Time"], row))
-            self.setItem(row, 2, self.fn_create_item(item["Activity"], row))
-            self.setItem(row, 3, self.fn_create_item(item["Request"], row))
-            self.setItem(row, 4, self.fn_create_item(item["Response"], row))
-            self.setItem(row, 5, self.fn_create_item(item["RT (ms)"], row))
-            self.setItem(row, 6, self.fn_create_item(item["Status"], row))
+            for column, field in enumerate(self.TRANSACTION_FIELDS):
+                value = item.get(field, "")
+                self.setItem(row, column, self.fn_create_item("" if value is None else value, row))
 
    
     
@@ -245,6 +234,11 @@ class ResultTable(PrimaryTable):
             data[header_item.text()] = "" if item is None else item.text()
 
         return data
+
+    def fn_visible_rows(self) -> list[dict]:
+        """Return all non-hidden rows in displayed order, ignoring selection."""
+        return [self.fn_row_data(row) for row in range(self.rowCount())
+                if not self.isRowHidden(row)]
 
     def _fn_show_context_menu(
             self,
