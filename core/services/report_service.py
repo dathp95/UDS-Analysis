@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QFileDialog
 
 from core.report_export import export_workbook
 
+import re
 
 class ReportService:
 
@@ -17,34 +18,26 @@ class ReportService:
     # ==========================================
 
     def fn_export(
-
             self,
-
             parent,
-
-            pipeline_result
-
+            pipeline_result,
+            vehicle_name: str = "",
         ):
-
-        
-
-        output_file = self.fn_choose_output_file(parent)
+        output_file = self.fn_choose_output_file(
+            parent,
+            vehicle_name=vehicle_name,
+        )
 
         if output_file is None:
-
             return None
 
         success = export_workbook(
-
             summary=pipeline_result["summary"],
-
             ecu_reports=pipeline_result["ecu_reports"],
-            
             transactions=pipeline_result["transactions"],
-
-            output_file=output_file
-
+            output_file=output_file,
         )
+
         if not success:
             return None
 
@@ -52,47 +45,40 @@ class ReportService:
     
     
     def fn_choose_output_file(
-
             self,
-
-            parent
-
+            parent,
+            vehicle_name: str = "",
         ):
-
         report_folder = self.fn_get_report_folder()
 
-        timestamp = datetime.now().strftime(
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            "%Y%m%d_%H%M%S"
+        safe_vehicle = re.sub(
+            r'[<>:"/\\|?*\x00-\x1f]',
+            "_",
+            vehicle_name.strip(),
+        ).strip(" .")
 
-        )
-
-        default_name = (
-
-            f"EEIV_ecu_reports_{timestamp}.xlsx"
-
-        )
+        if safe_vehicle:
+            default_name = (
+                f"EEIV_LogAnalyzer_Report_{safe_vehicle}_{timestamp}.xlsx"
+            )
+        else:
+            default_name = f"EEIV_LogAnalyzer_Report_{timestamp}.xlsx"
 
         default_path = report_folder / default_name
 
         output_file, _ = QFileDialog.getSaveFileName(
-
             parent,
-
             "Save Excel Report",
-
             str(default_path),
-
-            "Excel Files (*.xlsx)"
-
+            "Excel Files (*.xlsx)",
         )
 
         if not output_file:
-
             return None
 
         if not output_file.lower().endswith(".xlsx"):
-
             output_file += ".xlsx"
 
         return output_file

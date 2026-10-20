@@ -651,9 +651,16 @@ class LogAnalyzerTab(QWidget):
         self._analysis_worker = None
 
     def fn_export_clicked(self):
+        vehicle_name = (
+            self._current_vehicle.name
+            if self._current_vehicle is not None
+            else ""
+        )
+
         self.export_controller.fn_export(
             parent=self,
             pipeline_result=self.analysis_controller.pipeline_result,
+            vehicle_name=vehicle_name,
         )
 
     def fn_copy_clicked(self):

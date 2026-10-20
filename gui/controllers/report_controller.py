@@ -14,57 +14,38 @@ class ReportController:
     # ==========================================
 
     def fn_export(
-        self,
-        parent,
-        pipeline_result
-    ):
-
+            self,
+            parent,
+            pipeline_result,
+            vehicle_name: str = "",
+        ):
         if pipeline_result is None:
-
             QMessageBox.warning(
-
                 parent,
-
                 "Export",
-
-                "Please run analysis before exporting."
-
+                "Please run analysis before exporting.",
             )
-
             return
 
         try:
-
             output_file = self.report_service.fn_export(
-
                 parent=parent,
-
-                pipeline_result=pipeline_result
-
+                pipeline_result=pipeline_result,
+                vehicle_name=vehicle_name,
             )
 
             if output_file is None:
-
                 return
 
             QMessageBox.information(
-
                 parent,
-
                 "Export",
-
-                f"Excel report saved:\n\n{output_file}"
-
+                f"Excel report saved:\n\n{output_file}",
             )
 
         except Exception as error:
-
             QMessageBox.critical(
-
                 parent,
-
                 "Export Error",
-
-                str(error)
-
+                str(error),
             )
