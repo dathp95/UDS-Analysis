@@ -11,6 +11,10 @@ from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
+
 
 class ExportQuickFiltersDialog(QDialog):
 
@@ -100,13 +104,21 @@ class ExportQuickFiltersDialog(QDialog):
         return self.txt_filters.toPlainText()
 
     def fn_refresh_theme(self):
-
         colors = ThemeManager.fn_colors()
 
         self.txt_filters.setStyleSheet(
-            f"QPlainTextEdit {{ background: {colors.WINDOW}; color: {colors.TEXT}; }}"
+            f"""
+            QPlainTextEdit {{
+                background: {colors.WINDOW};
+                color: {colors.TEXT};
+                border: 1px solid {colors.BORDER};
+                border-radius: 4px;
+                padding: 6px;
+            }}
+            """
         )
 
-        self.btn_close.fn_refresh_theme()
+        fn_apply_scrollbar_style(self.txt_filters)
 
+        self.btn_close.fn_refresh_theme()
         self.btn_copy.fn_refresh_theme()

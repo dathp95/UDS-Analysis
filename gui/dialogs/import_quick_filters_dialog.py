@@ -6,6 +6,10 @@ from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.utils.payload_format import format_payload_input
 
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
+
 
 class ImportQuickFiltersDialog(QDialog):
     def __init__(self, parent=None):
@@ -65,8 +69,20 @@ class ImportQuickFiltersDialog(QDialog):
 
     def fn_refresh_theme(self):
         colors = ThemeManager.fn_colors()
+
         self.txt_filters.setStyleSheet(
-            f"QPlainTextEdit {{ background: {colors.WINDOW}; color: {colors.TEXT}; }}"
+            f"""
+            QPlainTextEdit {{
+                background: {colors.WINDOW};
+                color: {colors.TEXT};
+                border: 1px solid {colors.BORDER};
+                border-radius: 4px;
+                padding: 6px;
+            }}
+            """
         )
+
+        fn_apply_scrollbar_style(self.txt_filters)
+
         self.btn_cancel.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()

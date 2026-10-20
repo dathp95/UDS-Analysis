@@ -1,6 +1,6 @@
 [
     {
-        "id": 11,
+        "id": 1,
         "name": "MHU-ODO",
         "enabled": true,
         "filters": {
@@ -10,7 +10,7 @@
         }
     },
     {
-        "id": 6,
+        "id": 2,
         "name": "EPS-READ CDS",
         "enabled": true,
         "filters": {
@@ -20,7 +20,7 @@
         }
     },
     {
-        "id": 12,
+        "id": 3,
         "name": "MHU-READ F115",
         "enabled": true,
         "filters": {
@@ -30,7 +30,7 @@
         }
     },
     {
-        "id": 2,
+        "id": 4,
         "name": "ACM-READ CDS",
         "enabled": true,
         "filters": {
@@ -40,7 +40,7 @@
         }
     },
     {
-        "id": 23,
+        "id": 5,
         "name": "MHU-Read FRS Number Coding",
         "enabled": true,
         "filters": {
@@ -50,17 +50,17 @@
         }
     },
     {
+        "id": 6,
         "name": "MHU-READ F112",
+        "enabled": true,
         "filters": {
             "ecu": "MHU",
             "request": "22 F1 12",
             "response": ""
-        },
-        "id": 10,
-        "enabled": true
+        }
     },
     {
-        "id": 1,
+        "id": 7,
         "name": "BCM-READ VIN",
         "enabled": true,
         "filters": {
@@ -70,7 +70,7 @@
         }
     },
     {
-        "id": 3,
+        "id": 8,
         "name": "BCM- READ CDS",
         "enabled": true,
         "filters": {
@@ -80,7 +80,7 @@
         }
     },
     {
-        "id": 4,
+        "id": 9,
         "name": "BCM-READ ODO",
         "enabled": true,
         "filters": {
@@ -90,7 +90,7 @@
         }
     },
     {
-        "id": 5,
+        "id": 10,
         "name": "BPM-READ CDS",
         "enabled": true,
         "filters": {
@@ -100,7 +100,7 @@
         }
     },
     {
-        "id": 7,
+        "id": 11,
         "name": "ESC-READ CDS",
         "enabled": true,
         "filters": {
@@ -110,7 +110,7 @@
         }
     },
     {
-        "id": 8,
+        "id": 12,
         "name": "SGC-READ CDS",
         "enabled": true,
         "filters": {
@@ -120,7 +120,7 @@
         }
     },
     {
-        "id": 9,
+        "id": 13,
         "name": "MHU-READ CDS",
         "enabled": true,
         "filters": {
@@ -130,7 +130,7 @@
         }
     },
     {
-        "id": 13,
+        "id": 14,
         "name": "USS-READ CDS",
         "enabled": true,
         "filters": {
@@ -140,7 +140,7 @@
         }
     },
     {
-        "id": 14,
+        "id": 15,
         "name": "READ VIN ALL",
         "enabled": true,
         "filters": {
@@ -150,7 +150,7 @@
         }
     },
     {
-        "id": 15,
+        "id": 16,
         "name": "READ-REV NUMBER",
         "enabled": true,
         "filters": {
@@ -160,7 +160,7 @@
         }
     },
     {
-        "id": 16,
+        "id": 17,
         "name": "READ HW NUMBER",
         "enabled": true,
         "filters": {
@@ -170,7 +170,7 @@
         }
     },
     {
-        "id": 17,
+        "id": 18,
         "name": "READ ECU PART NUMBER",
         "enabled": true,
         "filters": {
@@ -180,7 +180,7 @@
         }
     },
     {
-        "id": 18,
+        "id": 19,
         "name": "READ-HW-REV",
         "enabled": true,
         "filters": {
@@ -190,17 +190,17 @@
         }
     },
     {
+        "id": 20,
         "name": "READ SW -NUMBER",
+        "enabled": true,
         "filters": {
             "ecu": "",
             "request": "22 F1 88",
             "response": ""
-        },
-        "id": 19,
-        "enabled": true
+        }
     },
     {
-        "id": 20,
+        "id": 21,
         "name": "READ-SW-REV",
         "enabled": true,
         "filters": {
@@ -210,7 +210,7 @@
         }
     },
     {
-        "id": 21,
+        "id": 22,
         "name": "BCM-KEYFOB-Check Key Fob Learning Status",
         "enabled": true,
         "filters": {
@@ -220,7 +220,7 @@
         }
     },
     {
-        "id": 22,
+        "id": 23,
         "name": "BCM-IMMOKEY-Confirm BCM ISK Write",
         "enabled": true,
         "filters": {
