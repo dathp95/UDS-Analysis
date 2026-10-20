@@ -1,0 +1,613 @@
+{
+    "source_file": "USS_v2.2.11.xlsx",
+    "source_path": "C:\\REDO\\CODINGTOOL\\config\\USS_v2.2.11.xlsx",
+    "rows": [
+        {
+            "parameter": "Format Byte（Data length Byte）",
+            "byte_pos": "3",
+            "bit_pos": "0",
+            "bit_length": "16",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Short VIN",
+            "byte_pos": "5",
+            "bit_pos": "0",
+            "bit_length": "56",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        },
+        {
+            "parameter": "Model Year",
+            "byte_pos": "12",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x26",
+                    "label": "Y026: MY_2026"
+                },
+                {
+                    "raw_value": "0x27",
+                    "label": "Y027: MY_2027"
+                },
+                {
+                    "raw_value": "0x28",
+                    "label": "Y028: MY_2028"
+                },
+                {
+                    "raw_value": "0x29",
+                    "label": "Y029: MY_2029"
+                },
+                {
+                    "raw_value": "0x30",
+                    "label": "Y02A: MY_2030"
+                },
+                {
+                    "raw_value": "0x31",
+                    "label": "Y02B: MY_2031"
+                },
+                {
+                    "raw_value": "0x32",
+                    "label": "Y02C: MY_2032"
+                },
+                {
+                    "raw_value": "0x33",
+                    "label": "Y02D: MY_2033"
+                },
+                {
+                    "raw_value": "0x34",
+                    "label": "Y02E: MY_2034"
+                },
+                {
+                    "raw_value": "0x35",
+                    "label": "Y02F: MY_2035"
+                },
+                {
+                    "raw_value": "0x36",
+                    "label": "Y02G: MY_2036"
+                },
+                {
+                    "raw_value": "0x37",
+                    "label": "Y02H: MY_2037"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle Name",
+            "byte_pos": "13",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VF6NP"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "VF8NP (Old name VF7NP)"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "VF9NP (Old name VF8NP)"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "VF3"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "VF5"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "VF Wild"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "LH800"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "LH900"
+                },
+                {
+                    "raw_value": "0xA",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Vehicle Variant",
+            "byte_pos": "14",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "BASE_STANDARD (Base / Standard / Earth - Comfort)"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "MID_COMFORT (Mid / Earth - Comfort OPT / Advanced/Full Comfort / L2)"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "HIGH_PREMIUM (High / Top - Advanced / L2 Premium)/Sky+(Opt2/Opt3)"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "TOP_SMART (Top - Advanced + Tech + Smart / L2+ Premium)"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "WIND (Wind variant)"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "SKY (Sky variant)"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "STAR (Star variant)"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "HERIOGREEN (HerioGreen variant)"
+                },
+                {
+                    "raw_value": "0x0E",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Sensor Number",
+            "byte_pos": "16",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "2 USS"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "4 USS"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Sale area - (Country code)",
+            "byte_pos": "17",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "VN"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "US"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "Europe"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "Canada"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "Germany"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "France"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Netherland"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "Australia"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Thailand"
+                },
+                {
+                    "raw_value": "0xB",
+                    "label": "Singapore"
+                },
+                {
+                    "raw_value": "0xC",
+                    "label": "Israel"
+                },
+                {
+                    "raw_value": "0xD",
+                    "label": "Malaysia"
+                },
+                {
+                    "raw_value": "0xE",
+                    "label": "Indonesia"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Lao"
+                },
+                {
+                    "raw_value": "0x10",
+                    "label": "Cambodia"
+                },
+                {
+                    "raw_value": "0x11",
+                    "label": "Phillipines"
+                },
+                {
+                    "raw_value": "0x12",
+                    "label": "Myanmar"
+                },
+                {
+                    "raw_value": "0x13",
+                    "label": "Nepal"
+                },
+                {
+                    "raw_value": "0x14",
+                    "label": "Turkey"
+                },
+                {
+                    "raw_value": "0x15",
+                    "label": "Lebanon"
+                },
+                {
+                    "raw_value": "0x16",
+                    "label": "Nigeria"
+                },
+                {
+                    "raw_value": "0x17",
+                    "label": "India"
+                },
+                {
+                    "raw_value": "0x18",
+                    "label": "Mexico"
+                },
+                {
+                    "raw_value": "0x19",
+                    "label": "Asia"
+                },
+                {
+                    "raw_value": "0x21",
+                    "label": "Middle East"
+                },
+                {
+                    "raw_value": "0x22",
+                    "label": "Italy"
+                },
+                {
+                    "raw_value": "0x23",
+                    "label": "Spain"
+                },
+                {
+                    "raw_value": "0x24",
+                    "label": "Belgium"
+                },
+                {
+                    "raw_value": "0x25",
+                    "label": "Austria"
+                },
+                {
+                    "raw_value": "0x26",
+                    "label": "Poland"
+                },
+                {
+                    "raw_value": "0x27",
+                    "label": "Sweden"
+                },
+                {
+                    "raw_value": "0x28",
+                    "label": "Switzerland"
+                },
+                {
+                    "raw_value": "0x29",
+                    "label": "Romania"
+                },
+                {
+                    "raw_value": "0x2A",
+                    "label": "Greece"
+                },
+                {
+                    "raw_value": "0x2B",
+                    "label": "Mongolia"
+                },
+                {
+                    "raw_value": "0x2C",
+                    "label": "Hong kong"
+                },
+                {
+                    "raw_value": "0x2D",
+                    "label": "Bhutan"
+                },
+                {
+                    "raw_value": "0x2E",
+                    "label": "Sri Lanka"
+                },
+                {
+                    "raw_value": "0x2F",
+                    "label": "Pakistan"
+                },
+                {
+                    "raw_value": "0x30",
+                    "label": "Taiwan"
+                },
+                {
+                    "raw_value": "0x31",
+                    "label": "Palestine"
+                },
+                {
+                    "raw_value": "0x32",
+                    "label": "Bangladesh"
+                },
+                {
+                    "raw_value": "0x33",
+                    "label": "Brazil"
+                },
+                {
+                    "raw_value": "0x34",
+                    "label": "Chile"
+                },
+                {
+                    "raw_value": "0x35",
+                    "label": "Dominica"
+                },
+                {
+                    "raw_value": "0x36",
+                    "label": "Panama"
+                },
+                {
+                    "raw_value": "0x37",
+                    "label": "Colombia"
+                },
+                {
+                    "raw_value": "0x38",
+                    "label": "Peru"
+                },
+                {
+                    "raw_value": "0x39",
+                    "label": "Costa Rica"
+                },
+                {
+                    "raw_value": "0x3A",
+                    "label": "Saudi Arabia"
+                },
+                {
+                    "raw_value": "0x3B",
+                    "label": "UAE"
+                },
+                {
+                    "raw_value": "0x3C",
+                    "label": "Oman"
+                },
+                {
+                    "raw_value": "0x3D",
+                    "label": "Kuwait"
+                },
+                {
+                    "raw_value": "0x3E",
+                    "label": "Qatar"
+                },
+                {
+                    "raw_value": "0x3F",
+                    "label": "Bahrain"
+                },
+                {
+                    "raw_value": "0x40",
+                    "label": "Jordan"
+                },
+                {
+                    "raw_value": "0x41",
+                    "label": "United Kingdom"
+                },
+                {
+                    "raw_value": "0x42",
+                    "label": "Ireland"
+                },
+                {
+                    "raw_value": "0x43",
+                    "label": "Norway- Na uy"
+                },
+                {
+                    "raw_value": "0x44",
+                    "label": "Denmark"
+                },
+                {
+                    "raw_value": "0x45",
+                    "label": "Finland"
+                },
+                {
+                    "raw_value": "0x46",
+                    "label": "Czech Republic"
+                },
+                {
+                    "raw_value": "0x47",
+                    "label": "Hungary"
+                },
+                {
+                    "raw_value": "0x48",
+                    "label": "Slovakia"
+                },
+                {
+                    "raw_value": "0x49",
+                    "label": "Portugal"
+                },
+                {
+                    "raw_value": "0x4A",
+                    "label": "Armenia"
+                },
+                {
+                    "raw_value": "0x4B",
+                    "label": "Kyrgyzstan"
+                },
+                {
+                    "raw_value": "0x4C",
+                    "label": "Egypt"
+                },
+                {
+                    "raw_value": "0x4D",
+                    "label": "South Africa"
+                },
+                {
+                    "raw_value": "0x4E",
+                    "label": "Maroc"
+                },
+                {
+                    "raw_value": "0x4F",
+                    "label": "Kazachstan"
+                },
+                {
+                    "raw_value": "0x50",
+                    "label": "Russia"
+                },
+                {
+                    "raw_value": "0x51",
+                    "label": "Georgia"
+                },
+                {
+                    "raw_value": "0x52",
+                    "label": "Uzbekistan"
+                },
+                {
+                    "raw_value": "0x53",
+                    "label": "Azerbaijan"
+                },
+                {
+                    "raw_value": "0x54",
+                    "label": "Tajikistan"
+                },
+                {
+                    "raw_value": "0xFF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "Ground Clearance",
+            "byte_pos": "18",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": [
+                {
+                    "raw_value": "0x0",
+                    "label": "Unsupported"
+                },
+                {
+                    "raw_value": "0x1",
+                    "label": "170 mm"
+                },
+                {
+                    "raw_value": "0x2",
+                    "label": "190 mm"
+                },
+                {
+                    "raw_value": "0x3",
+                    "label": "175 mm"
+                },
+                {
+                    "raw_value": "0x4",
+                    "label": "189 mm"
+                },
+                {
+                    "raw_value": "0x5",
+                    "label": "178mm"
+                },
+                {
+                    "raw_value": "0x6",
+                    "label": "198mm"
+                },
+                {
+                    "raw_value": "0x7",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0x8",
+                    "label": "228mm"
+                },
+                {
+                    "raw_value": "0x9",
+                    "label": "Reserved"
+                },
+                {
+                    "raw_value": "0xF",
+                    "label": "Invalid"
+                }
+            ]
+        },
+        {
+            "parameter": "CRC",
+            "byte_pos": "20",
+            "bit_pos": "0",
+            "bit_length": "8",
+            "raw_value": "",
+            "decoded_value": "",
+            "decoded_options": []
+        }
+    ]
+}
