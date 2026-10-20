@@ -45,6 +45,7 @@ class CodingValueTab(QWidget):
             self._save_workspace_snapshot
         )
         self.workspace_sidebar.workspace_deleted.connect(self._remove_workspace_panel)
+        self.workspace_sidebar.order_save_requested.connect(self._save_workspace_order)
         self.workspace_sidebar.workspace_renamed.connect(
             lambda _workspace_id, _name: self._save_workspace_state()
         )
@@ -162,16 +163,27 @@ class CodingValueTab(QWidget):
         finally:
             self._restoring_workspaces = False
 
-    def _save_workspace_state(self):
+    def _save_workspace_state(self, *, save_order: bool = False):
         if self._restoring_workspaces:
             return
 
         self._workspace_store.save(
             CodingWorkspaceState(
-                workspaces=tuple(self.workspace_sidebar.workspaces()),
+                workspaces=tuple(
+                    self.workspace_sidebar.workspaces() if save_order
+                    else self.workspace_sidebar.workspaces_in_saved_order()
+                ),
                 active_workspace_id=self.workspace_sidebar.active_workspace_id(),
             )
         )
+
+    def _save_workspace_order(self):
+        try:
+            self._save_workspace_state(save_order=True)
+        except OSError as exc:
+            QMessageBox.warning(self, "Save Order", f"Cannot save Panel order:\n{exc}")
+            return
+        self.workspace_sidebar.mark_order_saved()
 
     def _on_workspace_coding_file_changed(
             self,

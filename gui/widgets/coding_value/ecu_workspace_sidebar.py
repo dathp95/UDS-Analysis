@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import QMimeData, Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QFrame,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
@@ -23,6 +22,16 @@ from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.secondary_button import SecondaryButton
 
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.widgets.log_analyzer.reorderable_filter_area import ReorderableFilterArea
+
+
+class WorkspaceReorderArea(ReorderableFilterArea):
+    MIME_TYPE = "application/x-vcode-coding-workspace"
+
+    def fn_mime_data(self, button):
+        mime = QMimeData()
+        mime.setData(self.MIME_TYPE, button.workspace.id.encode("utf-8"))
+        return mime
 
 
 class EcuWorkspaceItemWidget(QuickAccessButton):
@@ -134,6 +143,7 @@ class EcuWorkspaceSidebar(QWidget):
     workspace_save_requested = Signal(str)
     workspace_renamed = Signal(str, str)
     workspace_deleted = Signal(str)
+    order_save_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -141,6 +151,7 @@ class EcuWorkspaceSidebar(QWidget):
         self._workspaces: list[CodingEcuWorkspace] = []
         self._active_workspace_id: str | None = None
         self._item_by_id: dict[str, EcuWorkspaceItemWidget] = {}
+        self._saved_order: list[str] = []
         self._setup_ui()
         self._connect_signals()
         self.fn_refresh_theme()
@@ -163,8 +174,15 @@ class EcuWorkspaceSidebar(QWidget):
 
         self.btn_add = SecondaryButton("+ Add Panel", width=88, height=28)
         self.btn_save = PrimaryButton("Save", width=88, height=28)
+        self.btn_save_order = SecondaryButton("Save Order", height=28)
+        self.btn_save_order.setEnabled(False)
+        self.lbl_order_status = QLabel()
+        self.lbl_order_status.hide()
+        self._feedback_timer = QTimer(self)
+        self._feedback_timer.setSingleShot(True)
+        self._feedback_timer.timeout.connect(self.lbl_order_status.hide)
 
-        self.scroll_area = QScrollArea()
+        self.scroll_area = WorkspaceReorderArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -190,10 +208,14 @@ class EcuWorkspaceSidebar(QWidget):
 
         layout.addWidget(self.scroll_area, 1)
         layout.addWidget(self.bottom_action_row)
+        layout.addWidget(self.btn_save_order)
+        layout.addWidget(self.lbl_order_status)
 
     def _connect_signals(self):
         self.btn_add.clicked.connect(self._add_workspace_from_dialog)
         self.btn_save.clicked.connect(self._save_active_workspace)
+        self.btn_save_order.clicked.connect(self.order_save_requested)
+        self.scroll_area.order_changed.connect(self._on_order_changed)
 
         self.edit_search.textChanged.connect(self._filter_workspaces)
 
@@ -207,6 +229,7 @@ class EcuWorkspaceSidebar(QWidget):
 
     def _filter_workspaces(self, text):
         keyword = str(text or "").strip().lower()
+        self.scroll_area.fn_set_reorder_enabled(not keyword)
 
         for workspace_id, item in self._item_by_id.items():
             workspace = self.workspace_by_id(workspace_id)
@@ -225,6 +248,28 @@ class EcuWorkspaceSidebar(QWidget):
 
     def workspaces(self) -> list[CodingEcuWorkspace]:
         return list(self._workspaces)
+
+    def workspaces_in_saved_order(self) -> list[CodingEcuWorkspace]:
+        """Metadata auto-saves must not commit a pending drag order."""
+        return [self._item_by_id[key].workspace for key in self._saved_order]
+
+    def _on_order_changed(self, buttons):
+        self._workspaces = [button.workspace for button in buttons]
+        self._refresh_order_state()
+
+    def _refresh_order_state(self):
+        dirty = [workspace.id for workspace in self._workspaces] != self._saved_order
+        self.btn_save_order.setEnabled(dirty)
+        self._feedback_timer.stop()
+        self.lbl_order_status.setText("Order not saved." if dirty else "")
+        self.lbl_order_status.setVisible(dirty)
+
+    def mark_order_saved(self):
+        self._saved_order = [workspace.id for workspace in self._workspaces]
+        self._refresh_order_state()
+        self.lbl_order_status.setText("Order saved.")
+        self.lbl_order_status.show()
+        self._feedback_timer.start(2500)
 
     def workspace_by_id(self, workspace_id: str) -> CodingEcuWorkspace | None:
         for workspace in self._workspaces:
@@ -251,6 +296,7 @@ class EcuWorkspaceSidebar(QWidget):
             return False
 
         self._workspaces.append(workspace)
+        self._saved_order.append(workspace.id)
         item = EcuWorkspaceItemWidget(workspace)
 
         item.add_panel_requested.connect(self._add_workspace_from_dialog)
@@ -263,6 +309,8 @@ class EcuWorkspaceSidebar(QWidget):
             max(0, self.list_layout.count() - 1),
             item,
         )
+        self.scroll_area.fn_set_buttons(self._item_widgets())
+        self._refresh_order_state()
         self._filter_workspaces(
             self.edit_search.text()
         )
@@ -327,10 +375,14 @@ class EcuWorkspaceSidebar(QWidget):
 
         was_active = self._active_workspace_id == workspace_id
         workspace = self._workspaces.pop(removed_index)
+        self._saved_order.remove(workspace.id)
         item = self._item_by_id.pop(workspace.id, None)
         if item is not None:
+            self.list_layout.removeWidget(item)
+            self.scroll_area.fn_set_buttons(self._item_widgets())
             item.setParent(None)
             item.deleteLater()
+        self._refresh_order_state()
 
         if was_active:
             self._select_fallback_after_delete(removed_index)
@@ -475,6 +527,9 @@ class EcuWorkspaceSidebar(QWidget):
         )
         self.btn_add.fn_refresh_theme()
         self.btn_save.fn_refresh_theme()
+        self.btn_save_order.fn_refresh_theme()
+        self.lbl_order_status.setStyleSheet(f"color: {colors.TEXT};")
+        self.scroll_area.fn_refresh_theme()
         self.edit_search.fn_refresh_theme()
         self._update_save_button_state()
         for item in self._item_widgets():
