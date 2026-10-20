@@ -42,7 +42,7 @@ def _fn_base_button_style(
 
             font-size: 10pt;
 
-            font-weight: 600;
+            font-weight: 500;
 
             text-align: left;
 
@@ -82,16 +82,11 @@ def fn_quick_access_button_style():
     colors = ThemeManager.fn_colors()
 
     palette = ButtonPalette(
-
         background=colors.QUICK_ACCESS_BACKGROUND,
-
         hover=colors.QUICK_ACCESS_HOVER,
-
         pressed=colors.QUICK_ACCESS_PRESSED,
-
-        text=colors.TEXT_INVERT,
-
-        border=colors.BORDER
+        text=colors.QUICK_ACCESS_TEXT,
+        border=colors.QUICK_ACCESS_BORDER,
     )
 
     return _fn_base_button_style(

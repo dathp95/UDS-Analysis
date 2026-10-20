@@ -255,23 +255,23 @@ class QuickAccessWidget(QWidget):
             button.setStyleSheet(
                 base_style
                 + f"""
-                QPushButton {{
+                QPushButton:enabled {{
                     background-color: {colors.QUICK_FILTER_SELECTED_BG};
                     color: {colors.QUICK_FILTER_SELECTED_TEXT};
+                    border: 1px solid {colors.QUICK_ACCESS_SELECTED_BORDER};
+                    font-weight: 600;
                 }}
 
-                QPushButton:hover {{
+                QPushButton:enabled:hover {{
                     background-color: {colors.QUICK_FILTER_SELECTED_BG};
-                    color: {colors.QUICK_FILTER_SELECTED_TEXT};
                 }}
 
-                QPushButton:pressed {{
+                QPushButton:enabled:pressed {{
                     background-color: {colors.QUICK_FILTER_SELECTED_BG};
-                    color: {colors.QUICK_FILTER_SELECTED_TEXT};
                 }}
                 """
             )
-    
+            
     def fn_import_filters(self):
         if not self._fn_confirm_pending_order():
             return
