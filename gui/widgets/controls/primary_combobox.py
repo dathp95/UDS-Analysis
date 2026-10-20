@@ -36,7 +36,7 @@ class PrimaryComboBox(QComboBox):
 
         self.setAutoFillBackground(True)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setAttribute(Qt.WA_OpaquePaintEvent, False)
 
         popup_view = self.view()
         popup_view.setAutoFillBackground(True)

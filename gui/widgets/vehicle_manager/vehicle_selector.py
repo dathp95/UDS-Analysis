@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -52,6 +52,9 @@ class VehicleSelectorWidget(QWidget):
         self.lbl_vehicle = PrimaryLabel("Vehicle")
 
         self.cmb_vehicle = PrimaryComboBox()
+
+        self.cmb_vehicle.setAttribute(Qt.WA_OpaquePaintEvent, False)
+        self.cmb_vehicle.setAutoFillBackground(False)
 
         layout.addWidget(self.lbl_vehicle)
 

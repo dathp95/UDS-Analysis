@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt   
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
@@ -21,6 +21,8 @@ class DiagnosticChannelSelectorWidget(QWidget):
 
         self.lbl_channel = PrimaryLabel("Diagnostic Channel")
         self.cmb_channel = PrimaryComboBox()
+        self.cmb_channel.setAttribute(Qt.WA_OpaquePaintEvent, False)
+        self.cmb_channel.setAutoFillBackground(False)
 
         layout.addWidget(self.lbl_channel)
         layout.addWidget(self.cmb_channel)
