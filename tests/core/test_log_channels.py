@@ -70,22 +70,22 @@ class AscReaderChannelTests(unittest.TestCase):
     def test_get_log_channels_uses_blf_metadata_without_converting(self):
         with (
             patch("core.asc_reader.get_blf_channels", return_value=[3, 1]) as blf_channels,
-            patch("core.asc_reader.blf_to_asc") as blf_to_asc,
+            patch("core.convert_blf.blf_to_asc") as blf_to_asc,
         ):
             self.assertEqual(get_log_channels("demo.blf"), [3, 1])
 
         blf_channels.assert_called_once_with("demo.blf")
         blf_to_asc.assert_not_called()
 
-    def test_load_log_filters_converted_blf_with_logical_channel(self):
+    def test_load_log_dispatches_direct_blf_with_logical_channel(self):
         with (
-            patch("core.asc_reader.blf_to_asc", return_value="demo.asc") as blf_to_asc,
-            patch("core.asc_reader.load_asc", return_value=[{"channel": 2}]) as asc,
+            patch("core.asc_reader.load_blf", return_value=[{"channel": 2}]) as blf,
+            patch("core.asc_reader.load_asc") as asc,
         ):
             self.assertEqual(load_log("demo.blf", channel=2), [{"channel": 2}])
 
-        blf_to_asc.assert_called_once_with("demo.blf")
-        asc.assert_called_once_with("demo.asc", channel=2)
+        blf.assert_called_once_with("demo.blf", channel=2)
+        asc.assert_not_called()
 
 
 class BlfChannelDiscoveryTests(unittest.TestCase):
@@ -100,7 +100,7 @@ class BlfChannelDiscoveryTests(unittest.TestCase):
             Mock(channel=None),
         ]
 
-        with patch("core.convert_blf.can.BLFReader", return_value=messages):
+        with patch("core.blf_reader._iter_blf_messages", return_value=messages):
             self.assertEqual(get_blf_channels("demo.blf"), [1, 2])
 
 

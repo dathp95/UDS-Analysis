@@ -6,6 +6,7 @@ import can
 from openpyxl import load_workbook
 
 from core.build_transactions import build_transactions_v4, get_final_response_payload
+from core.convert_blf import blf_to_asc
 from core.pipeline import run_pipeline
 from core.report_engine import build_ecu_reports, build_summary_report
 from core.report_export import export_workbook
@@ -178,6 +179,8 @@ class ResponsePendingTests(unittest.TestCase):
                     writer.on_message_received(can.Message(timestamp=1000+t, arbitration_id=cid,
                         is_extended_id=False, channel=0, data=bytes.fromhex(data)))
             blf_result = run_pipeline(str(blf), vehicle, channel=1)
+            self.assertFalse(blf.with_suffix(".asc").exists())
+            blf_to_asc(blf)
             asc_result = run_pipeline(str(blf.with_suffix(".asc")), vehicle, channel=1)
             self.assertEqual(blf_result, asc_result)
             txt = blf.with_suffix(".txt")

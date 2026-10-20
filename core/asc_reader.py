@@ -11,7 +11,7 @@
 
 # extract_positive_responses()
 from pathlib import Path
-from core.convert_blf import blf_to_asc, get_blf_channels
+from core.blf_reader import get_blf_channels, load_blf
 from core.log_parsers.registry import detect_txt_parser
 
 
@@ -145,8 +145,7 @@ def load_log(log_file, channel=None, *, diagnostics=None):
         return load_asc(log_file, channel=channel)
 
     if suffix == ".blf":
-        asc_file = blf_to_asc(log_file)
-        return load_asc(asc_file, channel=channel)
+        return load_blf(log_file, channel=channel)
 
     if suffix == ".txt":
         if diagnostics is not None:

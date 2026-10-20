@@ -7,6 +7,7 @@ import can
 from openpyxl import load_workbook
 
 from core.asc_reader import get_log_channels, load_log, reassemble_isotp
+from core.convert_blf import blf_to_asc
 from core.pipeline import run_pipeline
 from core.report_export import export_workbook
 from core.transaction_formatter import fn_build_transaction_rows
@@ -141,6 +142,8 @@ class DSAPipelineTests(unittest.TestCase):
         result = run_pipeline(str(blf), self.vehicle, channel=1)
         self.assertEqual(result["transactions"][0]["request"]["payload"], "10 03")
         asc = blf.with_suffix(".asc")
+        self.assertFalse(asc.exists())
+        blf_to_asc(blf)
         self.assertTrue(asc.is_file())
         self.assertEqual(get_log_channels(asc), [1])
         self.assertEqual(run_pipeline(str(asc), self.vehicle, channel=1), result)

@@ -174,7 +174,7 @@ class DSATextParserTests(unittest.TestCase):
 
     def test_normalized_contract_and_padding_are_preserved_without_conversion(self):
         self.write(HEADER + dsa_frame())
-        with patch("core.asc_reader.blf_to_asc") as convert:
+        with patch("core.convert_blf.blf_to_asc") as convert:
             messages = load_log(self.path, channel=0)
         convert.assert_not_called()
         self.assertEqual(messages, [{"timestamp": 21.094197, "channel": 0,
