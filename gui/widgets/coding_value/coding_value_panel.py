@@ -1414,7 +1414,9 @@ class CodingValuePanel(QGroupBox):
             fn_groupbox_style()
         )
         self.file_path.fn_refresh_theme()
+        self.cmb_coding_json.fn_refresh_theme()
         self.txt_parameter_filter.fn_refresh_theme()
+
         self.btn_filter_no_m.fn_refresh_theme()
         self.btn_refresh_filter.fn_refresh_theme()
         self.btn_browse.fn_refresh_theme()
