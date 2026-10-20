@@ -459,11 +459,11 @@ class ResultTable(PrimaryTable):
 
                 if request:
                     if cell == response:
-                        background = colors.SUCCESS
+                        background = colors.QUICK_FILTER_MATCH
                     elif not cell:
-                        background = colors.DANGER
+                        background = colors.QUICK_FILTER_NO_RESPONSE
                     else:
-                        background = colors.WARNING
+                        background = colors.QUICK_FILTER_NOT_MATCH
                 else:
                     background = None
 

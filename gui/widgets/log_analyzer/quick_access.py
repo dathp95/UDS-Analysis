@@ -256,18 +256,18 @@ class QuickAccessWidget(QWidget):
                 base_style
                 + f"""
                 QPushButton {{
-                    background-color: {colors.SUCCESS};
-                    color: {colors.TEXT_INVERT};
+                    background-color: {colors.QUICK_FILTER_SELECTED_BG};
+                    color: {colors.QUICK_FILTER_SELECTED_TEXT};
                 }}
 
                 QPushButton:hover {{
-                    background-color: {colors.SUCCESS};
-                    color: {colors.TEXT_INVERT};
+                    background-color: {colors.QUICK_FILTER_SELECTED_BG};
+                    color: {colors.QUICK_FILTER_SELECTED_TEXT};
                 }}
 
                 QPushButton:pressed {{
-                    background-color: {colors.SUCCESS};
-                    color: {colors.TEXT_INVERT};
+                    background-color: {colors.QUICK_FILTER_SELECTED_BG};
+                    color: {colors.QUICK_FILTER_SELECTED_TEXT};
                 }}
                 """
             )
