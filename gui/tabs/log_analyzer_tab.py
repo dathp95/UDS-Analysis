@@ -95,7 +95,7 @@ class LogAnalyzerTab(QWidget):
         # ==========================================================
         self.log_selector = PathSelectorWidget(
             "Log File: Ensure the correct Diagnostic Channel is selected",
-            "Log Files (*.blf *.asc)",
+            "Log Files (*.blf *.asc *.txt)",
         )
 
         # Keep Vehicle / Log File labels at the same height

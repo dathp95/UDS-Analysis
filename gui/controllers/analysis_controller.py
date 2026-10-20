@@ -18,7 +18,7 @@ class AnalysisController:
 
         if not log_file:
             raise ValueError(
-                "Please select a Diagnostic CAN log (.asc or .blf) before running the analysis."
+                "Please select a Diagnostic CAN log (.asc, .blf or .txt) before running the analysis."
             )
 
         if vehicle is None:

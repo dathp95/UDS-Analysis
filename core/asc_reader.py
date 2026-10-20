@@ -12,6 +12,7 @@
 # extract_positive_responses()
 from pathlib import Path
 from core.convert_blf import blf_to_asc, get_blf_channels
+from core.log_parsers.registry import detect_txt_parser
 
 
 from core.uds_lookup import (
@@ -126,6 +127,9 @@ def get_log_channels(log_file):
     if suffix == ".blf":
         return get_blf_channels(log_file)
 
+    if suffix == ".txt":
+        return detect_txt_parser(log_file).get_channels(log_file)
+
     raise ValueError(f"Unsupported log format: {suffix}")
 
 
@@ -140,6 +144,9 @@ def load_log(log_file, channel=None):
     if suffix == ".blf":
         asc_file = blf_to_asc(log_file)
         return load_asc(asc_file, channel=channel)
+
+    if suffix == ".txt":
+        return detect_txt_parser(log_file).load_messages(log_file, channel=channel)
 
     raise ValueError(f"Unsupported log format: {suffix}")
 
@@ -159,6 +166,9 @@ def reassemble_isotp(messages):
 
         data = msg["data"]
 
+        if not data:
+            continue
+
         frame_type = data[0] >> 4
         if frame_type == 0:
 
@@ -174,6 +184,9 @@ def reassemble_isotp(messages):
         # Step 1: First Frame: 10 14 62 F1 90 52 4C 4E
 
         elif frame_type == 1:
+
+            if len(data) < 2:
+                continue
 
             pci = data[0]
 
@@ -260,6 +273,9 @@ def extract_single_frame_requests(messages):
         can_id = msg["can_id"]
 
         data = msg["data"]
+
+        if not data:
+            continue
 
         # ==================================
         # Single Frame only
@@ -361,6 +377,9 @@ def extract_negative_responses(messages):
         can_id = msg["can_id"]
 
         data = msg["data"]
+
+        if not data:
+            continue
 
         # ==============================
         # Single Frame only
