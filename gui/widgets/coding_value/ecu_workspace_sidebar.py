@@ -120,12 +120,13 @@ class EcuWorkspaceItemWidget(QuickAccessButton):
             base_style
             + f"""
             QPushButton#ecuWorkspaceItem {{
-                background-color: {colors.SUCCESS};
-                color: {colors.TEXT_INVERT};
+                background-color: {colors.QUICK_FILTER_SELECTED_BG};
+                color: {colors.QUICK_FILTER_SELECTED_TEXT};
+                border: 1px solid {colors.QUICK_ACCESS_SELECTED_BORDER};
+                font-weight: 600;
             }}
             """
         )
-
 class EcuWorkspaceSidebar(QWidget):
 
     workspace_added = Signal(object)

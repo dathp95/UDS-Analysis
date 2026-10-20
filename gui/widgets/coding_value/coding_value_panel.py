@@ -48,6 +48,8 @@ from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 
+from gui.themes.theme import ThemeType
+from gui.themes.theme_manager import ThemeManager
 
 DEFAULT_CODING_DIR = Path("config/Coding")
 POSITION_COPY_DATA_PAYLOAD = 3
@@ -1374,20 +1376,35 @@ class CodingValuePanel(QGroupBox):
 
     def _highlight_payload_bytes(self, byte_indexes):
         selections = []
-        color = QColor("#FFE08A")
+
+        is_dark = ThemeManager.fn_theme() == ThemeType.DARK
+
+        color = QColor(
+            "#FFD54F" if is_dark else "#FFE08A"
+        )
+
+        text_color = QColor("#111827")
+
         for byte_index in byte_indexes:
             start = byte_index * 3
-            cursor = QTextCursor(self.txt_coding_preview.document())
+
+            cursor = QTextCursor(
+                self.txt_coding_preview.document()
+            )
             cursor.setPosition(start)
             cursor.movePosition(
                 QTextCursor.Right,
                 QTextCursor.KeepAnchor,
                 2,
             )
+
             selection = QTextEdit.ExtraSelection()
             selection.cursor = cursor
             selection.format = QTextCharFormat()
+
             selection.format.setBackground(color)
+            selection.format.setForeground(text_color)
+
             selections.append(selection)
 
         self.txt_coding_preview.setExtraSelections(selections)
