@@ -1,15 +1,5 @@
 [
     {
-        "id": 1,
-        "name": "MHU-ODO",
-        "enabled": true,
-        "filters": {
-            "ecu": "MHU",
-            "request": "22 F1 21",
-            "response": "62 F1 21 00 02 A2"
-        }
-    },
-    {
         "id": 2,
         "name": "EPS-READ CDS",
         "enabled": true,
@@ -17,6 +7,16 @@
             "ecu": "EPS",
             "request": "22 F1 08",
             "response": "62 F1 08 00 15 4A 39 39 39 37 34 31 05 10 0D 0E 12 22 00 00 00 00 00 00 01 00 00 00 00 00 00 00 EC"
+        }
+    },
+    {
+        "id": 1,
+        "name": "MHU-ODO",
+        "enabled": true,
+        "filters": {
+            "ecu": "MHU",
+            "request": "22 F1 21",
+            "response": "62 F1 21 00 02 A2"
         }
     },
     {

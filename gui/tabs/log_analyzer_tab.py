@@ -684,7 +684,13 @@ class LogAnalyzerTab(QWidget):
         self.left_panel.quick_access.fn_clear_active_selection()
 
     def fn_quick_filter(self, filter_data: dict):
+        # Reset previous transaction details
+        self.right_panel.action_panel.fn_clear_transaction_info()
+
+        # Display selected Quick Filter information
         self.right_panel.action_panel.fn_set_quick_filter_info(filter_data)
+
+        # Apply selected filter to ResultTable
         self.tbl_result.fn_apply_quick_filter(filter_data)
 
     def _fn_result_row_selected(
