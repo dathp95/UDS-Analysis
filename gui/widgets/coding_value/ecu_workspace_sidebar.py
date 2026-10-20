@@ -158,7 +158,7 @@ class EcuWorkspaceSidebar(QWidget):
 
     def _setup_ui(self):
         self.setObjectName("ecuWorkspaceSidebar")
-        self.setFixedWidth(250)
+        self.setFixedWidth(380)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -172,8 +172,8 @@ class EcuWorkspaceSidebar(QWidget):
         )
 
 
-        self.btn_add = SecondaryButton("+ Add Panel", width=88, height=28)
-        self.btn_save = PrimaryButton("Save", width=88, height=28)
+        self.btn_add = SecondaryButton("+ Add Panel", height=28)
+        self.btn_save = PrimaryButton("Save Panel", height=28)
         self.btn_save_order = SecondaryButton("Save Order", height=28)
         self.btn_save_order.setEnabled(False)
         self.lbl_order_status = QLabel()
@@ -197,18 +197,28 @@ class EcuWorkspaceSidebar(QWidget):
         self.scroll_area.setWidget(self.list_container)
 
         self.bottom_action_row = QWidget()
+
         bottom_action_layout = QHBoxLayout(self.bottom_action_row)
-        bottom_action_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_action_layout.setSpacing(8)
+
+        # Padding của hàng button
+        bottom_action_layout.setContentsMargins(4, 4, 4, 4)
+
+        # Khoảng cách giữa các button
+        bottom_action_layout.setSpacing(12)
+
         bottom_action_layout.addWidget(self.btn_add, 1)
         bottom_action_layout.addWidget(self.btn_save, 1)
+        bottom_action_layout.addWidget(self.btn_save_order, 1)
+
+        bottom_action_layout.addWidget(self.btn_add, 1)
+        bottom_action_layout.addWidget(self.btn_save, 1)
+        bottom_action_layout.addWidget(self.btn_save_order, 1)
 
         layout.addWidget(self.lbl_title)
         layout.addWidget(self.edit_search)
 
         layout.addWidget(self.scroll_area, 1)
         layout.addWidget(self.bottom_action_row)
-        layout.addWidget(self.btn_save_order)
         layout.addWidget(self.lbl_order_status)
 
     def _connect_signals(self):
