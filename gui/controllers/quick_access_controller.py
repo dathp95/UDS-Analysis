@@ -33,6 +33,9 @@ class QuickAccessController:
     def fn_export_filters(self):
         return self.quick_access_service.fn_export_filters()
 
+    def fn_reorder(self, filter_ids: list[int]) -> None:
+        self.quick_access_service.fn_reorder(filter_ids)
+
     def fn_insert_after(self, source_id, quick_filter):
         return self.quick_access_service.fn_insert_after(source_id, quick_filter)
 

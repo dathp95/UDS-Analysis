@@ -1,5 +1,7 @@
 import json
-from zipfile import Path
+import os
+import tempfile
+from pathlib import Path
 
 from config.paths import QUICK_FILTER_FILE
 
@@ -53,6 +55,41 @@ class QuickAccessService:
             )
    
  
+
+    def fn_reorder(self, filter_ids: list[int]) -> None:
+        """Persist a complete ID permutation without changing filter contents."""
+        filters = self.fn_load()
+        if not isinstance(filters, list) or any(
+            not isinstance(item, dict) or type(item.get("id")) is not int
+            for item in filters
+        ):
+            raise ValueError("Stored quick filters must have integer IDs.")
+        stored_ids = [item["id"] for item in filters]
+        if (
+            any(type(filter_id) is not int for filter_id in filter_ids)
+            or len(set(stored_ids)) != len(stored_ids)
+            or len(set(filter_ids)) != len(filter_ids)
+            or set(filter_ids) != set(stored_ids)
+        ):
+            raise ValueError("Order must contain every stored filter ID exactly once.")
+
+        by_id = {item["id"]: item for item in filters}
+        destination = Path(self.json_file)
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=destination.parent,
+                prefix=f".{destination.name}.", suffix=".tmp", delete=False,
+            ) as temporary:
+                temporary_path = Path(temporary.name)
+                json.dump([by_id[filter_id] for filter_id in filter_ids],
+                          temporary, indent=4, ensure_ascii=False)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+            os.replace(temporary_path, destination)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
     def fn_add(
             self,

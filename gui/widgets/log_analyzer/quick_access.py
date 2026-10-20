@@ -1,12 +1,12 @@
 from copy import deepcopy
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,    
-    QScrollArea,
+    QLabel,
     QMenu,
     QMessageBox
 )
@@ -16,6 +16,7 @@ from gui.dialogs.import_quick_filters_dialog import ImportQuickFiltersDialog
 from gui.dialogs.export_quick_filters_dialog import ExportQuickFiltersDialog
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
+from gui.widgets.log_analyzer.reorderable_filter_area import ReorderableFilterArea
 from gui.utils.payload_format import format_payload_input
 
 from gui.themes.theme_manager import ThemeManager
@@ -39,6 +40,9 @@ class QuickAccessWidget(QWidget):
         self.quick_filters = []
         self.buttons = []
         self.selected_filter = None
+        self._saved_order = []
+        self._order_dirty = False
+        self._buttons_enabled = True
 
 
         self.quick_access_controller = QuickAccessController()
@@ -67,7 +71,7 @@ class QuickAccessWidget(QWidget):
         # Quick Filter
         # --------------------------
 
-        self.scroll_area = QScrollArea()
+        self.scroll_area = ReorderableFilterArea()
         self.scroll_area.setWidgetResizable(True)
 
         self.scroll_area.setVerticalScrollBarPolicy(
@@ -125,6 +129,14 @@ class QuickAccessWidget(QWidget):
             "Export Filters"
         )
 
+        self.btn_save_order = SecondaryButton("Save Order")
+        self.btn_save_order.setEnabled(False)
+        self.lbl_order_status = QLabel()
+        self.lbl_order_status.hide()
+        self._feedback_timer = QTimer(self)
+        self._feedback_timer.setSingleShot(True)
+        self._feedback_timer.timeout.connect(self.lbl_order_status.hide)
+
         self.action_layout = QHBoxLayout()
 
         self.action_layout.setContentsMargins(
@@ -150,11 +162,17 @@ class QuickAccessWidget(QWidget):
             self.btn_export,
             1,
         )
+        self.action_layout.addWidget(self.btn_save_order, 1)
+
+        # Let the existing action row fit the narrow Quick Filter column.
+        for button in (self.btn_add, self.btn_import, self.btn_export, self.btn_save_order):
+            button.setMinimumWidth(button.sizeHint().width() + 16)
 
         # Hang button nam co dinh duoi cung
         root_layout.addLayout(
             self.action_layout
         )
+        root_layout.addWidget(self.lbl_order_status)
 
         self._connect_signals()
 
@@ -168,6 +186,50 @@ class QuickAccessWidget(QWidget):
         )
         self.btn_import.clicked.connect(self.fn_import_filters)
         self.btn_export.clicked.connect(self.fn_export_filters)
+        self.btn_save_order.clicked.connect(self.fn_save_order)
+        self.scroll_area.order_changed.connect(self._fn_order_changed)
+
+    def _fn_order_changed(self, buttons):
+        self.buttons = buttons
+        self.quick_filters = [button._quick_filter_data for button in buttons]
+        self._order_dirty = [item.get("id") for item in self.quick_filters] != self._saved_order
+        self.btn_save_order.setEnabled(self._order_dirty)
+        self._feedback_timer.stop()
+        self.lbl_order_status.setText("Order not saved" if self._order_dirty else "")
+        self.lbl_order_status.setVisible(self._order_dirty)
+
+    def fn_save_order(self) -> bool:
+        try:
+            self.quick_access_controller.fn_reorder([
+                button._quick_filter_data["id"] for button in self.buttons
+            ])
+        except (ValueError, OSError, KeyError) as error:
+            QMessageBox.warning(self, "Save Order", str(error))
+            return False
+        self._saved_order = [item["id"] for item in self.quick_filters]
+        self._order_dirty = False
+        self.btn_save_order.setEnabled(False)
+        self.lbl_order_status.setText("Order saved.")
+        self.lbl_order_status.show()
+        self._feedback_timer.start(3000)
+        return True
+
+    def _fn_confirm_pending_order(self) -> bool:
+        if not self._order_dirty:
+            return True
+        choice = QMessageBox.question(
+            self, "Unsaved Quick Filter Order",
+            "Save the changed Quick Filter order before continuing?",
+            QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+        if choice == QMessageBox.Save:
+            return self.fn_save_order()
+        if choice == QMessageBox.Discard:
+            self._order_dirty = False
+            self.fn_reload()
+            return True
+        return False
 
     def _fn_refresh_button_states(self):
         selected_id = None
@@ -211,6 +273,8 @@ class QuickAccessWidget(QWidget):
             )
     
     def fn_import_filters(self):
+        if not self._fn_confirm_pending_order():
+            return
         dialog = ImportQuickFiltersDialog(self)
         if not dialog.exec():
             return
@@ -233,6 +297,8 @@ class QuickAccessWidget(QWidget):
         """
         Reload all quick filter buttons.
         """
+        if not self._fn_confirm_pending_order():
+            return
 
         previous_selected_id = None
 
@@ -242,6 +308,10 @@ class QuickAccessWidget(QWidget):
         self._fn_clear_buttons()
 
         self._fn_load_filters()
+        self._saved_order = [item.get("id") for item in self.quick_filters]
+        self._order_dirty = False
+        self.btn_save_order.setEnabled(False)
+        self.lbl_order_status.hide()
 
         self._fn_build_buttons()
 
@@ -269,6 +339,8 @@ class QuickAccessWidget(QWidget):
             row_data: dict,
         ):
         """Create a quick filter draft from a result table transaction."""
+        if not self._fn_confirm_pending_order():
+            return
 
         if not isinstance(row_data, dict):
             row_data = {}
@@ -299,6 +371,8 @@ class QuickAccessWidget(QWidget):
         """
         Show Add Quick Filter dialog.
         """
+        if not self._fn_confirm_pending_order():
+            return
 
         dialog = QuickFilterDialog(
             quick_filter=None,
@@ -332,6 +406,7 @@ class QuickAccessWidget(QWidget):
             )
 
             button._quick_filter_data = item
+            button.fn_enable(self._buttons_enabled)
             self.buttons.append(button)
 
 
@@ -362,12 +437,15 @@ class QuickAccessWidget(QWidget):
                 button
             )
         self.button_layout.addStretch(2)
+        self.scroll_area.fn_set_buttons(self.buttons)
+        self._fn_refresh_button_states()
 
     
     def _fn_clear_buttons(self):
         """
         Remove all quick filter buttons.
         """
+        self.scroll_area.fn_set_buttons([])
         self.buttons.clear()
 
 
@@ -388,6 +466,7 @@ class QuickAccessWidget(QWidget):
             text: str,
         ):
         keyword = self._fn_search_text(text)
+        self.scroll_area.fn_set_reorder_enabled(not text.strip())
 
         for button in self.buttons:
             filter_data = getattr(button, "_quick_filter_data", {})
@@ -486,6 +565,8 @@ class QuickAccessWidget(QWidget):
     def fn_clone_selected(self):
         if self.selected_filter is None:
             return
+        if not self._fn_confirm_pending_order():
+            return
 
         existing_names = {
             item.get("name", "")
@@ -514,6 +595,8 @@ class QuickAccessWidget(QWidget):
         """
         Delete a quick filter immediately.
         """
+        if not self._fn_confirm_pending_order():
+            return
 
         self.quick_access_controller.fn_delete(
             quick_filter["id"]
@@ -523,6 +606,8 @@ class QuickAccessWidget(QWidget):
 
     def _fn_clone_filter(self, quick_filter: dict):
         """Create an independent copy of a quick filter."""
+        if not self._fn_confirm_pending_order():
+            return
 
         existing_names = {
             item.get("name", "")
@@ -550,6 +635,8 @@ class QuickAccessWidget(QWidget):
         """
         Edit one quick filter.
         """
+        if not self._fn_confirm_pending_order():
+            return
 
         dialog = QuickFilterDialog(
 
@@ -590,6 +677,7 @@ class QuickAccessWidget(QWidget):
         """
         Enable or disable all quick access buttons.
         """
+        self._buttons_enabled = enabled
 
         for button in self.buttons:
 
@@ -602,6 +690,11 @@ class QuickAccessWidget(QWidget):
         self.btn_add.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()
         self.btn_export.fn_refresh_theme()
+        self.btn_save_order.fn_refresh_theme()
+        for button in (self.btn_add, self.btn_import, self.btn_export, self.btn_save_order):
+            button.setMinimumWidth(button.sizeHint().width() + 16)
+        self.scroll_area.fn_refresh_theme()
+        self.lbl_order_status.setStyleSheet(f"color: {ThemeManager.fn_colors().TEXT};")
 
         self._fn_refresh_button_states()
 
