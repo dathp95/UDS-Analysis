@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import tempfile
@@ -69,11 +70,16 @@ def _load_uds_schema_v2(services_path, user_path):
     if not isinstance(timeout, dict):
         raise ValueError("UDS services timeout must be an object.")
 
-    positive_timeout = timeout.get("positive_response", 10.0)
-    try:
-        positive_timeout = float(positive_timeout)
-    except (TypeError, ValueError) as error:
-        raise ValueError("positive_response timeout must be numeric.") from error
+    normalized_timeouts = {}
+    for name, default in (("positive_response", 10.0), ("response_pending", 120.0)):
+        value = timeout.get(name, default)
+        try:
+            value = float(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"{name} timeout must be numeric.") from error
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} timeout must be finite and positive.")
+        normalized_timeouts[name] = value
 
     nrc = user_config.get("nrc", {})
     if not isinstance(nrc, dict):
@@ -81,7 +87,7 @@ def _load_uds_schema_v2(services_path, user_path):
 
     return {
         "schema_version": 2,
-        "timeout": {"positive_response": positive_timeout},
+        "timeout": normalized_timeouts,
         "services": normalized_services,
         "positive_sid": positive_sid,
         "match_rule": match_rule,

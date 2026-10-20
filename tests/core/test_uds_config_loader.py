@@ -42,6 +42,7 @@ class UDSConfigLoaderTests(unittest.TestCase):
         config = load_uds_config(services, user)
 
         self.assertEqual(config["timeout"]["positive_response"], 3.0)
+        self.assertEqual(config["timeout"]["response_pending"], 120.0)
         self.assertEqual(config["services"], {"22": "Read ECU"})
         self.assertEqual(config["positive_sid"], {"22": "62"})
         self.assertEqual(config["match_rule"], {"22": "did"})
@@ -67,6 +68,7 @@ class UDSConfigLoaderTests(unittest.TestCase):
     def test_reload_updates_runtime_maps_in_place(self):
         services = self._write_json({
             "schema_version": 2,
+            "timeout": {"response_pending": 42},
             "services": {
                 "99": {
                     "name": "Custom Service",
@@ -89,5 +91,15 @@ class UDSConfigLoaderTests(unittest.TestCase):
 
         uds_lookup.reload_uds_config(services, user)
 
+        self.assertEqual(uds_lookup.get_response_pending_timeout(), 42)
         self.assertEqual(uds_lookup.get_service_name(0x99), "Custom Service")
         self.assertEqual(uds_lookup.get_nrc_name(0xAB), "Custom NRC")
+
+    def test_pending_timeout_rejects_non_finite_or_non_positive_values(self):
+        user = self._write_json({"schema_version": 2, "nrc": {}})
+        for value in (0, -1, "nan", "inf", "not a number", None):
+            services = self._write_json({"schema_version": 2,
+                "timeout": {"response_pending": value},
+                "services": {"31": {"name": "Routine", "positive_sid": "71", "match": "routine"}}})
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "response_pending"):
+                load_uds_config(services, user)

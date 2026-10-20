@@ -1,4 +1,5 @@
 import bisect
+import math
 
 # from core.asc_reader import *
 from core.uds_lookup import (
@@ -7,6 +8,7 @@ from core.uds_lookup import (
     MATCH_ROUTINE,
     MATCH_NONE,
     get_positive_response_timeout,
+    get_response_pending_timeout,
     SERVICE_NAME_MAP,
     NRC_TABLE,
     get_match_rule,
@@ -99,7 +101,7 @@ def get_match_key(payload, rule_sid=None):
             return None
 
         return " ".join(
-            bytes_list[2:4]
+            bytes_list[1:4]
         )
 
     # ==========================
@@ -279,9 +281,12 @@ def determine_status(positive, negative_list):
 
         return "OK"
 
-    if len(negative_list) > 0:
+    if any(_is_terminal_negative(response) for response in negative_list):
 
         return "NRC_ONLY"
+
+    if count_nrc_response_pending(negative_list):
+        return "PENDING_TIMEOUT"
 
     return "TIMEOUT"
 
@@ -314,6 +319,11 @@ def count_nrc_response_pending(negative_responses):
 
     return count_response_pending
 
+def _is_terminal_negative(response):
+    info = parse_negative_response(response["payload"])
+    return info is not None and info["nrc"] != 0x78
+
+
 def get_final_response_payload(transaction):
     """
     Return the final response payload for one transaction.
@@ -321,7 +331,7 @@ def get_final_response_payload(transaction):
     Priority
     --------
     1. Positive Response
-    2. Last Negative Response
+    2. Last terminal Negative Response (never NRC 0x78)
     3. Empty string
     """
 
@@ -349,9 +359,9 @@ def get_final_response_payload(transaction):
 
     )
 
-    if negative_list:
-
-        return negative_list[-1]["payload"]
+    for response in reversed(negative_list):
+        if _is_terminal_negative(response):
+            return response["payload"]
 
     # -------------------------
     # No Response
@@ -361,7 +371,11 @@ def get_final_response_payload(transaction):
 def create_transaction(ecu, request, positive, negative_list):
      
     # request {'timestamp': 751.688745, 'can_id': 1665, 'payload': '22 F1 23'}
-    response_time = calculate_response_time(request, positive)
+    final = positive or next(
+        (response for response in reversed(negative_list) if _is_terminal_negative(response)),
+        None,
+    )
+    response_time = calculate_response_time(request, final)
 
     status = determine_status(positive, negative_list)
 
@@ -769,91 +783,95 @@ def build_transactions_v4(
 
     ecu_info,
 
-    timeout
+    timeout,
+    *,
+    pending_timeout=None,
 
 ):
 
+    """Match chronological responses, extending only after an associated NRC 0x78.
+
+    response_pending is a total bound from the request, not a timer restarted
+    by each pending response. A new non-TesterPresent request on the same ECU
+    ends ownership; unresolved same-SID retries are conservatively ambiguous.
+    """
+    if pending_timeout is None:
+        pending_timeout = get_response_pending_timeout()
+    timeout, pending_timeout = float(timeout), float(pending_timeout)
+    if any(not math.isfinite(value) or value <= 0 for value in (timeout, pending_timeout)):
+        raise ValueError("Response timeouts must be finite and positive.")
+
+    requests = sorted(requests, key=lambda item: item["timestamp"])
+    response_index = build_positive_response_index(positive_responses + negative_responses)
+    timestamps = {}
+    for can_id, responses in response_index.items():
+        responses.sort(key=lambda item: item["timestamp"])
+        timestamps[can_id] = [item["timestamp"] for item in responses]
+
+    next_times = [None] * len(requests)
+    latest = {}
+    for index in range(len(requests) - 1, -1, -1):
+        request = requests[index]
+        next_times[index] = latest.get(request["can_id"])
+        if _payload_sid(request["payload"]) != 0x3E:
+            latest[request["can_id"]] = request["timestamp"]
+
     transactions = []
-
-    positive_index = build_positive_response_index(positive_responses)
-
-    negative_index = build_negative_response_index(negative_responses)
-
-    used_positive_keys = set()
-
-    used_negative_keys = set()
-
-    for request_index, request in enumerate(requests):
-
-        ecu = get_transaction_ecu(
-
-                request["can_id"],
-
-                ecu_info
-
-            )
-
+    used_keys = set()
+    # Negative responses contain SID but no DID/RID: after an interrupted
+    # pending request, a same-SID retry cannot safely own these responses.
+    interrupted_until = {}
+    for index, request in enumerate(requests):
+        ecu = get_transaction_ecu(request["can_id"], ecu_info)
         if ecu is None:
             continue
+        sid = _payload_sid(request["payload"])
+        ownership_key = (request["can_id"], sid)
+        request_time = request["timestamp"]
+        if request_time <= interrupted_until.get(ownership_key, float("-inf")):
+            transaction = create_transaction(ecu, request, None, [])
+            transaction["status"] = "PENDING_AMBIGUOUS"
+            transaction["matching_note"] = "Earlier pending request with the same SID is unresolved."
+            transactions.append(transaction)
+            continue
 
-        response_can_id = ecu["response_can_id"]
+        deadline = request_time + timeout
+        pending_deadline = request_time + max(timeout, pending_timeout)
+        boundary = next_times[index]
+        response_id = ecu["response_can_id"]
+        candidates = response_index.get(response_id, [])
+        start = bisect.bisect_left(timestamps.get(response_id, []), request_time)
+        positive = None
+        negatives = []
+        for response in candidates[start:]:
+            time = response["timestamp"]
+            if time > deadline or (boundary is not None and time >= boundary):
+                break
+            key = _message_key(response)
+            if key in used_keys:
+                continue
+            negative = parse_negative_response(response["payload"])
+            if negative is not None:
+                if negative["request_sid"] != sid:
+                    continue
+                negatives.append(response)
+                used_keys.add(key)
+                if negative["nrc"] != 0x78:
+                    break
+                deadline = pending_deadline
+            elif (_payload_sid(response["payload"]) == get_expected_positive_sid(sid)
+                  and _response_matches_request(request["payload"], response["payload"], sid)):
+                positive = response
+                used_keys.add(key)
+                break
 
-        next_request_time = _next_request_time(
-            requests,
-            request_index + 1,
-            request["can_id"],
-        )
-
-        search_end_time = request["timestamp"] + timeout
-
-        if next_request_time is not None:
-            search_end_time = min(search_end_time, next_request_time)
-
-        positive_candidates = positive_index.get(response_can_id, [])
-
-        positive_response = find_matching_positive_response(
-            request,
-            positive_candidates,
-            response_can_id,
-            timeout,
-            used_positive_keys,
-            search_end_time,
-        )
-
-        negative_candidates = negative_index.get(
-            response_can_id,
-            []
-        )
-
-        end_time = (
-            positive_response["timestamp"]
-            if positive_response
-            else search_end_time
-        )
-
-        negative_list = find_negative_responses_between(
-            request,
-            end_time,
-            negative_candidates,
-            response_can_id,
-            used_negative_keys,
-        )
-
-        if positive_response is not None:
-            used_positive_keys.add(_message_key(positive_response))
-
-        for negative_response in negative_list:
-            used_negative_keys.add(_message_key(negative_response))
-
-        transaction = create_transaction(
-            ecu,
-            request,
-            positive_response,
-            negative_list
-        )
-
+        transaction = create_transaction(ecu, request, positive, negatives)
+        if (transaction["status"] == "PENDING_TIMEOUT"
+                and boundary is not None and boundary <= deadline):
+            transaction["status"] = "PENDING_AMBIGUOUS"
+            transaction["matching_note"] = "New request on the same ECU interrupted Response Pending."
+            interrupted_until[ownership_key] = deadline
         transactions.append(transaction)
-
     return transactions
 
 def print_transaction(tx):

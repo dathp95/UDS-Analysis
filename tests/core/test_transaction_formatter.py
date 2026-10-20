@@ -81,7 +81,7 @@ class TransactionFormatterTests(unittest.TestCase):
         )
         self.assertEqual(list(rows[0].keys()), EXPECTED_KEYS)
 
-    def test_build_transaction_rows_uses_last_negative_response_without_positive(self):
+    def test_build_transaction_rows_uses_terminal_negative_not_pending(self):
         transactions = [
             {
                 "ecu": "BCM",
@@ -102,7 +102,7 @@ class TransactionFormatterTests(unittest.TestCase):
 
         rows = fn_build_transaction_rows(transactions)
 
-        self.assertEqual(rows[0]["Response"], "7F 22 78")
+        self.assertEqual(rows[0]["Response"], "7F 22 31")
         self.assertEqual(rows[0]["RT (ms)"], "")
         self.assertEqual(list(rows[0].keys()), EXPECTED_KEYS)
 

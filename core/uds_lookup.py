@@ -79,6 +79,11 @@ def get_positive_response_timeout():
     return POSITIVE_RESPONSE_TIMEOUT
 
 
+def get_response_pending_timeout():
+    """Maximum total request-to-final wait after a valid NRC 0x78 (seconds)."""
+    return float(UDS_CONFIG.get("timeout", {}).get("response_pending", 120.0))
+
+
 def reload_display_names():
     """Reload display-name mappings after the configuration is imported."""
 

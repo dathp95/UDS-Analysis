@@ -52,6 +52,25 @@ class ResultTableQuickFilterTests(unittest.TestCase):
         item = table.item(row, table._fn_column_index("ECU"))
         return table.visualItemRect(item).center()
 
+    def test_pending_status_search_and_response_filter_do_not_use_nrc78_as_final(self):
+        from core.build_transactions import build_transactions_v4
+        from core.transaction_formatter import fn_build_transaction_rows
+        from tests.core.test_transaction_matching import msg
+
+        transactions = build_transactions_v4([msg(1, 0x682, "31 01 02 06")], [],
+            [msg(1.1, 0x602, "7F 31 78")], {"A": {"request": 0x682, "response": 0x602}}, 1)
+        table = ResultTable()
+        self.addCleanup(table.deleteLater)
+        table.set_data(fn_build_transaction_rows(transactions))
+        self.assertEqual(table.fn_row_data(0)["Status"], "PENDING_TIMEOUT")
+        self.assertEqual(table.fn_row_data(0)["Response"], "")
+        table.fn_search("PENDING_TIMEOUT")
+        self.assertFalse(table.isRowHidden(0))
+        table.fn_apply_quick_filter({"filters": {"response": "7F 31 78"}})
+        self.assertTrue(table.isRowHidden(0))
+        table.fn_apply_quick_filter({"filters": {"request": "31 01 02 06"}})
+        self.assertFalse(table.isRowHidden(0))
+
     def test_status_column_stretches_to_fill_remaining_width(self):
         table = ResultTable()
         self.addCleanup(table.deleteLater)

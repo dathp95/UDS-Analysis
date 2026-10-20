@@ -206,6 +206,9 @@ def calculate_statistics(activities):
 
     timeout_count = 0
 
+    pending_timeout_count = 0
+    pending_ambiguous_count = 0
+
     pending_count = 0
 
     response_times = []
@@ -222,9 +225,11 @@ def calculate_statistics(activities):
 
             nrc_only_count += 1
 
-        elif status == "TIMEOUT":
+        elif status in {"TIMEOUT", "PENDING_TIMEOUT", "PENDING_AMBIGUOUS"}:
 
             timeout_count += 1
+            pending_timeout_count += status == "PENDING_TIMEOUT"
+            pending_ambiguous_count += status == "PENDING_AMBIGUOUS"
 
         pending_count += activity.get(
 
@@ -300,7 +305,10 @@ def calculate_statistics(activities):
 
         "average_response_time": average_response_time,
 
-        "max_response_time": max_response_time
+        "max_response_time": max_response_time,
+
+        "pending_timeout": pending_timeout_count,
+        "pending_ambiguous": pending_ambiguous_count,
 
     }
 
