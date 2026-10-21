@@ -1,0 +1,14 @@
+{
+    "name": "TBOX",
+    "request_id": "68A",
+    "response_id": "60A",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

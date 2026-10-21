@@ -1,0 +1,14 @@
+{
+    "name": "BCM_R",
+    "request_id": "686",
+    "response_id": "606",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

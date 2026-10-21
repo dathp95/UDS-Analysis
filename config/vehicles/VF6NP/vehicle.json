@@ -1,0 +1,33 @@
+{
+    "name": "VF6NP",
+    "manufacturer": "",
+    "version": "1.0.0",
+    "description": "",
+    "ecus": [
+        "ACU",
+        "MHU",
+        "CVC",
+        "TBOX",
+        "AVAS",
+        "BMS",
+        "DSCU",
+        "EPS",
+        "ETG",
+        "EVCC",
+        "FCAM",
+        "FMCU",
+        "MRGEN",
+        "OCS",
+        "DCDC",
+        "OBC",
+        "SRR_RL",
+        "SRR_RR",
+        "SS",
+        "WCBS",
+        "USS_FR",
+        "USS_RR",
+        "VDK",
+        "BCM_R",
+        "BCM_L"
+    ]
+}
