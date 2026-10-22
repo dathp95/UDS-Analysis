@@ -113,11 +113,18 @@ class CodingValuePanel(QGroupBox):
             width=file_button_width,
         )
         self.btn_default.setFixedWidth(file_button_width)
+
+        self.cmb_default_value = PrimaryComboBox()
+        self.cmb_default_value.addItems(["0", "1"])
+        self.cmb_default_value.setCurrentText("0")
+        self.cmb_default_value.setFixedWidth(65)
+
         self.file_action_row = QWidget()
         file_action_layout = QHBoxLayout(self.file_action_row)
         file_action_layout.setContentsMargins(0, 0, 0, 0)
         file_action_layout.setSpacing(ACTION_PANEL_SPACING)
         file_action_layout.addWidget(self.btn_import)
+        file_action_layout.addWidget(self.cmb_default_value)
         file_action_layout.addWidget(self.btn_default)
         self.file_action_row.setFixedWidth(ACTION_PANEL_WIDTH)
 
@@ -721,8 +728,11 @@ class CodingValuePanel(QGroupBox):
         if byte_count <= 0:
             return
 
+        selected = self.cmb_default_value.currentText()
+        fill_byte = 0x00 if selected == "0" else 0x11
+
         self.txt_coding_value.setPlainText(
-            self._format_payload_bytes([0] * byte_count)
+            self._format_payload_bytes([fill_byte] * byte_count)
         )
         self._update_action_states()
 
@@ -1415,6 +1425,7 @@ class CodingValuePanel(QGroupBox):
         )
         self.file_path.fn_refresh_theme()
         self.cmb_coding_json.fn_refresh_theme()
+        self.cmb_default_value.fn_refresh_theme()  
         self.txt_parameter_filter.fn_refresh_theme()
 
         self.btn_filter_no_m.fn_refresh_theme()
