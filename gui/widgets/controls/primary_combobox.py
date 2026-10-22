@@ -45,6 +45,11 @@ class PrimaryComboBox(QComboBox):
         popup_view.viewport().setAutoFillBackground(True)
         popup_view.viewport().setAttribute(Qt.WA_StyledBackground, True)
         popup_view.viewport().setAttribute(Qt.WA_OpaquePaintEvent, True)
+    
+    
+    def wheelEvent(self, event):
+    # Prevent mouse wheel from changing the selected item.
+        event.ignore()
 
     # ==========================================
     # Public

@@ -99,7 +99,7 @@ class CodingValuePanel(QGroupBox):
         )
 
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(250)
+        self.cmb_coding_json.setFixedWidth(260)
         self.cmb_coding_json.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
@@ -112,9 +112,8 @@ class CodingValuePanel(QGroupBox):
         # Import button
         self.btn_import = PrimaryButton(
             "Import",
-            width=file_button_width,
+            width=100,
         )
-        self.btn_import.setFixedWidth(file_button_width)
 
         # Default button
         self.btn_default = PrimaryButton(
