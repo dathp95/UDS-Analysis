@@ -13,6 +13,7 @@ from gui.controllers.analysis_controller import AnalysisController
 from gui.controllers.clipboard_controller import ClipboardController
 from gui.controllers.report_controller import ReportController
 from core.transaction_formatter import fn_build_transaction_rows
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.log_analyzer.filter_box import FilterBox
 from gui.widgets.log_analyzer.left_panel import LeftPanel
 from gui.widgets.log_analyzer.channel_selector import DiagnosticChannelSelectorWidget
@@ -63,6 +64,11 @@ class LogAnalyzerTab(QWidget):
         # Vehicle selector
         # ==========================================================
         self.vehicle_selector = VehicleSelectorWidget()
+        # Apply scrollbar style to Vehicle combobox
+        self.vehicle_selector.cmb_vehicle.setMaxVisibleItems(10)
+        fn_apply_scrollbar_style(
+            self.vehicle_selector.cmb_vehicle.view()
+        )
 
         # ==========================================================
         # Diagnostic Channel selector
