@@ -172,9 +172,9 @@ class EcuWorkspaceSidebar(QWidget):
         )
 
 
-        self.btn_add = SecondaryButton("+ Add Panel", height=28)
-        self.btn_save = PrimaryButton("Save Panel", height=28)
-        self.btn_save_order = SecondaryButton("Save Order", height=28)
+        self.btn_add = SecondaryButton("+ Add Panel", height=42)
+        self.btn_save = PrimaryButton("Save Panel", height=42)
+        self.btn_save_order = SecondaryButton("Save Order", height=42)
         self.btn_save_order.setEnabled(False)
         self.lbl_order_status = QLabel()
         self.lbl_order_status.hide()

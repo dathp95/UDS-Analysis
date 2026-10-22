@@ -99,7 +99,7 @@ class CodingValuePanel(QGroupBox):
         )
 
         self.cmb_coding_json = PrimaryComboBox()
-        self.cmb_coding_json.setFixedWidth(300)
+        self.cmb_coding_json.setFixedWidth(250)
         self.cmb_coding_json.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
