@@ -97,45 +97,61 @@ class CodingValuePanel(QGroupBox):
             "Browse",
             width=100,
         )
+
         self.cmb_coding_json = PrimaryComboBox()
         self.cmb_coding_json.setFixedWidth(300)
         self.cmb_coding_json.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(self.cmb_coding_json.view())
         self.cmb_coding_json.setCurrentIndex(-1)
-        file_button_width = (ACTION_PANEL_WIDTH - ACTION_PANEL_SPACING) // 2
+
+        # Button width
+        file_button_width = (
+            ACTION_PANEL_WIDTH - ACTION_PANEL_SPACING
+        ) // 2
+
+        # Import button
         self.btn_import = PrimaryButton(
             "Import",
             width=file_button_width,
         )
         self.btn_import.setFixedWidth(file_button_width)
+
+        # Default button
         self.btn_default = PrimaryButton(
             "Default",
             width=file_button_width,
         )
         self.btn_default.setFixedWidth(file_button_width)
 
+        # Default value combobox (0 / 1)
         self.cmb_default_value = PrimaryComboBox()
         self.cmb_default_value.addItems(["0", "1"])
-        self.cmb_default_value.setCurrentText("0")
+        self.cmb_default_value.setCurrentIndex(0)
         self.cmb_default_value.setFixedWidth(file_button_width)
 
+        # File action row: Combobox + Default
         self.file_action_row = QWidget()
         file_action_layout = QHBoxLayout(self.file_action_row)
         file_action_layout.setContentsMargins(0, 0, 0, 0)
         file_action_layout.setSpacing(ACTION_PANEL_SPACING)
-        file_action_layout.addWidget(self.btn_import)
+
         file_action_layout.addWidget(self.cmb_default_value)
         file_action_layout.addWidget(self.btn_default)
+
         self.file_action_row.setFixedWidth(ACTION_PANEL_WIDTH)
 
+        # Main file row
         self.file_row = QWidget()
         file_layout = QHBoxLayout(self.file_row)
         file_layout.setContentsMargins(0, 0, 0, 0)
         file_layout.setSpacing(8)
+
         file_layout.addWidget(self.file_path, 1)
         file_layout.addWidget(self.btn_browse)
         file_layout.addWidget(self.cmb_coding_json)
+        file_layout.addWidget(self.btn_import)
         file_layout.addWidget(self.file_action_row)
+
         self._refresh_coding_json_options()
 
         self.txt_coding_value = QPlainTextEdit()
