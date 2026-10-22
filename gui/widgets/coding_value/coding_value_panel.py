@@ -117,7 +117,7 @@ class CodingValuePanel(QGroupBox):
         self.cmb_default_value = PrimaryComboBox()
         self.cmb_default_value.addItems(["0", "1"])
         self.cmb_default_value.setCurrentText("0")
-        self.cmb_default_value.setFixedWidth(65)
+        self.cmb_default_value.setFixedWidth(file_button_width)
 
         self.file_action_row = QWidget()
         file_action_layout = QHBoxLayout(self.file_action_row)
