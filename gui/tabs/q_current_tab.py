@@ -219,9 +219,29 @@ class QCurrentTab(QWidget):
         self.main_splitter.addWidget(self.chart_group)
         self.main_splitter.addWidget(self.right_panel)
         self.main_splitter.setSizes([260, 720, 220])
+        self.main_splitter.splitterMoved.connect(
+            lambda *_: self._sync_actions_panel_width()
+        )
 
         main_layout.addWidget(self.main_splitter, 1)
 
+    def _sync_actions_panel_width(self):
+        if not hasattr(self, "actions_group"):
+            return
+
+        if not hasattr(self, "right_panel"):
+            return
+
+        summary_width = self.right_panel.width()
+
+        if summary_width > 0:
+            self.actions_group.setFixedWidth(summary_width)
+    
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._sync_actions_panel_width()
+        
     def _initialize_database(self):
         ensure_database_directory(self._database_dir)
 
@@ -715,10 +735,10 @@ class QCurrentTab(QWidget):
         panel.setMinimumWidth(200)
         panel.setMaximumWidth(360)
 
-        layout = QGridLayout(panel)
+        # Main layout: keep all button rows together
+        layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setHorizontalSpacing(4)
-        layout.setVerticalSpacing(4)
+        layout.setSpacing(6)
 
         self.btn_run = PrimaryButton("RUN")
         self.btn_copy_data_review = PrimaryButton("COPY Data Review")
@@ -739,21 +759,33 @@ class QCurrentTab(QWidget):
                 QSizePolicy.Expanding,
                 QSizePolicy.Fixed,
             )
-            button.setFixedHeight(40)
+            button.setFixedHeight(36)
 
-        # Row 0: RUN full width
-        layout.addWidget(self.btn_run, 0, 0, 1, 2)
+        # Row 1: RUN full width
+        layout.addWidget(self.btn_run)
 
-        # Row 1: Copy buttons
-        layout.addWidget(self.btn_copy_data_review, 1, 0)
-        layout.addWidget(self.btn_copy_summary, 1, 1)
+        # Row 2: COPY DATA REVIEW | COPY SUMMARY
+        copy_layout = QHBoxLayout()
+        copy_layout.setContentsMargins(0, 0, 0, 0)
+        copy_layout.setSpacing(6)
 
-        # Row 2: Export and Clear
-        layout.addWidget(self.btn_export, 2, 0)
-        layout.addWidget(self.btn_clear, 2, 1)
+        copy_layout.addWidget(self.btn_copy_data_review, 1)
+        copy_layout.addWidget(self.btn_copy_summary, 1)
 
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
+        layout.addLayout(copy_layout)
+
+        # Row 3: EXPORT | CLEAR
+        export_layout = QHBoxLayout()
+        export_layout.setContentsMargins(0, 0, 0, 0)
+        export_layout.setSpacing(6)
+
+        export_layout.addWidget(self.btn_export, 1)
+        export_layout.addWidget(self.btn_clear, 1)
+
+        layout.addLayout(export_layout)
+
+        # Keep buttons at the top
+        layout.addStretch(1)
 
         return panel
         
