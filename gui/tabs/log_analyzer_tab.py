@@ -64,11 +64,7 @@ class LogAnalyzerTab(QWidget):
         # Vehicle selector
         # ==========================================================
         self.vehicle_selector = VehicleSelectorWidget()
-        # Apply scrollbar style to Vehicle combobox
-        self.vehicle_selector.cmb_vehicle.setMaxVisibleItems(10)
-        fn_apply_scrollbar_style(
-            self.vehicle_selector.cmb_vehicle.view()
-        )
+        
 
         # ==========================================================
         # Diagnostic Channel selector

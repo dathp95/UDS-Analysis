@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 
 class VehicleSelectorWidget(QWidget):
     """
@@ -52,6 +53,12 @@ class VehicleSelectorWidget(QWidget):
         self.lbl_vehicle = PrimaryLabel("Vehicle")
 
         self.cmb_vehicle = PrimaryComboBox()
+
+        # Limit the number of visible items
+        self.cmb_vehicle.setMaxVisibleItems(10)
+
+        # Apply scrollbar style
+        fn_apply_scrollbar_style(self.cmb_vehicle.view())
 
         self.cmb_vehicle.setAttribute(Qt.WA_OpaquePaintEvent, False)
         self.cmb_vehicle.setAutoFillBackground(False)
@@ -137,3 +144,6 @@ class VehicleSelectorWidget(QWidget):
         self.lbl_vehicle.fn_refresh_theme()
 
         self.cmb_vehicle.fn_refresh_theme()
+
+        # Refresh scrollbar style when switching Light/Dark Theme
+        fn_apply_scrollbar_style(self.cmb_vehicle.view())
