@@ -202,8 +202,8 @@ class QCurrentTab(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(12)
 
-        top_layout.addWidget(self.settings_group, 1)
-        top_layout.addWidget(self.actions_group, 0)
+        top_layout.addWidget(self.settings_group, 4)
+        top_layout.addWidget(self.actions_group, 1)
 
         main_layout.addLayout(top_layout)
 
@@ -219,29 +219,12 @@ class QCurrentTab(QWidget):
         self.main_splitter.addWidget(self.chart_group)
         self.main_splitter.addWidget(self.right_panel)
         self.main_splitter.setSizes([260, 720, 220])
-        self.main_splitter.splitterMoved.connect(
-            lambda *_: self._sync_actions_panel_width()
-        )
+       
 
         main_layout.addWidget(self.main_splitter, 1)
 
-    def _sync_actions_panel_width(self):
-        if not hasattr(self, "actions_group"):
-            return
+   
 
-        if not hasattr(self, "right_panel"):
-            return
-
-        summary_width = self.right_panel.width()
-
-        if summary_width > 0:
-            self.actions_group.setFixedWidth(summary_width)
-    
-    
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._sync_actions_panel_width()
-        
     def _initialize_database(self):
         ensure_database_directory(self._database_dir)
 
@@ -732,8 +715,11 @@ class QCurrentTab(QWidget):
         panel = QWidget()
         panel.setObjectName("q_current_actions_panel")
 
-        panel.setMinimumWidth(200)
-        panel.setMaximumWidth(360)
+        panel.setMinimumWidth(240)
+        panel.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Preferred,
+        )
 
         # Main layout: keep all button rows together
         layout = QVBoxLayout(panel)
