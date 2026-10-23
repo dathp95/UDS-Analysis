@@ -284,6 +284,9 @@ class QCurrentTab(QWidget):
         self.browse_button.setObjectName("browse_button")
 
         self.dataset_combo = QCurrentDatasetComboBox(self._refresh_dataset_combo)
+        self.dataset_combo.setPlaceholderText("")
+        self.dataset_combo.setCurrentIndex(-1)
+        
         self.dataset_combo.setObjectName("dataset_combo")
         self.dataset_combo.setMinimumWidth(220)
         self.dataset_combo.setFixedHeight(36)
@@ -2484,7 +2487,6 @@ class QCurrentTab(QWidget):
             self,
             selected_db_path: Path | str | None = None,
         ):
-
         selected_path = selected_db_path
 
         if selected_path is None:
@@ -2496,11 +2498,9 @@ class QCurrentTab(QWidget):
             )
 
         with QSignalBlocker(self.dataset_combo):
-
             self.dataset_combo.clear()
 
             for dataset in list_datasets(self._database_dir):
-
                 if dataset.database_path is None:
                     continue
 
@@ -2511,16 +2511,15 @@ class QCurrentTab(QWidget):
                     str(db_path),
                 )
 
-            if selected_path is not None:
+            # Default: no selection
+            selected_index = -1
 
-                index = self.dataset_combo.findData(
+            if selected_path is not None:
+                selected_index = self.dataset_combo.findData(
                     selected_path
                 )
 
-                if index >= 0:
-                    self.dataset_combo.setCurrentIndex(
-                        index
-                    )
+            self.dataset_combo.setCurrentIndex(selected_index)
 
     @staticmethod
     def _is_valid_source_file(path: Path) -> bool:
