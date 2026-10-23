@@ -194,7 +194,20 @@ class QCurrentTab(QWidget):
         main_layout.setContentsMargins(12, 12, 12, 12)
         main_layout.setSpacing(12)
 
+        # Top: Analysis Settings + Actions
         self.settings_group = self._create_settings_group()
+        self.actions_group = self._create_actions_group()
+
+        top_layout = QHBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(12)
+
+        top_layout.addWidget(self.settings_group, 1)
+        top_layout.addWidget(self.actions_group, 0)
+
+        main_layout.addLayout(top_layout)
+
+        # Bottom: Data Review + Chart + Summary
         self.main_splitter = QSplitter(Qt.Horizontal)
         self.main_splitter.setChildrenCollapsible(False)
 
@@ -207,7 +220,6 @@ class QCurrentTab(QWidget):
         self.main_splitter.addWidget(self.right_panel)
         self.main_splitter.setSizes([260, 720, 220])
 
-        main_layout.addWidget(self.settings_group)
         main_layout.addWidget(self.main_splitter, 1)
 
     def _initialize_database(self):
@@ -695,13 +707,13 @@ class QCurrentTab(QWidget):
         layout.addWidget(self.review_table, 1)
         return group
 
-    def _create_right_panel(self):
-        panel = QWidget()
-        panel.setMinimumWidth(200)
-        panel.setMaximumWidth(360)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+    
+    def _create_actions_group(self):
+        group = QGroupBox("Actions")
+
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(12, 16, 12, 12)
+        layout.setSpacing(6)
 
         self.btn_run = PrimaryButton("RUN")
         self.btn_export = PrimaryButton("EXPORT")
@@ -716,14 +728,31 @@ class QCurrentTab(QWidget):
             self.btn_copy_summary,
             self.btn_clear,
         ):
-            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            button.setFixedWidth(150)
+            button.setFixedHeight(30)
             layout.addWidget(button)
+
+        layout.addStretch()
+
+        return group
+    
+    def _create_right_panel(self):
+        panel = QWidget()
+        panel.setMinimumWidth(200)
+        panel.setMaximumWidth(360)
+
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
 
         self.summary_widget = QCurrentSummaryWidget()
         self.summary_group = self.summary_widget
-        layout.addWidget(self.summary_widget, 1)
-        return panel
 
+        layout.addWidget(self.summary_widget, 1)
+
+        return panel
+    
+    
     def _create_placeholder_panel(self):
         label = QLabel(PLACEHOLDER_VALUE)
         label.setFrameShape(QFrame.StyledPanel)
@@ -2533,6 +2562,7 @@ class QCurrentTab(QWidget):
         group_style = fn_groupbox_style()
         for group in (
             self.settings_group,
+            self.actions_group,
             self.chart_group,
             self.review_group,
             self.summary_group,
