@@ -10,7 +10,9 @@ from gui.themes.theme_manager import ThemeManager
 from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
-
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 class ExportVehicleDialog(QDialog):
 
@@ -135,6 +137,7 @@ class ExportVehicleDialog(QDialog):
             }}
             """
         )
+        fn_apply_scrollbar_style(self.txt_ecus)
 
         self.btn_close.fn_refresh_theme()
 

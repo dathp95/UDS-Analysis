@@ -1,0 +1,14 @@
+{
+    "name": "VDKCU",
+    "request_id": "6CC",
+    "response_id": "64C",
+    "aliases": [],
+    "resources": {
+        "dll": "",
+        "dbc": "",
+        "odx": "",
+        "dtc": "",
+        "request_library": ""
+    },
+    "quick_requests": []
+}

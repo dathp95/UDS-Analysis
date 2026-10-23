@@ -11,7 +11,9 @@ from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 from models.ecu import ECU
-
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 class ImportECUDialog(QDialog):
 
@@ -205,6 +207,7 @@ class ImportECUDialog(QDialog):
             }}
             """
         )
+        fn_apply_scrollbar_style(self.txt_ecus)
 
         self.btn_cancel.fn_refresh_theme()
 

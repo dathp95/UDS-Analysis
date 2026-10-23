@@ -11,7 +11,9 @@ from gui.widgets.controls.cancel_button import CancelButton
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_label import PrimaryLabel
 from core.config_loader import validate_display_name_rules
-
+from gui.themes.styles.controls.scrollbar_style import (
+    fn_apply_scrollbar_style,
+)
 
 class ImportDisplayNamesDialog(QDialog):
 
@@ -97,6 +99,6 @@ class ImportDisplayNamesDialog(QDialog):
             }}
             """
         )
-
+        fn_apply_scrollbar_style(self.txt_rules)
         self.btn_cancel.fn_refresh_theme()
         self.btn_import.fn_refresh_theme()

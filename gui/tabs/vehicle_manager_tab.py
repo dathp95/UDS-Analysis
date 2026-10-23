@@ -101,22 +101,28 @@ class VehicleManagerTab(QWidget):
 
         self.btn_create_vehicle = SecondaryButton(
             "+ Vehicle",
-            width=110,
+            width=120,
         )
 
         self.btn_delete_vehicle = SecondaryButton(
             "Delete Vehicle",
-            width=130,
+            width=120,
         )
 
         self.btn_delete_vehicle.setEnabled(False)
 
         self.btn_export_vehicle = SecondaryButton(
             "Export Vehicle",
-            width=130,
+            width=120,
         )
 
         self.btn_export_vehicle.setEnabled(False)
+
+        self.btn_import_ecus = SecondaryButton(
+            "Import Vehicle",
+            width=120,
+        )
+        self.btn_import_ecus.setEnabled(False)
 
         vehicle_widget = QWidget()
 
@@ -162,6 +168,10 @@ class VehicleManagerTab(QWidget):
             self.btn_export_vehicle
         )
 
+        vehicle_button_layout.addWidget(
+            self.btn_import_ecus
+        )
+
         vehicle_button_layout.addStretch()
 
         vehicle_action_layout.addLayout(
@@ -202,7 +212,7 @@ class VehicleManagerTab(QWidget):
 
         self.btn_add_ecu = SecondaryButton(
             "+ ECU",
-            width=100,
+            width=120,
         )
 
         self.btn_add_ecu.setEnabled(False)
@@ -212,19 +222,15 @@ class VehicleManagerTab(QWidget):
             width=120,
         )
 
-        self.btn_delete_ecu.setEnabled(False)
+        self.btn_delete_ecu.setEnabled(False)       
 
-        self.btn_import_ecus = SecondaryButton(
-            "Import ECU List",
-            width=140,
-        )
-
-        self.btn_import_ecus.setEnabled(False)
+       
 
         self.btn_shortcuts = SecondaryButton(
             "Keyboard Shortcuts",
-            width=150,
+            width=180,
         )
+        self.btn_shortcuts.setVisible(False)
 
         self.btn_import_display_names = SecondaryButton(
             "Import File Display Names",
@@ -315,9 +321,6 @@ class VehicleManagerTab(QWidget):
 
         action_layout.setContentsMargins(0, 0, 0, 0)
 
-        action_layout.addWidget(
-            self.btn_import_ecus
-        )
 
         action_layout.addWidget(
             self.btn_shortcuts
@@ -435,6 +438,7 @@ class VehicleManagerTab(QWidget):
             self._on_export_vehicle_clicked
 
         )
+        
 
         self.ecu_list.ecu_selected.connect(
 
