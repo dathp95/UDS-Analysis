@@ -712,6 +712,9 @@ class QCurrentTab(QWidget):
         panel = QWidget()
         panel.setObjectName("q_current_actions_panel")
 
+        panel.setMinimumWidth(200)
+        panel.setMaximumWidth(360)
+
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -729,7 +732,10 @@ class QCurrentTab(QWidget):
             self.btn_copy_summary,
             self.btn_clear,
         ):
-            button.setFixedWidth(150)
+            button.setSizePolicy(
+                QSizePolicy.Expanding,
+                QSizePolicy.Fixed,
+            )
             button.setFixedHeight(30)
             layout.addWidget(button)
 
