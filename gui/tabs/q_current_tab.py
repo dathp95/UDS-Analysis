@@ -709,10 +709,11 @@ class QCurrentTab(QWidget):
 
     
     def _create_actions_group(self):
-        group = QGroupBox("Actions")
+        panel = QWidget()
+        panel.setObjectName("q_current_actions_panel")
 
-        layout = QVBoxLayout(group)
-        layout.setContentsMargins(12, 16, 12, 12)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
         self.btn_run = PrimaryButton("RUN")
@@ -734,8 +735,8 @@ class QCurrentTab(QWidget):
 
         layout.addStretch()
 
-        return group
-    
+        return panel
+        
     def _create_right_panel(self):
         panel = QWidget()
         panel.setMinimumWidth(200)
@@ -2562,7 +2563,6 @@ class QCurrentTab(QWidget):
         group_style = fn_groupbox_style()
         for group in (
             self.settings_group,
-            self.actions_group,
             self.chart_group,
             self.review_group,
             self.summary_group,
