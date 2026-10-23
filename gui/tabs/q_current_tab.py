@@ -202,8 +202,8 @@ class QCurrentTab(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(12)
 
-        top_layout.addWidget(self.settings_group, 4)
-        top_layout.addWidget(self.actions_group, 1)
+        top_layout.addWidget(self.settings_group, 9)
+        top_layout.addWidget(self.actions_group, 2)
 
         main_layout.addLayout(top_layout)
 
@@ -721,7 +721,6 @@ class QCurrentTab(QWidget):
             QSizePolicy.Preferred,
         )
 
-        # Main layout: keep all button rows together
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -732,45 +731,20 @@ class QCurrentTab(QWidget):
         self.btn_export = PrimaryButton("EXPORT")
         self.btn_clear = PrimaryButton("CLEAR")
 
-        buttons = (
+        for button in (
             self.btn_run,
             self.btn_copy_data_review,
             self.btn_copy_summary,
             self.btn_export,
             self.btn_clear,
-        )
-
-        for button in buttons:
+        ):
             button.setSizePolicy(
                 QSizePolicy.Expanding,
                 QSizePolicy.Fixed,
             )
-            button.setFixedHeight(36)
+            button.setFixedHeight(30)
+            layout.addWidget(button)
 
-        # Row 1: RUN full width
-        layout.addWidget(self.btn_run)
-
-        # Row 2: COPY DATA REVIEW | COPY SUMMARY
-        copy_layout = QHBoxLayout()
-        copy_layout.setContentsMargins(0, 0, 0, 0)
-        copy_layout.setSpacing(6)
-
-        copy_layout.addWidget(self.btn_copy_data_review, 1)
-        copy_layout.addWidget(self.btn_copy_summary, 1)
-
-        layout.addLayout(copy_layout)
-
-        # Row 3: EXPORT | CLEAR
-        export_layout = QHBoxLayout()
-        export_layout.setContentsMargins(0, 0, 0, 0)
-        export_layout.setSpacing(6)
-
-        export_layout.addWidget(self.btn_export, 1)
-        export_layout.addWidget(self.btn_clear, 1)
-
-        layout.addLayout(export_layout)
-
-        # Keep buttons at the top
         layout.addStretch(1)
 
         return panel
