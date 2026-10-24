@@ -526,6 +526,10 @@ class CodingValuePanel(QGroupBox):
             )
             return
 
+        # Reset Filter / No-M khi chuyển file thành công
+        self.txt_parameter_filter.clear()
+
+        # Load toàn bộ dữ liệu file mới
         self._set_coding_definition(
             definition,
             coding_file=json_path,

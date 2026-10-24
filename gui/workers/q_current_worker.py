@@ -69,7 +69,6 @@ class QCurrentTaskRunner(QObject):
         self._outcome = (False, message)
 
     @Slot()
-    @Slot()
     def _finish(self):
         outcome = self._outcome
 
