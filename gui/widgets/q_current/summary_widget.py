@@ -49,7 +49,7 @@ class QCurrentSummaryWidget(QGroupBox):
         layout = QGridLayout(self)
         layout.setContentsMargins(12, 16, 12, 12)
         layout.setHorizontalSpacing(10)
-        layout.setVerticalSpacing(15)
+        layout.setVerticalSpacing(12)
 
         for row, (key, label_text) in enumerate(self._rows):
             label = PrimaryLabel(label_text)
@@ -77,7 +77,11 @@ class QCurrentSummaryWidget(QGroupBox):
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(len(self._rows), 1)
 
-    def set_result(self, result: QCurrentAnalysisResult):
+    def set_result(
+        self,
+        result: QCurrentAnalysisResult,
+        dataset_samples: int,
+        ):
         self.summary_values["result_status"].setText(result.result_status)
         self.summary_values["average_sleep_current_ma"].setText(
             self._format_current(result.average_sleep_current_ma)
@@ -121,7 +125,13 @@ class QCurrentSummaryWidget(QGroupBox):
         self.summary_values["duration_s"].setText(
             self._format_duration(result.duration_s)
         )
-        self.summary_values["total_samples"].setText(str(result.total_samples))
+        self.summary_values["dataset_samples"].setText(
+            f"{dataset_samples:,}"
+        )        
+
+        self.summary_values["analyzed_samples"].setText(
+            f"{result.total_samples:,}"
+        )
         self.summary_values["sample_interval_s"].setText(
             self._format_duration(result.sample_interval_s)
         )
@@ -158,7 +168,8 @@ class QCurrentSummaryWidget(QGroupBox):
             f"Start Time: {value('source_start_time')}",
             f"End Time: {value('source_end_time')}",
             f"Duration: {value('duration_s')}",
-            f"Total Samples: {value('total_samples')}",
+            f"Dataset Samples: {value('dataset_samples')}",
+            f"Analyzed Samples: {value('analyzed_samples')}",
             f"Sample Interval: {value('sample_interval_s')}",
         ])
 
