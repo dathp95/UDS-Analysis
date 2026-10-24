@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from core.converter import SUPPORTED_FORMATS, convert_data
 from core.crc import calculate_crc8_sae_j1850, parse_hex_bytes
 from core.qr_generator import QRDependencyError, generate_qr_png_bytes
+from gui.dialogs.qr_list_dialog import QRListDialog
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.utils.text_selection import clear_text_selection_on_focus_out
@@ -230,6 +231,7 @@ class CRCConverterTab(QWidget):
             "Clear QR",
             width=100,
         )
+        self.btn_import_qr_list = PrimaryButton("Import List QR Code", width=180)
         self.btn_copy_qr.setEnabled(False)
         self.btn_clear_qr.setEnabled(False)
 
@@ -252,6 +254,7 @@ class CRCConverterTab(QWidget):
         qr_action_layout.addWidget(self.btn_create_qr)
         qr_action_layout.addWidget(self.btn_copy_qr)
         qr_action_layout.addWidget(self.btn_clear_qr)
+        qr_action_layout.addWidget(self.btn_import_qr_list)
         qr_action_layout.addStretch(1)
 
         # ==========================================================
@@ -352,6 +355,7 @@ class CRCConverterTab(QWidget):
         self.btn_clear_qr.clicked.connect(
             self.clear_qr_code
         )
+        self.btn_import_qr_list.clicked.connect(self.open_qr_list_dialog)
         self.txt_qr_input.textChanged.connect(
             self._update_qr_button_states
         )
@@ -505,6 +509,13 @@ class CRCConverterTab(QWidget):
         self.btn_converter_clear.setEnabled(has_input or has_output)
         self.btn_converter_copy.setEnabled(has_output)
 
+    def open_qr_list_dialog(self):
+        dialog = QRListDialog(self)
+        try:
+            dialog.exec()
+        finally:
+            dialog.deleteLater()
+
     def create_qr_code(self):
         text = self.txt_qr_input.toPlainText()
         if not text.strip():
@@ -629,6 +640,9 @@ class CRCConverterTab(QWidget):
         self.btn_create_qr.fn_refresh_theme()
         self.btn_copy_qr.fn_refresh_theme()
         self.btn_clear_qr.fn_refresh_theme()
+        self.btn_import_qr_list.fn_refresh_theme()
+        for dialog in self.findChildren(QRListDialog):
+            dialog.fn_refresh_theme()
         self.txt_crc_output.fn_refresh_theme()
 
         self.btn_count_byte.fn_refresh_theme()
