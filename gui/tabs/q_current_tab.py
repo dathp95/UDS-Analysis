@@ -504,7 +504,7 @@ class QCurrentTab(QWidget):
     def _create_analysis_widgets(self):
         # Analysis result
         self.analysis_result_label = PrimaryLabel(
-            "Analysis result:"
+            "STATUS:       "
         )
 
         self.analysis_result_edit = PrimaryLineEdit()
@@ -512,7 +512,10 @@ class QCurrentTab(QWidget):
             "analysis_result_edit"
         )
         self.analysis_result_edit.setReadOnly(True)
-        self.analysis_result_edit.setFixedWidth(130)
+        self.analysis_result_edit.setFixedWidth(315)
+
+        self.analysis_result_edit.setAlignment(Qt.AlignCenter)
+
 
         self._set_analysis_result("NOT RUN")
 
