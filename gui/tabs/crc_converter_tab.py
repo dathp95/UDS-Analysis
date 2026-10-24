@@ -115,6 +115,9 @@ class CRCConverterTab(QWidget):
         self.cmb_converter_to = self._create_format_combo()
         self._set_combo_text(self.cmb_converter_from, self.DEFAULT_FROM_FORMAT)
         self._set_combo_text(self.cmb_converter_to, self.DEFAULT_TO_FORMAT)
+        self._update_converter_to_options(
+            self.cmb_converter_from.currentText()
+        )
 
         format_layout = QHBoxLayout()
         format_layout.setContentsMargins(0, 0, 0, 0)
@@ -337,6 +340,9 @@ class CRCConverterTab(QWidget):
         self.txt_converter_output.textChanged.connect(
             self._update_converter_button_states
         )
+        self.cmb_converter_from.currentTextChanged.connect(
+            self._update_converter_to_options
+        )
         self.btn_create_qr.clicked.connect(
             self.create_qr_code
         )
@@ -374,6 +380,26 @@ class CRCConverterTab(QWidget):
         editor.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._set_editor_height(editor, lines=lines)
         return editor
+    
+    def _update_converter_to_options(self, from_format):
+        combo = self.cmb_converter_to
+        previous = combo.currentText()
+
+        combo.blockSignals(True)
+
+        combo.clear()
+        combo.addItems(SUPPORTED_FORMATS)
+
+        if from_format == "Hexadecimal":
+            combo.addItems(["00", "FF"])
+
+        if combo.findText(previous) >= 0:
+            combo.setCurrentText(previous)
+        else:
+            combo.setCurrentText(self.DEFAULT_TO_FORMAT)
+
+        combo.setMaxVisibleItems(combo.count())
+        combo.blockSignals(False)
 
     @staticmethod
     def _set_editor_height(editor, lines=3):
@@ -446,6 +472,14 @@ class CRCConverterTab(QWidget):
         self._update_converter_button_states()
 
     def swap_converter_formats(self):
+        if self.cmb_converter_to.currentText() in ("00", "FF"):
+            QMessageBox.information(
+                self,
+                "Converter",
+                "SWAP is not supported for 00 / FF byte replacement.",
+            )
+            return
+        
         from_format = self.cmb_converter_from.currentText()
         to_format = self.cmb_converter_to.currentText()
         output = self.txt_converter_output.toPlainText()

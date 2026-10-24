@@ -14,6 +14,17 @@ SUPPORTED_FORMATS = (
 def convert_data(value: str, from_format: str, to_format: str) -> str:
     if from_format == to_format:
         raise ValueError("From and To formats must not be the same.")
+
+    # Special conversion: Hexadecimal -> 00 / FF
+    if to_format in ("00", "FF"):
+        if from_format != "Hexadecimal":
+            raise ValueError(
+                "00 and FF are only supported for Hexadecimal input."
+            )
+
+        data = _parse_hex(value)
+        return " ".join([to_format] * len(data))
+
     if from_format not in SUPPORTED_FORMATS or to_format not in SUPPORTED_FORMATS:
         raise ValueError("Unsupported conversion format.")
 
