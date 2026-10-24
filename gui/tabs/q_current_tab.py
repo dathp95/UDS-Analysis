@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -57,6 +58,8 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.controls.primary_table import PrimaryTable
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.q_current.summary_widget import QCurrentSummaryWidget
+from gui.widgets.q_current.analysis_progress import QCurrentProgressBar
+from gui.workers.q_current_worker import QCurrentTaskRunner
 
 
 PLACEHOLDER_VALUE = "\u2014"
@@ -143,6 +146,13 @@ class QCurrentTab(QWidget):
         self._theme_widgets = []
         self._database_dir = database_dir
         self._config_file = config_file
+        self._operation_running = False
+        self._task_runner = QCurrentTaskRunner(QApplication.instance())
+        self._task_runner.finished.connect(self._task_finished)
+        self._task_runner.failed.connect(self._task_failed)
+        QApplication.instance().aboutToQuit.connect(self._task_runner.wait)
+        self.destroyed.connect(self._task_runner.wait)
+        self.destroyed.connect(self._task_runner.deleteLater)
         self.q_current_config = load_q_current_config(config_file)
         self.current_import = None
         self.current_samples = []
@@ -405,7 +415,7 @@ class QCurrentTab(QWidget):
         result_layout.setSpacing(8)
 
         result_layout.addWidget(self.analysis_result_label)
-        result_layout.addWidget(self.analysis_result_edit)
+        result_layout.addWidget(self.analysis_progress_bar)
         result_layout.addStretch()
 
         layout.addLayout(result_layout)
@@ -507,16 +517,7 @@ class QCurrentTab(QWidget):
             "STATUS:       "
         )
 
-        self.analysis_result_edit = PrimaryLineEdit()
-        self.analysis_result_edit.setObjectName(
-            "analysis_result_edit"
-        )
-        self.analysis_result_edit.setReadOnly(True)
-        self.analysis_result_edit.setFixedWidth(315)
-
-        self.analysis_result_edit.setAlignment(Qt.AlignCenter)
-
-
+        self.analysis_progress_bar = QCurrentProgressBar()
         self._set_analysis_result("NOT RUN")
 
         # Analysis start time
@@ -896,6 +897,8 @@ class QCurrentTab(QWidget):
         self.set_source_file(file_path)
 
     def set_source_file(self, file_path: str | Path):
+        if self._operation_running:
+            return
         path = Path(file_path).expanduser().resolve()
         path_text = str(path)
         self.source_file_edit.setText(path_text)
@@ -903,49 +906,83 @@ class QCurrentTab(QWidget):
         self.import_button.setEnabled(True)
 
     def _set_analysis_result(self, text):
-        self.analysis_result_edit.setText(text)
-        self._refresh_analysis_result_style()
+        self.analysis_progress_bar.set_status(text)
 
     def _refresh_analysis_result_style(self):
-        self.analysis_result_edit.fn_refresh_theme()
-        state = self.analysis_result_edit.text().strip().upper()
-        if state not in {"PASSED", "FAILED"}:
-            return
-
-        colors = ThemeManager.fn_colors()
-        state_color = colors.SUCCESS if state == "PASSED" else colors.DANGER
-        self.analysis_result_edit.setStyleSheet(
-            self.analysis_result_edit.styleSheet()
-            + f"""
-            QLineEdit {{
-                color: {state_color};
-                font-weight: 700;
-            }}
-            """
-        )
+        self.analysis_progress_bar.fn_refresh_theme()
 
     def clear_source_file_selection(self):
         self.source_file_edit.clear()
         self.source_file_edit.setToolTip("")
         self.import_button.setEnabled(True)
 
+    def _set_task_busy(self, busy):
+        self._operation_running = busy
+        for control in (
+            self.browse_button, self.import_button, self.dataset_combo,
+            self.current_limit_edit, self.wake_limit_edit, self.wake_duration_edit,
+            self.sampling_duration_checkbox, self.sampling_duration_edit,
+            self.analysis_start_time_edit, self.analysis_end_time_edit,
+            self.save_config_button,
+        ):
+            control.setEnabled(not busy)
+        for group in (self.actions_group, self.chart_group, self.review_group):
+            group.setEnabled(not busy)
+        if not busy:
+            self._apply_sampling_duration_mode(mark_not_run=False)
+        self._update_action_states()
+
+    def _begin_operation(self, state):
+        self._task_error_state = "IMPORT FAILED" if state == "IMPORTING" else "ANALYSIS ERROR"
+        self._task_error_title = "Q current Import" if state == "IMPORTING" else "Q current Chart"
+        self._set_task_busy(True)
+        self._set_analysis_result(state)
+
+    def _start_task(self, operation, on_success):
+        self._task_success = on_success
+        self._task_runner.start(operation)
+
+    def _task_finished(self, result):
+        callback = self._task_success
+        self._task_success = None
+        try:
+            callback(result)
+        except Exception as error:
+            self._task_failed(str(error))
+        finally:
+            if not self._task_runner.running:
+                self._set_task_busy(False)
+
+    def _task_failed(self, message):
+        self._task_success = None
+        self._set_analysis_result(self._task_error_state)
+        self._set_task_busy(False)
+        QMessageBox.warning(self, self._task_error_title, message)
+
     def import_current_file(self):
+        if self._operation_running:
+            return
         source_text = self.source_file_edit.text().strip()
         if not source_text:
             self.load_selected_dataset()
             return
 
-        source_path = Path(source_text).expanduser()
+        previous_state = self.analysis_progress_bar.state
+        self._begin_operation("IMPORTING")
         try:
-            source_path = source_path.resolve()
-            normalized = normalize_current_data(source_path)
+            source_path = Path(source_text).expanduser().resolve()
             dataset_name = default_dataset_name(source_path)
             database_path = database_path_for_source(source_path, self._database_dir)
         except Exception as error:
-            self._set_analysis_result("IMPORT FAILED")
-            QMessageBox.warning(self, "Q current Import", str(error))
+            self._task_failed(str(error))
             return
 
+        self._start_task(
+            partial(normalize_current_data, source_path),
+            partial(self._confirm_current_import, source_path, dataset_name, database_path, previous_state),
+        )
+
+    def _confirm_current_import(self, source_path, dataset_name, database_path, previous_state, normalized):
         if database_path.exists():
             response = QMessageBox.question(
                 self,
@@ -958,9 +995,10 @@ class QCurrentTab(QWidget):
                 QMessageBox.No,
             )
             if response != QMessageBox.Yes:
+                self._set_analysis_result(previous_state)
                 return
 
-        try:
+        def import_and_load():
             result = import_dataset(
                 dataset_name,
                 source_path,
@@ -968,18 +1006,16 @@ class QCurrentTab(QWidget):
                 database_path,
                 detected_channel=normalized.detected_channel,
             )
-        except Exception as error:
-            self._set_analysis_result("IMPORT FAILED")
-            QMessageBox.warning(self, "Q current Import", str(error))
-            return
+            path = result.dataset.database_path or database_path
+            return result, path, get_samples(result.dataset.id, path)
 
+        self._start_task(import_and_load, self._current_import_finished)
+
+    def _current_import_finished(self, imported):
+        result, database_path, samples = imported
         self.current_import = result
-        self.current_database_path = result.dataset.database_path or database_path
-        self.current_samples = get_samples(
-            result.dataset.id,
-            self.current_database_path,
-        )
-        self._load_samples_into_workspace(self.current_samples)
+        self.current_database_path = database_path
+        self._load_samples_into_workspace(samples)
         self._refresh_dataset_combo(selected_db_path=self.current_database_path)
         self.clear_source_file_selection()
         self._set_analysis_result("IMPORTED")
@@ -995,6 +1031,8 @@ class QCurrentTab(QWidget):
         )
 
     def load_selected_dataset(self):
+        if self._operation_running:
+            return
         database_value = self.dataset_combo.currentData()
         if not database_value:
             QMessageBox.warning(
@@ -1004,22 +1042,24 @@ class QCurrentTab(QWidget):
             )
             return
 
-        database_path = Path(database_value).expanduser().resolve()
-        dataset = get_primary_dataset(database_path)
-        if dataset is None:
-            self._set_analysis_result("IMPORT FAILED")
-            QMessageBox.warning(
-                self,
-                "Q current Import",
-                f"Q current database is not valid: {database_path}",
-            )
-            return
+        self._begin_operation("IMPORTING")
 
+        def load_dataset():
+            database_path = Path(database_value).expanduser().resolve()
+            dataset = get_primary_dataset(database_path)
+            if dataset is None:
+                raise ValueError(f"Q current database is not valid: {database_path}")
+            path = dataset.database_path or database_path
+            return path, get_samples(dataset.id, path)
+
+        self._start_task(load_dataset, self._current_dataset_loaded)
+
+    def _current_dataset_loaded(self, loaded):
+        database_path, samples = loaded
         self.current_import = None
-        self.current_database_path = dataset.database_path or database_path
-        self.current_samples = get_samples(dataset.id, self.current_database_path)
-        self._load_samples_into_workspace(self.current_samples)
-        self._set_analysis_result("LOADED")
+        self.current_database_path = database_path
+        self._load_samples_into_workspace(samples)
+        self._set_analysis_result("IMPORTED")
         self.import_button.setEnabled(True)
 
     def _load_samples_into_workspace(self, samples):
@@ -1054,10 +1094,13 @@ class QCurrentTab(QWidget):
         self.btn_copy_summary.setEnabled(has_analysis)
 
     def run_current_analysis(self):
+        if self._operation_running:
+            return
         if not self.current_samples:
             self._update_action_states()
             return
         self._selected_review_chart_index = None
+        self._begin_operation("ANALYZING")
         try:
             elapsed_seconds, current_values = self._build_chart_data()
             (
@@ -1065,7 +1108,8 @@ class QCurrentTab(QWidget):
                 analysis_current_values,
                 analysis_source_times,
             ) = self._build_analysis_data(elapsed_seconds, current_values)
-            analysis_result = analyze_q_current(
+            operation = partial(
+                analyze_q_current,
                 analysis_elapsed_seconds,
                 analysis_current_values,
                 self.current_limit_edit.value(),
@@ -1073,11 +1117,22 @@ class QCurrentTab(QWidget):
                 self.wake_duration_edit.value(),
                 source_times=analysis_source_times,
             )
-        except ValueError as error:
-            QMessageBox.warning(self, "Q current Chart", str(error))
-            self._update_action_states()
+            settings = QCurrentReportSettings(
+                standard_current_ma=self.current_limit_edit.value(),
+                wake_up_limit_ma=self.wake_limit_edit.value(),
+                wake_duration_s=self.wake_duration_edit.value(),
+                analysis_start_time_s=self.analysis_start_time_edit.value(),
+                analysis_end_time_s=self._effective_analysis_end_time_s(),
+                sampling_duration_enabled=self.sampling_duration_checkbox.isChecked(),
+                sampling_duration_min=self.sampling_duration_edit.value(),
+            )
+        except Exception as error:
+            self._task_failed(str(error))
             return
 
+        self._start_task(operation, partial(self._current_analysis_finished, elapsed_seconds, current_values, settings))
+
+    def _current_analysis_finished(self, elapsed_seconds, current_values, settings, analysis_result):
         self._update_current_chart(
             elapsed_seconds,
             current_values,
@@ -1085,20 +1140,14 @@ class QCurrentTab(QWidget):
         )
         self.summary_widget.set_result(analysis_result)
         self.current_analysis_result = analysis_result
-        self.current_analysis_settings = QCurrentReportSettings(
-            standard_current_ma=self.current_limit_edit.value(),
-            wake_up_limit_ma=self.wake_limit_edit.value(),
-            wake_duration_s=self.wake_duration_edit.value(),
-            analysis_start_time_s=self.analysis_start_time_edit.value(),
-            analysis_end_time_s=self._effective_analysis_end_time_s(),
-            sampling_duration_enabled=self.sampling_duration_checkbox.isChecked(),
-            sampling_duration_min=self.sampling_duration_edit.value(),
-        )
+        self.current_analysis_settings = settings
         self._chart_ready = True
         self._set_analysis_result(analysis_result.result_status)
         self._update_action_states()
 
     def clear_current_workspace(self):
+        if self._operation_running:
+            return
         self.current_import = None
         self.current_database_path = None
         self.current_samples = []
@@ -1662,9 +1711,11 @@ class QCurrentTab(QWidget):
                 break
 
     def _mark_analysis_not_run(self, *_args):
+        if self._operation_running:
+            return
         self.current_analysis_result = None
         self.current_analysis_settings = None
-        if hasattr(self, "analysis_result_edit"):
+        if hasattr(self, "analysis_progress_bar"):
             self._set_analysis_result("NOT RUN")
         if hasattr(self, "summary_widget"):
             self.summary_widget.clear_result()
@@ -2677,7 +2728,6 @@ class QCurrentTab(QWidget):
 
         for widget in (
             self.source_file_edit,
-            self.analysis_result_edit,
             self.dataset_combo,
             self.review_table,
             self.browse_button,

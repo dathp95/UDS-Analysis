@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -33,6 +34,13 @@ from gui.widgets.controls.quick_access_button import QuickAccessButton
 
 
 class QCurrentTabTests(unittest.TestCase):
+
+    def _wait_for_idle(self, tab):
+        deadline = time.monotonic() + 10
+        while tab._operation_running and time.monotonic() < deadline:
+            self.application.processEvents()
+            time.sleep(0.001)
+        self.assertFalse(tab._operation_running, "Q Current worker did not finish")
 
     @classmethod
     def setUpClass(cls):
@@ -132,7 +140,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIsInstance(tab.save_config_button, PrimaryButton)
             self.assertFalse(hasattr(tab, "sleep_duration_edit"))
             self.assertFalse(hasattr(tab, "sleep_duration_label"))
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
             self.assertEqual(tab.analysis_range_label.text(), "Analysis Range:")
             self.assertEqual(tab.analysis_start_time_label.text(), "Start Time (s)")
             self.assertEqual(tab.analysis_start_time_edit.objectName(), "analysis_start_time_edit")
@@ -239,11 +247,12 @@ class QCurrentTabTests(unittest.TestCase):
 
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
                 tab.btn_run.click()
+                self._wait_for_idle(tab)
 
             warning_box.assert_called_once()
             self.assertIn("Insufficient data for the selected sampling duration", warning_box.call_args.args[2])
             self.assertIsNone(tab.current_analysis_result)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "ANALYSIS ERROR")
 
     def test_manual_end_mode_filters_analysis_and_qmenu_end_is_mode_aware(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -271,6 +280,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.analysis_end_time_edit.value(), 3600.0)
 
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.current_analysis_result.total_samples, 2)
             self.assertEqual(tab.current_analysis_result.start_time_s, 1800.0)
@@ -347,7 +357,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(restarted_tab.current_limit_edit.value(), 25.0)
             self.assertEqual(restarted_tab.wake_limit_edit.value(), 250.0)
             self.assertEqual(restarted_tab.wake_duration_edit.value(), 3.0)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
             self.assertFalse(tab._chart_ready)
 
     def test_save_config_error_does_not_report_success(self):
@@ -402,6 +412,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.wake_duration_edit.setValue(3.0)
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             with patch.object(
                 tab.q_current_report_service,
@@ -529,8 +540,9 @@ class QCurrentTabTests(unittest.TestCase):
 
             with patch("gui.tabs.q_current_tab.QMessageBox.information") as info_box:
                 tab.import_current_file()
+                self._wait_for_idle(tab)
 
-            self.assertEqual(tab.analysis_result_edit.text(), "IMPORTED")
+            self.assertEqual(tab.analysis_progress_bar.text(), "IMPORTED")
             self.assertEqual(tab.current_import.row_count, 1)
             expected_database = database_path_for_source(source_file, database_dir)
             self.assertEqual(tab.current_database_path, expected_database)
@@ -579,6 +591,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
                 tab.import_current_file()
+                self._wait_for_idle(tab)
 
             self.assertEqual(tab.current_database_path, database_file.resolve())
             self.assertEqual(len(tab.current_samples), 3)
@@ -643,6 +656,7 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=first_database)
             tab.import_current_file()
+            self._wait_for_idle(tab)
             scrollbar = tab.review_table.verticalScrollBar()
             scrollbar.setRange(0, 100)
             scrollbar.setValue(80)
@@ -651,6 +665,7 @@ class QCurrentTabTests(unittest.TestCase):
             )
 
             tab.import_current_file()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.current_database_path, second_database.resolve())
             self.assertEqual(scrollbar.value(), scrollbar.minimum())
@@ -736,9 +751,11 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
+            self._wait_for_idle(tab)
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             current_x, current_y = tab.current_curve.getData()
             self.assertEqual([round(value, 3) for value in current_x.tolist()], [0.0, 1.043, 2.114])
@@ -763,7 +780,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.current_plot.isHidden())
             self.assertTrue(tab.chart_placeholder.isHidden())
             self.assertTrue(tab.chart_scrollbar.isHidden())
-            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
+            self.assertEqual(tab.analysis_progress_bar.text(), "PASSED")
             self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1.043, 2.114])
             self.assertEqual(tab.chart_current_ma.tolist(), [-16.9, -17.3, -18.1])
             bottom_axis = tab.current_plot.getPlotItem().getAxis("bottom")
@@ -787,6 +804,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.wake_duration_edit.setValue(2.0)
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             output_file = Path(tmpdir) / "report.xlsx"
             with patch.object(
@@ -821,6 +839,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             with patch.object(
                 tab.q_current_report_service,
@@ -845,6 +864,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab._load_samples_into_workspace([self._sample(0.0, 10.0)])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             with patch.object(
                 tab.q_current_report_service,
@@ -871,20 +891,21 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "PASSED")
-            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
+            self.assertEqual(tab.analysis_progress_bar.text(), "PASSED")
             self.assertEqual(tab.summary_widget.summary_values["average_sleep_current_ma"].text(), "15.00 mA")
             self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.summary_widget.summary_values["result_status"].styleSheet())
-            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
-            self.assertIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
+            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_progress_bar.styleSheet())
+            self.assertIn("font-weight: 700", tab.analysis_progress_bar.styleSheet())
 
             tab.btn_clear.click()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), PLACEHOLDER_VALUE)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
-            self.assertNotIn(ThemeManager.fn_colors().DANGER, tab.analysis_result_edit.styleSheet())
-            self.assertNotIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
+            self.assertNotIn(ThemeManager.fn_colors().DANGER, tab.analysis_progress_bar.styleSheet())
+            self.assertNotIn("font-weight: 700", tab.analysis_progress_bar.styleSheet())
             self.assertFalse(tab.btn_copy_summary.isEnabled())
 
     def test_run_marks_summary_failed_with_danger_theme(self):
@@ -897,14 +918,15 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             ThemeManager.fn_set_theme(ThemeType.DARK)
             tab.fn_refresh_theme()
 
             self.assertEqual(tab.summary_widget.summary_values["result_status"].text(), "FAILED")
-            self.assertEqual(tab.analysis_result_edit.text(), "FAILED")
+            self.assertEqual(tab.analysis_progress_bar.text(), "FAILED")
             self.assertIn(ThemeManager.fn_colors().DANGER, tab.summary_widget.summary_values["result_status"].styleSheet())
-            self.assertIn(ThemeManager.fn_colors().DANGER, tab.analysis_result_edit.styleSheet())
-            self.assertIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
+            self.assertIn(ThemeManager.fn_colors().DANGER, tab.analysis_progress_bar.styleSheet())
+            self.assertIn("font-weight: 700", tab.analysis_progress_bar.styleSheet())
 
     def test_summary_uses_database_time_only_and_preserves_elapsed_duration(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -916,6 +938,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.summary_widget.summary_values["source_start_time"].text(), "23:58:00")
             self.assertEqual(tab.summary_widget.summary_values["source_end_time"].text(), "00:10:00")
@@ -935,14 +958,15 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
-            self.assertEqual(tab.analysis_result_edit.text(), "PASSED")
-            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
+            self._wait_for_idle(tab)
+            self.assertEqual(tab.analysis_progress_bar.text(), "PASSED")
+            self.assertIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_progress_bar.styleSheet())
 
             tab._set_analysis_result("IMPORTED")
 
-            self.assertEqual(tab.analysis_result_edit.text(), "IMPORTED")
-            self.assertNotIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_result_edit.styleSheet())
-            self.assertNotIn("font-weight: 700", tab.analysis_result_edit.styleSheet())
+            self.assertEqual(tab.analysis_progress_bar.text(), "IMPORTED")
+            self.assertNotIn(ThemeManager.fn_colors().SUCCESS, tab.analysis_progress_bar.styleSheet())
+            self.assertNotIn("font-weight: 700", tab.analysis_progress_bar.styleSheet())
 
     def test_long_time_range_uses_horizontal_chart_scrollbar(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -958,9 +982,11 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
+            self._wait_for_idle(tab)
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertFalse(tab.chart_scrollbar.isHidden())
             self.assertGreater(tab.chart_scrollbar.maximum(), 0)
@@ -987,6 +1013,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             current_x, current_y = tab.current_curve.getData()
             self.assertEqual(current_x.tolist(), [0.0, 1.0, 2.0, 3.5, 5.0, 6.0, 6.5])
@@ -1029,6 +1056,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.analysis_end_time_edit.setValue(3.0)
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.current_curve.getData()[0].tolist(), [0.0, 1.0, 2.0, 3.0])
             self.assertEqual(tab.chart_time_seconds.tolist(), [0.0, 1.0, 2.0, 3.0])
@@ -1055,6 +1083,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.analysis_end_time_edit.setValue(2.4)
 
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertEqual(tab.current_analysis_result.total_samples, 2)
             self.assertEqual(tab.current_analysis_result.start_time_s, 0.7)
@@ -1074,15 +1103,17 @@ class QCurrentTabTests(unittest.TestCase):
             tab.analysis_end_time_edit.setValue(0.0)
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
                 tab.btn_run.click()
+                self._wait_for_idle(tab)
             warning_box.assert_called_once()
             self.assertIn("Start Time must be less than End Time", warning_box.call_args.args[2])
             self.assertIsNone(tab.current_analysis_result)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "ANALYSIS ERROR")
 
             tab.analysis_start_time_edit.setValue(20.0)
             tab.analysis_end_time_edit.setValue(30.0)
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
                 tab.btn_run.click()
+                self._wait_for_idle(tab)
             warning_box.assert_called_once()
             self.assertIn("No samples exist inside", warning_box.call_args.args[2])
             self.assertIsNone(tab.current_analysis_result)
@@ -1106,6 +1137,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.set_cursor_a(0)
             tab.set_cursor_b(2)
             self.assertEqual(tab.analysis_start_time_edit.value(), 42.5)
@@ -1119,7 +1151,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.cursor_b_index, 2)
             self.assertEqual(tab.cursor_a_value_label.text(), "A: 0.000 s | 10.00 mA")
             self.assertEqual(tab.cursor_b_value_label.text(), "B: 48.200 s | 179.80 mA")
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
 
     def test_analysis_range_resets_for_new_dataset_and_clear(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1158,6 +1190,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             upper_line = tab.upper_sleep_limit_line
             lower_line = tab.lower_sleep_limit_line
 
@@ -1167,7 +1200,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIs(tab.lower_sleep_limit_line, lower_line)
             self.assertEqual(tab.upper_sleep_limit_line.value(), 45.0)
             self.assertEqual(tab.lower_sleep_limit_line.value(), -45.0)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
 
     def test_review_row_click_does_nothing_before_chart_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1182,7 +1215,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertFalse(tab.hover_marker.isVisible())
             self.assertFalse(tab.hover_label.isVisible())
             self.assertFalse(tab._chart_ready)
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
 
     def test_review_row_click_highlights_same_sample_from_any_column(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1194,6 +1227,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             tab.review_table.cellClicked.emit(1, 1)
             first_marker_x, first_marker_y = tab.hover_marker.getData()
@@ -1221,6 +1255,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             scroll_value = int(round((600.0 - tab._chart_visible_span / 2.0) * CHART_SCROLL_SCALE))
             tab.chart_scrollbar.setValue(scroll_value)
             scrollbar_range = tab.current_plot.getPlotItem().viewRange()[0]
@@ -1248,6 +1283,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             tab.review_table.cellClicked.emit(0, 1)
             start_range = tab.current_plot.getPlotItem().viewRange()[0]
@@ -1271,6 +1307,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             tab.review_table.cellClicked.emit(1, 0)
 
@@ -1290,6 +1327,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
 
@@ -1317,6 +1355,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
 
@@ -1338,6 +1377,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
 
@@ -1362,6 +1402,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             self.assertFalse(tab.btn_pin.isEnabled())
             tab.current_plot.setXRange(80.0, 140.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
@@ -1407,6 +1448,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.pin_chart_sample(0)
             tab.btn_invert_y_axis.click()
             tab.current_plot.setXRange(40.0, 60.0, padding=0)
@@ -1430,6 +1472,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             nearest = tab.find_nearest_sample(1.6)
             self.assertEqual(nearest, (1.5, -28.46))
@@ -1463,6 +1506,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.set_cursor_a(0)
             tab.set_cursor_b(2)
             cursor_a_before = tab.cursor_a_index
@@ -1525,6 +1569,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             scene_pos = tab._scene_position_for_chart_sample(1)
             action, payload = tab._chart_context_action_at_scene_position(scene_pos)
             self.assertEqual(action, "pin")
@@ -1591,6 +1636,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             first_scene_pos = tab._scene_position_for_chart_sample(1)
             action, payload = tab._chart_context_action_at_scene_position(first_scene_pos)
@@ -1678,6 +1724,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.pin_chart_sample(0)
             tab.pin_chart_sample(2)
 
@@ -1718,6 +1765,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.pin_chart_sample(1)
             self.assertEqual(len(tab.chart_pins), 1)
             tab.btn_clear.click()
@@ -1732,6 +1780,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.pin_chart_sample(1)
             light_html = tab.chart_pins[0].label.toHtml()
 
@@ -1751,6 +1800,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             view_box = tab.current_plot.getPlotItem().getViewBox()
             x_range_before = tab.current_plot.getPlotItem().viewRange()[0]
             current_x, current_y = tab.current_curve.getData()
@@ -1785,6 +1835,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.btn_invert_y_axis.click()
             tab.current_plot.setXRange(40.0, 60.0, padding=0)
             tab.current_plot.setYRange(-5.0, 5.0, padding=0)
@@ -1810,6 +1861,7 @@ class QCurrentTabTests(unittest.TestCase):
             ])
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.btn_invert_y_axis.click()
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
 
@@ -1827,6 +1879,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.btn_invert_y_axis.click()
             tab.btn_clear.click()
 
@@ -1848,6 +1901,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             tab.btn_invert_y_axis.click()
 
             self.assertTrue(tab.capture_current_chart())
@@ -1890,6 +1944,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.sampling_duration_edit.setValue(60.0)
 
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertTrue(tab.analysis_start_line.isVisible())
             self.assertTrue(tab.analysis_end_line.isVisible())
@@ -1912,7 +1967,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertAlmostEqual(tab.analysis_end_line.value(), 6600.0, places=3)
             self.assertTrue(tab.analysis_start_label.isVisible())
             self.assertTrue(tab.analysis_end_label.isVisible())
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
 
     def test_analysis_range_markers_follow_manual_end_and_out_of_range_duration(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1926,6 +1981,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.analysis_start_time_edit.setValue(1200.0)
             tab.analysis_end_time_edit.setValue(3500.0)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertAlmostEqual(tab.analysis_start_line.value(), 1200.0, places=3)
             self.assertAlmostEqual(tab.analysis_end_line.value(), 3500.0, places=3)
@@ -1954,6 +2010,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.analysis_start_time_edit.setValue(1200.0)
             tab.sampling_duration_edit.setValue(60.0)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             start_line = tab.analysis_start_line
             end_line = tab.analysis_end_line
             start_label = tab.analysis_start_label
@@ -2002,9 +2059,11 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
+            self._wait_for_idle(tab)
 
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
             current_curve = tab.current_curve
             upper_line = tab.upper_sleep_limit_line
             lower_line = tab.lower_sleep_limit_line
@@ -2013,6 +2072,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.wake_limit_edit.setValue(350.0)
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             self.assertIs(tab.current_curve, current_curve)
             self.assertIs(tab.upper_sleep_limit_line, upper_line)
@@ -2039,8 +2099,10 @@ class QCurrentTabTests(unittest.TestCase):
             )
             tab._refresh_dataset_combo(selected_db_path=database_file)
             tab.import_current_file()
+            self._wait_for_idle(tab)
             self._use_manual_end_mode(tab)
             tab.btn_run.click()
+            self._wait_for_idle(tab)
 
             tab.btn_clear.click()
 
@@ -2049,7 +2111,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertEqual(tab.current_samples, [])
             self.assertEqual(tab.review_table.rowCount(), 0)
             self.assertIsNone(tab.current_curve.getData()[0])
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
             self.assertFalse(tab.btn_run.isEnabled())
             self.assertFalse(tab.btn_copy_data_review.isEnabled())
             self.assertFalse(tab.btn_export.isEnabled())
@@ -2091,8 +2153,9 @@ class QCurrentTabTests(unittest.TestCase):
 
             with patch("gui.tabs.q_current_tab.QMessageBox.warning") as warning_box:
                 tab.import_current_file()
+                self._wait_for_idle(tab)
 
-            self.assertEqual(tab.analysis_result_edit.text(), "IMPORT FAILED")
+            self.assertEqual(tab.analysis_progress_bar.text(), "IMPORT FAILED")
             self.assertEqual(tab.source_file_edit.text(), str(bad_source.resolve()))
             self.assertEqual(tab.source_file_edit.toolTip(), str(bad_source.resolve()))
             self.assertEqual(tab.dataset_combo.count(), 1)
@@ -2116,11 +2179,12 @@ class QCurrentTabTests(unittest.TestCase):
                 return_value=QMessageBox.No,
             ), patch("gui.tabs.q_current_tab.QMessageBox.information") as info_box:
                 tab.import_current_file()
+                self._wait_for_idle(tab)
 
             tab._refresh_dataset_combo()
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.dataset_combo.itemData(0), str(database_file.resolve()))
-            self.assertEqual(tab.analysis_result_edit.text(), "NOT RUN")
+            self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
             info_box.assert_not_called()
 
     def test_duplicate_import_yes_replaces_dataset_and_selects_it(self):
@@ -2138,6 +2202,7 @@ class QCurrentTabTests(unittest.TestCase):
                 return_value=QMessageBox.Yes,
             ), patch("gui.tabs.q_current_tab.QMessageBox.information"):
                 tab.import_current_file()
+                self._wait_for_idle(tab)
 
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.dataset_combo.currentData(), str(database_file.resolve()))

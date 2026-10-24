@@ -1,0 +1,194 @@
+# Q Current Progress Bar Implementation
+
+## Role
+
+You are a senior Python/PySide6 developer working on the V-CODE application.
+
+Your task is to replace the existing `analysis_result_edit` field in the Q Current tab with a progress bar that displays processing status and final analysis results.
+
+## Project scope
+
+- Project root: `C:\REDO\CODINGTOOL`
+- Primary file: `gui/tabs/q_current_tab.py`
+- Reference implementation: Log Analyzer tab
+- Baseline: Q Current Commit 40
+
+Do not modify the separate LicenseGenerator project.
+
+## Objective
+
+Replace the current `PrimaryLineEdit` status field with a `QProgressBar` that supports:
+
+- NOT RUN
+- IMPORTING
+- IMPORTED
+- ANALYZING
+- PASSED
+- FAILED
+- IMPORT FAILED
+- ANALYSIS ERROR
+
+The progress bar must follow the existing V-CODE light/dark theme and resemble the progress indicator used in Log Analyzer.
+
+## Step 1 — Inspect existing code
+
+Before making changes:
+
+1. Inspect `gui/tabs/q_current_tab.py`.
+2. Locate `_create_analysis_widgets()`.
+3. Locate `_create_dataset_layout()`.
+4. Locate `_set_analysis_result()`.
+5. Locate `_refresh_analysis_result_style()`.
+6. Locate `run_current_analysis()`.
+7. Locate `import_current_file()`.
+8. Locate `clear_current_workspace()`.
+9. Locate `fn_refresh_theme()`.
+10. Search the Log Analyzer implementation for `QProgressBar`, progress signals, progress styling, and worker/thread patterns.
+
+Use the existing Log Analyzer implementation as the first reference. Do not invent a separate progress architecture if a reusable component already exists.
+
+## Step 2 — Replace the status widget
+
+Replace `self.analysis_result_edit` with:
+
+`self.analysis_progress_bar`
+
+Requirements:
+
+- Use `QProgressBar` or an existing reusable V-CODE progress component.
+- Object name: `analysis_progress_bar`.
+- Width: 315 px.
+- Height: 36 px.
+- Display text centered.
+- Default state: `NOT RUN`.
+- Initial value: 0.
+- Support indeterminate mode for operations without measurable progress.
+- Preserve the existing `STATUS:` label.
+- Do not create duplicate widgets.
+
+Update `_create_dataset_layout()` to use the new widget.
+
+## Step 3 — Refactor status handling
+
+Preserve the public method `_set_analysis_result(text)` because it is called throughout the Q Current tab.
+
+Adapt it to update the progress bar instead of a line edit.
+
+Required behavior:
+
+| State | Progress | Display |
+|---|---|---|
+| NOT RUN | 0% | NOT RUN |
+| IMPORTING | Indeterminate | IMPORTING... |
+| IMPORTED | 100% | IMPORTED |
+| ANALYZING | Indeterminate | ANALYZING... |
+| PASSED | 100% | PASSED |
+| FAILED | 100% | FAILED |
+| IMPORT FAILED | 0% | IMPORT FAILED |
+| ANALYSIS ERROR | 0% | ANALYSIS ERROR |
+
+Preserve the distinction between a valid analysis result of `FAILED` and a processing exception.
+
+Do not infer actual percentages from elapsed time or arbitrary delays.
+
+## Step 4 — Update analysis workflow
+
+When RUN is pressed:
+
+1. Validate that data is available.
+2. Set the status to `ANALYZING`.
+3. Execute the existing analysis logic.
+4. Update the chart and Summary only after successful analysis.
+5. Display `PASSED` or `FAILED` from `analysis_result.result_status`.
+6. If processing raises an error, display `ANALYSIS ERROR`.
+7. Preserve existing user-facing error messages.
+8. Restore action button states correctly.
+
+Inspect whether analysis is computationally expensive.
+
+If asynchronous execution is needed, use the established worker/QThread pattern from Log Analyzer, ensuring that UI widgets are updated only on the main Qt thread.
+
+Do not add fake percentage updates or blocking sleep calls.
+
+## Step 5 — Update import workflow
+
+When importing CSV/XLSX:
+
+1. Set status to `IMPORTING`.
+2. Preserve existing dataset normalization and SQLite import logic.
+3. On successful import, display `IMPORTED`.
+4. On failure, display `IMPORT FAILED`.
+5. Preserve existing replace-dataset confirmation behavior.
+6. Ensure cancellation does not leave the progress bar indefinitely active.
+
+Do not modify database schemas or import file formats.
+
+## Step 6 — Theme integration
+
+Inspect `ThemeManager`, `fn_refresh_theme()` and the Log Analyzer progress styling.
+
+Requirements:
+
+- PASSED: existing success color.
+- FAILED / IMPORT FAILED / ANALYSIS ERROR: existing danger color.
+- Processing: existing primary/accent color.
+- Idle: theme-compatible neutral appearance.
+- Centered text must remain readable in Light and Dark modes.
+- Avoid repeated stylesheet concatenation.
+- Do not assume theme token names without inspecting them.
+
+## Step 7 — Preserve existing features
+
+Do not change:
+
+- Configuration layout
+- Dataset layout except the status widget
+- Actions layout
+- Sleep and Wake-up thresholds
+- Sampling Duration
+- Chart rendering logic
+- Summary calculations
+- Data Review
+- Excel export
+- License logic
+
+Do not rename existing methods used by other parts of the application unless all references are updated.
+
+## Step 8 — Validation
+
+Check the following cases:
+
+1. Open Q Current: NOT RUN.
+2. Select a valid CSV/XLSX and import: IMPORTING → IMPORTED.
+3. Import invalid data: IMPORT FAILED.
+4. Load an existing dataset.
+5. Click RUN: ANALYZING → PASSED or FAILED.
+6. Trigger an analysis exception: ANALYSIS ERROR.
+7. Click CLEAR: NOT RUN.
+8. Switch Light/Dark theme.
+9. Repeat RUN multiple times.
+10. Verify no references to the removed `analysis_result_edit` remain.
+
+Run available targeted tests and Python syntax checks.
+
+Do not claim runtime tests passed unless they were actually executed.
+
+## Deliverables
+
+After implementation, report:
+
+1. Files modified.
+2. Methods added or changed.
+3. Whether the Log Analyzer progress component was reused.
+4. Whether progress is determinate or indeterminate.
+5. Tests executed and results.
+6. Any remaining limitations.
+
+## Constraints
+
+- Make minimal, targeted changes.
+- Preserve existing working functionality.
+- Do not introduce unnecessary dependencies.
+- Do not modify unrelated tabs.
+- Do not create a Git commit or push changes unless explicitly requested.
+- Do not alter the project's license or activation logic.
