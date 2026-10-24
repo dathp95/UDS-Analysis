@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
+from turtle import position
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as WorkbookImage
@@ -19,9 +20,10 @@ from openpyxl.worksheet.page import PageMargins
 
 from core.qr_generator import generate_qr_png_bytes
 
-MAX_QR_CODES = 50
-QR_CODES_PER_SHEET = 24
-LIMIT_MESSAGE = "Maximum 50 QR codes per export.\nPlease reduce the list before creating Excel."
+MAX_QR_CODES = 100
+QR_CODES_PER_ROW = 4
+QR_CODES_PER_SHEET = 32
+LIMIT_MESSAGE = "Maximum 100 QR codes per export.\nPlease reduce the list before creating Excel."
 _INVALID_XML = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 
 
@@ -57,8 +59,8 @@ def _validate_codes(codes: Iterable[str] | str) -> list[str]:
 
 def _configure_sheet(sheet):
     sheet.sheet_view.showGridLines = False
-    for column in ("A", "B", "C"):
-        sheet.column_dimensions[column].width = 28
+    for column in ("A", "B", "C", "D"):
+        sheet.column_dimensions[column].width = 24
     sheet.page_setup.orientation = sheet.ORIENTATION_PORTRAIT
     sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
     sheet.page_setup.fitToWidth = 1
@@ -70,7 +72,7 @@ def _configure_sheet(sheet):
 
 
 def export_qr_codes_to_excel(codes: Iterable[str] | str, output_file: str | Path) -> QRExcelExportResult:
-    """Export 1-50 codes atomically. Raise validation or I/O errors on failure."""
+    """Export 1-100 codes atomically. Raise validation or I/O errors on failure."""
     values = _validate_codes(codes)
     destination = Path(output_file).expanduser().absolute()
     if destination.suffix.lower() != ".xlsx":
@@ -91,7 +93,8 @@ def export_qr_codes_to_excel(codes: Iterable[str] | str, output_file: str | Path
                 if position == 0:
                     sheet = workbook.create_sheet(f"QR_{index // QR_CODES_PER_SHEET + 1:03d}")
                     _configure_sheet(sheet)
-                row, column = (position // 3) * 2 + 1, position % 3 + 1
+                row = (position // QR_CODES_PER_ROW) * 2 + 1
+                column = (position % QR_CODES_PER_ROW) + 1
                 sheet.row_dimensions[row].height = 108
                 # Leave room for wrapped labels without changing the stored value.
                 label_height = min(409, max(24, ceil(len(value) / 26) * 12 + 6))
@@ -102,7 +105,7 @@ def export_qr_codes_to_excel(codes: Iterable[str] | str, output_file: str | Path
                 image.width = image.height = 135
                 image.anchor = OneCellAnchor(
                     _from=AnchorMarker(col=column - 1, row=row - 1,
-                                       colOff=pixels_to_EMU(33), rowOff=pixels_to_EMU(4)),
+                                       colOff=pixels_to_EMU(28), rowOff=pixels_to_EMU(4)),
                     ext=XDRPositiveSize2D(pixels_to_EMU(135), pixels_to_EMU(135)),
                 )
                 sheet.add_image(image)
@@ -113,7 +116,7 @@ def export_qr_codes_to_excel(codes: Iterable[str] | str, output_file: str | Path
                 label.quotePrefix = value.startswith(("=", "+", "-", "@"))
                 label.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                 label.font = Font(name="Arial", size=10)
-                sheet.print_area = f"A1:C{row + 1}"
+                sheet.print_area = f"A1:D{row + 1}"
 
             with NamedTemporaryFile(dir=destination.parent, prefix=f".{destination.name}.",
                                     suffix=".tmp.xlsx", delete=False) as temporary:
