@@ -276,10 +276,7 @@ class QCurrentTab(QWidget):
             self._on_dataset_changed
         )
     
-    def _create_settings_widgets(self):
-        self._create_dataset_widgets()
-        self._create_config_widgets()
-        self._create_analysis_widgets()
+   
     
     def _create_dataset_widgets(self):
         self.source_file_edit = PrimaryLineEdit(
@@ -329,6 +326,11 @@ class QCurrentTab(QWidget):
         self.settings_layout.addWidget(self.dataset_widget, 2)
 
         return group
+    
+    def _create_settings_widgets(self):
+        self._create_dataset_widgets()
+        self._create_config_widgets()
+        self._create_analysis_widgets()
     
     def _create_config_layout(self):
         widget = QWidget()
@@ -399,6 +401,129 @@ class QCurrentTab(QWidget):
         layout.addStretch()
 
         return widget
+    
+    def _create_config_widgets(self):
+        # Sleep limit
+        self.current_limit_label = PrimaryLabel("Sleep limit (mA)")
+
+        self.current_limit_edit = QDoubleSpinBox()
+        self.current_limit_edit.setObjectName("current_limit_edit")
+        self.current_limit_edit.setDecimals(1)
+        self.current_limit_edit.setMinimum(0.0)
+        self.current_limit_edit.setMaximum(1000000.0)
+        self.current_limit_edit.setSingleStep(0.5)
+        self.current_limit_edit.setValue(
+            self.q_current_config.standard_current_ma
+        )
+        self.current_limit_edit.setFixedWidth(110)
+        self.current_limit_edit.setMinimumHeight(36)
+        self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        # Wake-up limit
+        self.wake_limit_label = PrimaryLabel("Wake Up limit (mA)")
+
+        self.wake_limit_edit = QDoubleSpinBox()
+        self.wake_limit_edit.setObjectName("wake_limit_edit")
+        self.wake_limit_edit.setDecimals(1)
+        self.wake_limit_edit.setMinimum(0.0)
+        self.wake_limit_edit.setMaximum(1000000.0)
+        self.wake_limit_edit.setSingleStep(0.5)
+        self.wake_limit_edit.setValue(
+            self.q_current_config.wake_up_limit_ma
+        )
+        self.wake_limit_edit.setFixedWidth(110)
+        self.wake_limit_edit.setMinimumHeight(36)
+        self.wake_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        # Wake duration
+        self.wake_duration_label = PrimaryLabel("Wake duration (s)")
+
+        self.wake_duration_edit = QDoubleSpinBox()
+        self.wake_duration_edit.setObjectName("wake_duration_edit")
+        self.wake_duration_edit.setDecimals(1)
+        self.wake_duration_edit.setMinimum(0.1)
+        self.wake_duration_edit.setMaximum(3600.0)
+        self.wake_duration_edit.setSingleStep(0.5)
+        self.wake_duration_edit.setValue(
+            self.q_current_config.wake_duration_s
+        )
+        self.wake_duration_edit.setFixedWidth(90)
+        self.wake_duration_edit.setMinimumHeight(36)
+        self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
+
+        # Sampling duration
+        self.sampling_duration_checkbox = PrimaryCheckBox(
+            "Sampling Duration (min)"
+        )
+        self.sampling_duration_checkbox.setObjectName(
+            "sampling_duration_checkbox"
+        )
+        self.sampling_duration_checkbox.setChecked(
+            self.q_current_config.sampling_duration_enabled
+        )
+
+        self.sampling_duration_edit = QDoubleSpinBox()
+        self.sampling_duration_edit.setObjectName(
+            "sampling_duration_edit"
+        )
+        self.sampling_duration_edit.setDecimals(0)
+        self.sampling_duration_edit.setMinimum(5.0)
+        self.sampling_duration_edit.setMaximum(1440.0)
+        self.sampling_duration_edit.setSingleStep(5.0)
+        self.sampling_duration_edit.setValue(
+            self.q_current_config.sampling_duration_min
+        )
+        self.sampling_duration_edit.setFixedWidth(80)
+        self.sampling_duration_edit.setMinimumHeight(36)
+        self.sampling_duration_edit.setEnabled(
+            self.q_current_config.sampling_duration_enabled
+        )
+        self.sampling_duration_edit.lineEdit().setAlignment(
+            Qt.AlignCenter
+        )
+
+        # Save Config
+        self.save_config_button = PrimaryButton(
+            "SAVE CONFIG",
+            width=120,
+            height=36,
+        )
+        self.save_config_button.setObjectName("save_config_button")
+    
+    def _create_analysis_widgets(self):
+        # Analysis result
+        self.analysis_result_label = PrimaryLabel(
+            "Analysis result:"
+        )
+
+        self.analysis_result_edit = PrimaryLineEdit()
+        self.analysis_result_edit.setObjectName(
+            "analysis_result_edit"
+        )
+        self.analysis_result_edit.setReadOnly(True)
+        self.analysis_result_edit.setFixedWidth(130)
+
+        self._set_analysis_result("NOT RUN")
+
+        # Analysis start time
+        self.analysis_start_time_label = PrimaryLabel(
+            "Start time (s)"
+        )
+        self.analysis_start_time_edit = (
+            self._create_analysis_range_spinbox(
+                "analysis_start_time_edit"
+            )
+        )
+
+        # Analysis end time
+        self.analysis_end_time_label = PrimaryLabel(
+            "End time (s)"
+        )
+        self.analysis_end_time_edit = (
+            self._create_analysis_range_spinbox(
+                "analysis_end_time_edit"
+            )
+        )
     
     def _on_dataset_changed(self, index):
         if index < 0:
