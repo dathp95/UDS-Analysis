@@ -45,8 +45,14 @@ class QCurrentTaskRunner(QObject):
         self._worker = QCurrentWorker(operation)
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
-        self._worker.finished.connect(self._record_result)
-        self._worker.failed.connect(self._record_error)
+        self._worker.finished.connect(
+            self._record_result,
+            Qt.DirectConnection,
+        )
+        self._worker.failed.connect(
+            self._record_error,
+            Qt.DirectConnection,
+        )
         self._worker.finished.connect(self._thread.quit, Qt.DirectConnection)
         self._worker.failed.connect(self._thread.quit, Qt.DirectConnection)
         self._thread.finished.connect(self._worker.deleteLater)
@@ -63,11 +69,22 @@ class QCurrentTaskRunner(QObject):
         self._outcome = (False, message)
 
     @Slot()
+    @Slot()
     def _finish(self):
-        success, result = self._outcome
+        outcome = self._outcome
+
         self._thread = None
         self._worker = None
         self._outcome = None
+
+        if outcome is None:
+            self.failed.emit(
+                "Q Current worker finished without a result."
+            )
+            return
+
+        success, result = outcome
+
         if success:
             self.finished.emit(result)
         else:
