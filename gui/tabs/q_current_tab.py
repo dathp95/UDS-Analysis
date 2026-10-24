@@ -275,15 +275,13 @@ class QCurrentTab(QWidget):
         self.dataset_combo.currentIndexChanged.connect(
             self._on_dataset_changed
         )
-
-    def _create_settings_group(self):
-        group = QGroupBox("Analysis Settings")
-
-        self.settings_layout = QGridLayout(group)
-        self.settings_layout.setContentsMargins(12, 16, 12, 12)
-        self.settings_layout.setHorizontalSpacing(8)
-        self.settings_layout.setVerticalSpacing(8)
-
+    
+    def _create_settings_widgets(self):
+        self._create_dataset_widgets()
+        self._create_config_widgets()
+        self._create_analysis_widgets()
+    
+    def _create_dataset_widgets(self):
         self.source_file_edit = PrimaryLineEdit(
             placeholder=SOURCE_FILE_PLACEHOLDER,
         )
@@ -298,10 +296,11 @@ class QCurrentTab(QWidget):
         )
         self.browse_button.setObjectName("browse_button")
 
-        self.dataset_combo = QCurrentDatasetComboBox(self._refresh_dataset_combo)
+        self.dataset_combo = QCurrentDatasetComboBox(
+            self._refresh_dataset_combo
+        )
         self.dataset_combo.setPlaceholderText("")
         self.dataset_combo.setCurrentIndex(-1)
-        
         self.dataset_combo.setObjectName("dataset_combo")
         self.dataset_combo.setMinimumWidth(220)
         self.dataset_combo.setFixedHeight(36)
@@ -314,152 +313,93 @@ class QCurrentTab(QWidget):
         self.import_button.setObjectName("import_button")
         self.import_button.setEnabled(True)
 
-        self.current_limit_label = PrimaryLabel(
-            "Sleep limit (mA)"
-        )
+    def _create_settings_group(self):
+        group = QGroupBox("Analysis Settings")
 
-        self.current_limit_edit = QDoubleSpinBox()
-        self.current_limit_edit.setObjectName("current_limit_edit")
-        self.current_limit_edit.setDecimals(1)
-        self.current_limit_edit.setMinimum(0.0)
-        self.current_limit_edit.setMaximum(1000000.0)
-        self.current_limit_edit.setSingleStep(0.5)
-        self.current_limit_edit.setValue(self.q_current_config.standard_current_ma)
-        self.current_limit_edit.setFixedWidth(110)
-        self.current_limit_edit.setMinimumHeight(36)
-        self.current_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
+        self._create_settings_widgets()
 
+        self.settings_layout = QHBoxLayout(group)
+        self.settings_layout.setContentsMargins(12, 16, 12, 12)
+        self.settings_layout.setSpacing(12)
 
-        self.wake_limit_label = PrimaryLabel(
-            "Wake Up limit (mA)"
-        )
+        self.config_widget = self._create_config_layout()
+        self.dataset_widget = self._create_dataset_layout()
 
-        self.wake_limit_edit = QDoubleSpinBox()
-        self.wake_limit_edit.setObjectName("wake_limit_edit")
-        self.wake_limit_edit.setDecimals(1)
-        self.wake_limit_edit.setMinimum(0.0)
-        self.wake_limit_edit.setMaximum(1000000.0)
-        self.wake_limit_edit.setSingleStep(0.5)
-        self.wake_limit_edit.setValue(self.q_current_config.wake_up_limit_ma)
-        self.wake_limit_edit.setFixedWidth(110)
-        self.wake_limit_edit.setMinimumHeight(36)
-        self.wake_limit_edit.lineEdit().setAlignment(Qt.AlignCenter)
-
-        self.wake_duration_label = PrimaryLabel(
-            "Wake duration (s)"
-        )
-
-        self.wake_duration_edit = QDoubleSpinBox()
-        self.wake_duration_edit.setObjectName("wake_duration_edit")
-        self.wake_duration_edit.setDecimals(1)
-        self.wake_duration_edit.setMinimum(0.1)
-        self.wake_duration_edit.setMaximum(3600.0)
-        self.wake_duration_edit.setSingleStep(0.5)
-        self.wake_duration_edit.setValue(self.q_current_config.wake_duration_s)
-        self.wake_duration_edit.setFixedWidth(90)
-        self.wake_duration_edit.setMinimumHeight(36)
-        self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
-
-        self.sampling_duration_checkbox = PrimaryCheckBox(
-            "Sampling Duration (min)"
-        )
-        self.sampling_duration_checkbox.setObjectName(
-            "sampling_duration_checkbox"
-        )
-        self.sampling_duration_checkbox.setChecked(
-            self.q_current_config.sampling_duration_enabled
-        )
-
-        self.sampling_duration_edit = QDoubleSpinBox()
-        self.sampling_duration_edit.setObjectName("sampling_duration_edit")
-        self.sampling_duration_edit.setDecimals(0)
-        self.sampling_duration_edit.setMinimum(5.0)
-        self.sampling_duration_edit.setMaximum(1440.0)
-        self.sampling_duration_edit.setSingleStep(5.0)
-        self.sampling_duration_edit.setValue(
-            self.q_current_config.sampling_duration_min
-        )
-        self.sampling_duration_edit.setFixedWidth(80)
-        self.sampling_duration_edit.setMinimumHeight(36)
-        self.sampling_duration_edit.setEnabled(
-            self.q_current_config.sampling_duration_enabled
-        )
-        self.sampling_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
-
-        self.save_config_button = PrimaryButton(
-            "SAVE CONFIG",
-            width=120,
-            height=36,
-        )
-        self.save_config_button.setObjectName("save_config_button")
-
-        self.analysis_result_label = PrimaryLabel(
-            "Analysis result:"
-        )
-
-        self.analysis_result_edit = PrimaryLineEdit()
-        self.analysis_result_edit.setObjectName(
-            "analysis_result_edit"
-        )
-        self.analysis_result_edit.setReadOnly(True)
-        self._set_analysis_result("NOT RUN")
-        self.analysis_result_edit.setFixedWidth(130)
-
-        # self.analysis_range_label = PrimaryLabel("Analysis Range:")
-        self.analysis_start_time_label = PrimaryLabel("Start time (s)    ")
-        self.analysis_start_time_edit = self._create_analysis_range_spinbox(
-            "analysis_start_time_edit"
-        )
-        self.analysis_end_time_label = PrimaryLabel("End time (s)           ")
-        self.analysis_end_time_edit = self._create_analysis_range_spinbox(
-            "analysis_end_time_edit"
-        )
-
-        self.settings_layout.addWidget(self.source_file_edit, 0, 0)
-        self.settings_layout.addWidget(self.browse_button, 0, 1)
-        self.settings_layout.addWidget(self.dataset_combo, 0, 2)
-        self.settings_layout.addWidget(self.import_button, 0, 3)
-        self.settings_layout.setColumnStretch(0, 1)
-
-        result_layout = QHBoxLayout()
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.setSpacing(8)
-        result_layout.addWidget(self.current_limit_label)
-        result_layout.addWidget(self.current_limit_edit)
-        result_layout.addSpacing(16)
-
-        result_layout.addWidget(self.wake_limit_label)
-        result_layout.addWidget(self.wake_limit_edit)
-        result_layout.addSpacing(16)
-        result_layout.addWidget(self.wake_duration_label)
-        result_layout.addWidget(self.wake_duration_edit)
-        result_layout.addSpacing(16)
-        result_layout.addWidget(self.sampling_duration_checkbox)
-        result_layout.addWidget(self.sampling_duration_edit)
-        result_layout.addSpacing(16)
-        result_layout.addWidget(self.save_config_button)
-        result_layout.addSpacing(16)
-        result_layout.addWidget(self.analysis_result_label)
-        result_layout.addWidget(self.analysis_result_edit)
-        result_layout.addStretch(1)
-
-        self.settings_layout.addLayout(result_layout, 1, 0, 1, 4)
-
-        range_layout = QHBoxLayout()
-        range_layout.setContentsMargins(0, 0, 0, 0)
-        range_layout.setSpacing(8)
-        # range_layout.addWidget(self.analysis_range_label)
-        # range_layout.addSpacing(12)
-        range_layout.addWidget(self.analysis_start_time_label)
-        range_layout.addWidget(self.analysis_start_time_edit)
-        range_layout.addSpacing(16)
-        range_layout.addWidget(self.analysis_end_time_label)
-        range_layout.addWidget(self.analysis_end_time_edit)
-        range_layout.addStretch(1)
-        self.settings_layout.addLayout(range_layout, 2, 0, 1, 4)
+        self.settings_layout.addWidget(self.config_widget, 1)
+        self.settings_layout.addWidget(self.dataset_widget, 2)
 
         return group
+    
+    def _create_config_layout(self):
+        widget = QWidget()
+        layout = QGridLayout(widget)
 
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setHorizontalSpacing(8)
+        layout.setVerticalSpacing(8)
+
+        layout.addWidget(self.current_limit_label, 0, 0)
+        layout.addWidget(self.current_limit_edit, 0, 1)
+
+        layout.addWidget(self.wake_limit_label, 1, 0)
+        layout.addWidget(self.wake_limit_edit, 1, 1)
+
+        layout.addWidget(self.wake_duration_label, 2, 0)
+        layout.addWidget(self.wake_duration_edit, 2, 1)
+
+        layout.addWidget(self.sampling_duration_checkbox, 3, 0)
+        layout.addWidget(self.sampling_duration_edit, 3, 1)
+
+        layout.addWidget(self.save_config_button, 4, 0, 1, 2)
+
+        layout.setColumnStretch(0, 1)
+
+        return widget
+    
+    def _create_dataset_layout(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        # Row 0: Select file and import
+        file_layout = QHBoxLayout()
+        file_layout.setSpacing(8)
+
+        file_layout.addWidget(self.source_file_edit, 1)
+        file_layout.addWidget(self.browse_button)
+        file_layout.addWidget(self.dataset_combo)
+        file_layout.addWidget(self.import_button)
+
+        layout.addLayout(file_layout)
+
+        # Row 1: Analysis time range
+        time_layout = QHBoxLayout()
+        time_layout.setSpacing(8)
+
+        time_layout.addWidget(self.analysis_start_time_label)
+        time_layout.addWidget(self.analysis_start_time_edit)
+        time_layout.addSpacing(12)
+        time_layout.addWidget(self.analysis_end_time_label)
+        time_layout.addWidget(self.analysis_end_time_edit)
+        time_layout.addStretch()
+
+        layout.addLayout(time_layout)
+
+        # Row 2: Analysis result
+        result_layout = QHBoxLayout()
+        result_layout.setSpacing(8)
+
+        result_layout.addWidget(self.analysis_result_label)
+        result_layout.addWidget(self.analysis_result_edit)
+        result_layout.addStretch()
+
+        layout.addLayout(result_layout)
+        layout.addStretch()
+
+        return widget
+    
     def _on_dataset_changed(self, index):
         if index < 0:
             return
