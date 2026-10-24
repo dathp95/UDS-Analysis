@@ -317,7 +317,7 @@ class QCurrentTab(QWidget):
 
         self.settings_layout = QHBoxLayout(group)
         self.settings_layout.setContentsMargins(12, 16, 12, 12)
-        self.settings_layout.setSpacing(12)
+        self.settings_layout.setSpacing(36)
 
         self.config_widget = self._create_config_layout()
         self.dataset_widget = self._create_dataset_layout()
@@ -334,27 +334,38 @@ class QCurrentTab(QWidget):
     
     def _create_config_layout(self):
         widget = QWidget()
-        layout = QGridLayout(widget)
 
+        layout = QGridLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setHorizontalSpacing(8)
+        layout.setHorizontalSpacing(12)
         layout.setVerticalSpacing(8)
 
+        # Row 0: Sleep limit | Sampling Duration
         layout.addWidget(self.current_limit_label, 0, 0)
         layout.addWidget(self.current_limit_edit, 0, 1)
 
+        layout.addWidget(self.sampling_duration_checkbox, 0, 2)
+        layout.addWidget(self.sampling_duration_edit, 0, 3)
+
+        # Row 1: Wake-up limit | Wake duration
         layout.addWidget(self.wake_limit_label, 1, 0)
         layout.addWidget(self.wake_limit_edit, 1, 1)
 
-        layout.addWidget(self.wake_duration_label, 2, 0)
-        layout.addWidget(self.wake_duration_edit, 2, 1)
+        layout.addWidget(self.wake_duration_label, 1, 2)
+        layout.addWidget(self.wake_duration_edit, 1, 3)
 
-        layout.addWidget(self.sampling_duration_checkbox, 3, 0)
-        layout.addWidget(self.sampling_duration_edit, 3, 1)
-
-        layout.addWidget(self.save_config_button, 4, 0, 1, 2)
+        # Row 2: Save Config
+        layout.addWidget(
+            self.save_config_button,
+            2, 0, 1, 4,
+            Qt.AlignLeft,
+        )
+        
 
         layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 0)
+        layout.setColumnStretch(2, 1)
+        layout.setColumnStretch(3, 0)
 
         return widget
     
@@ -442,12 +453,12 @@ class QCurrentTab(QWidget):
         self.wake_duration_edit.setObjectName("wake_duration_edit")
         self.wake_duration_edit.setDecimals(1)
         self.wake_duration_edit.setMinimum(0.1)
-        self.wake_duration_edit.setMaximum(3600.0)
+        self.wake_duration_edit.setMaximum(1000000.0)
         self.wake_duration_edit.setSingleStep(0.5)
         self.wake_duration_edit.setValue(
             self.q_current_config.wake_duration_s
         )
-        self.wake_duration_edit.setFixedWidth(90)
+        self.wake_duration_edit.setFixedWidth(110)
         self.wake_duration_edit.setMinimumHeight(36)
         self.wake_duration_edit.lineEdit().setAlignment(Qt.AlignCenter)
 
@@ -468,12 +479,12 @@ class QCurrentTab(QWidget):
         )
         self.sampling_duration_edit.setDecimals(0)
         self.sampling_duration_edit.setMinimum(5.0)
-        self.sampling_duration_edit.setMaximum(1440.0)
+        self.sampling_duration_edit.setMaximum(1000000.0)
         self.sampling_duration_edit.setSingleStep(5.0)
         self.sampling_duration_edit.setValue(
             self.q_current_config.sampling_duration_min
         )
-        self.sampling_duration_edit.setFixedWidth(80)
+        self.sampling_duration_edit.setFixedWidth(110)
         self.sampling_duration_edit.setMinimumHeight(36)
         self.sampling_duration_edit.setEnabled(
             self.q_current_config.sampling_duration_enabled
