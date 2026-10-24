@@ -73,6 +73,18 @@ class CRCConverterTab(QWidget):
         self.btn_transfer_crc = PrimaryButton("Transfer CRC", width=120)
         self.btn_transfer_crc.setEnabled(False)
 
+        # Count Byte
+        self.btn_count_byte = PrimaryButton(
+            "Count Byte",
+            width=110,
+        )
+
+        self.txt_byte_count = PrimaryLineEdit()
+        self.txt_byte_count.setReadOnly(True)
+        self.txt_byte_count.setFixedWidth(70)
+        self.txt_byte_count.setAlignment(Qt.AlignCenter)
+        self.txt_byte_count.setPlaceholderText("0")
+
         result_layout = QHBoxLayout()
         result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(8)
@@ -80,7 +92,11 @@ class CRCConverterTab(QWidget):
         result_layout.addWidget(self.txt_crc_output)
         result_layout.addWidget(self.btn_copy_crc)
         result_layout.addWidget(self.btn_transfer_crc)
+
+        # Align Count Byte controls to the right
         result_layout.addStretch(1)
+        result_layout.addWidget(self.btn_count_byte)
+        result_layout.addWidget(self.txt_byte_count)
 
         panel_layout.addWidget(self.lbl_crc8_sae_j1850)
         panel_layout.addWidget(self.txt_crc_input)
@@ -297,6 +313,9 @@ class CRCConverterTab(QWidget):
         self.btn_transfer_crc.clicked.connect(
             self.transfer_crc_result
         )
+        self.btn_count_byte.clicked.connect(
+            self.count_crc_input_bytes
+        )
         self.txt_crc_output.textChanged.connect(
             self._update_crc_button_states
         )
@@ -370,6 +389,25 @@ class CRCConverterTab(QWidget):
         index = combo.findText(text)
         if index >= 0:
             combo.setCurrentIndex(index)
+
+    def count_crc_input_bytes(self):
+        try:
+            data = parse_hex_bytes(
+                self.txt_crc_input.toPlainText()
+            )
+        except ValueError as error:
+            self.txt_byte_count.clear()
+            self.txt_byte_count.setToolTip(str(error))
+
+            QMessageBox.warning(
+                self,
+                "Count Byte",
+                str(error),
+            )
+            return
+
+        self.txt_byte_count.setToolTip("")
+        self.txt_byte_count.setText(str(len(data)))
 
     def calculate_crc8_sae_j1850(self):
         try:
@@ -558,6 +596,10 @@ class CRCConverterTab(QWidget):
         self.btn_copy_qr.fn_refresh_theme()
         self.btn_clear_qr.fn_refresh_theme()
         self.txt_crc_output.fn_refresh_theme()
+
+        self.btn_count_byte.fn_refresh_theme()
+        self.txt_byte_count.fn_refresh_theme()
+
         self._refresh_editor_theme(self.txt_crc_input, colors)
         self._refresh_editor_theme(self.txt_converter_input, colors)
         self._refresh_editor_theme(self.txt_converter_output, colors)
