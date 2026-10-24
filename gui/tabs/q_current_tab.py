@@ -721,9 +721,10 @@ class QCurrentTab(QWidget):
             QSizePolicy.Preferred,
         )
 
-        layout = QVBoxLayout(panel)
+        layout = QGridLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setHorizontalSpacing(18)
+        layout.setVerticalSpacing(6)
 
         self.btn_run = PrimaryButton("RUN")
         self.btn_copy_data_review = PrimaryButton("COPY Data Review")
@@ -731,24 +732,38 @@ class QCurrentTab(QWidget):
         self.btn_export = PrimaryButton("EXPORT")
         self.btn_clear = PrimaryButton("CLEAR")
 
-        for button in (
+        buttons = (
             self.btn_run,
             self.btn_copy_data_review,
             self.btn_copy_summary,
             self.btn_export,
             self.btn_clear,
-        ):
+        )
+
+        for button in buttons:
             button.setSizePolicy(
                 QSizePolicy.Expanding,
                 QSizePolicy.Fixed,
             )
-            button.setFixedHeight(30)
-            layout.addWidget(button)
+            button.setFixedHeight(42)
 
-        layout.addStretch(1)
+        # Row 0: RUN full width
+        layout.addWidget(self.btn_run, 0, 0, 1, 2)
+
+        # Row 1: Copy buttons
+        layout.addWidget(self.btn_copy_data_review, 1, 0)
+        layout.addWidget(self.btn_copy_summary, 1, 1)
+
+        # Row 2: Export and Clear
+        layout.addWidget(self.btn_export, 2, 0)
+        layout.addWidget(self.btn_clear, 2, 1)
+
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
 
         return panel
-        
+   
+   
     def _create_right_panel(self):
         panel = QWidget()
         panel.setMinimumWidth(200)
