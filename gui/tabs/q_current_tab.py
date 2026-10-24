@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pathlib import Path
+from time import perf_counter
 
 import numpy as np
 import pyqtgraph as pg
@@ -29,6 +30,9 @@ from PySide6.QtWidgets import (
 )
 
 from core.q_current_analysis import analyze_q_current, parse_q_current_timestamp
+from core.q_current_loading import (
+    QCurrentWorkspaceData, calculate_elapsed_seconds, prepare_workspace_data, timed_call,
+)
 from core.q_current_config import QCurrentConfig, load_q_current_config, save_q_current_config
 from core.q_current_report_export import QCurrentReportData, QCurrentReportSettings
 from core.services.q_current_report_service import QCurrentReportService
@@ -55,10 +59,10 @@ from gui.widgets.controls.primary_checkbox import PrimaryCheckBox
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
-from gui.widgets.controls.primary_table import PrimaryTable
 from gui.widgets.controls.quick_access_button import QuickAccessButton
 from gui.widgets.q_current.summary_widget import QCurrentSummaryWidget
 from gui.widgets.q_current.analysis_progress import QCurrentProgressBar
+from gui.widgets.q_current.review_table import QCurrentReviewModel, QCurrentReviewTable
 from gui.workers.q_current_worker import QCurrentTaskRunner
 
 
@@ -78,23 +82,6 @@ SAMPLE_HIT_RADIUS_PX = 18.0
 
 def parse_timestamp(value):
     return parse_q_current_timestamp(value)
-
-
-def calculate_elapsed_seconds(samples):
-    parsed_values = [parse_timestamp(sample.time) for sample in samples]
-    if not parsed_values:
-        return []
-    first_value = parsed_values[0]
-    elapsed_seconds = []
-    for parsed_value in parsed_values:
-        if isinstance(first_value, datetime) and isinstance(parsed_value, datetime):
-            elapsed_seconds.append((parsed_value - first_value).total_seconds())
-        elif not isinstance(first_value, datetime) and not isinstance(parsed_value, datetime):
-            elapsed_seconds.append(float(parsed_value) - float(first_value))
-        else:
-            raise ValueError("Current data contains mixed timestamp formats")
-    return elapsed_seconds
-
 
 
 @dataclass
@@ -126,14 +113,6 @@ class QCurrentDatasetComboBox(PrimaryComboBox):
         fn_apply_scrollbar_style(self.view())
 
 
-class QCurrentReviewTable(PrimaryTable):
-
-    def focusOutEvent(self, event):
-        self.clearSelection()
-        self.setCurrentCell(-1, -1)
-        super().focusOutEvent(event)
-
-
 class QCurrentTab(QWidget):
 
     def __init__(
@@ -156,6 +135,8 @@ class QCurrentTab(QWidget):
         self.q_current_config = load_q_current_config(config_file)
         self.current_import = None
         self.current_samples = []
+        self._workspace_data = None
+        self.last_loading_timings = {}
         self.current_database_path = None
         self.current_analysis_result = None
         self.current_analysis_settings = None
@@ -260,7 +241,9 @@ class QCurrentTab(QWidget):
         self.chart_scrollbar.valueChanged.connect(
             self._on_chart_scrollbar_changed
         )
-        self.review_table.cellClicked.connect(self._on_review_row_selected)
+        self.review_table.clicked.connect(
+            lambda index: self._on_review_row_selected(index.row(), index.column())
+        )
         self.current_plot.getPlotItem().getViewBox().sigXRangeChanged.connect(
             self._on_chart_x_range_changed
         )
@@ -872,10 +855,8 @@ class QCurrentTab(QWidget):
     def _create_review_table(self):
         table = QCurrentReviewTable()
         table.setObjectName("review_table")
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(["No.", "Time", "Current (mA)"])
+        table.setModel(QCurrentReviewModel(table))
         table.setSortingEnabled(False)
-        table.setRowCount(0)
         table.setContextMenuPolicy(Qt.CustomContextMenu)
 
         header = table.horizontalHeader()
@@ -933,6 +914,8 @@ class QCurrentTab(QWidget):
         self._update_action_states()
 
     def _begin_operation(self, state):
+        if state == "IMPORTING":
+            self.last_loading_timings = {}
         self._task_error_state = "IMPORT FAILED" if state == "IMPORTING" else "ANALYSIS ERROR"
         self._task_error_title = "Q current Import" if state == "IMPORTING" else "Q current Chart"
         self._set_task_busy(True)
@@ -978,7 +961,7 @@ class QCurrentTab(QWidget):
             return
 
         self._start_task(
-            partial(normalize_current_data, source_path),
+            partial(timed_call, self.last_loading_timings, "file_parse_s", normalize_current_data, source_path),
             partial(self._confirm_current_import, source_path, dataset_name, database_path, previous_state),
         )
 
@@ -998,8 +981,11 @@ class QCurrentTab(QWidget):
                 self._set_analysis_result(previous_state)
                 return
 
+        timings = self.last_loading_timings
+        database_dir = self._database_dir
+
         def import_and_load():
-            result = import_dataset(
+            result = timed_call(timings, "sqlite_write_s", import_dataset,
                 dataset_name,
                 source_path,
                 normalized.rows,
@@ -1007,16 +993,19 @@ class QCurrentTab(QWidget):
                 detected_channel=normalized.detected_channel,
             )
             path = result.dataset.database_path or database_path
-            return result, path, get_samples(result.dataset.id, path)
+            samples = timed_call(timings, "sqlite_read_s", get_samples, result.dataset.id, path)
+            prepared = timed_call(timings, "prepare_s", prepare_workspace_data, samples)
+            datasets = timed_call(timings, "catalog_s", list_datasets, database_dir)
+            return result, path, prepared, datasets
 
         self._start_task(import_and_load, self._current_import_finished)
 
     def _current_import_finished(self, imported):
-        result, database_path, samples = imported
+        result, database_path, prepared, datasets = imported
         self.current_import = result
         self.current_database_path = database_path
-        self._load_samples_into_workspace(samples)
-        self._refresh_dataset_combo(selected_db_path=self.current_database_path)
+        self._load_samples_into_workspace(prepared)
+        self._refresh_dataset_combo(selected_db_path=self.current_database_path, datasets=datasets)
         self.clear_source_file_selection()
         self._set_analysis_result("IMPORTED")
         QMessageBox.information(
@@ -1043,27 +1032,33 @@ class QCurrentTab(QWidget):
             return
 
         self._begin_operation("IMPORTING")
+        timings = self.last_loading_timings
 
         def load_dataset():
             database_path = Path(database_value).expanduser().resolve()
-            dataset = get_primary_dataset(database_path)
+            dataset = timed_call(timings, "sqlite_metadata_s", get_primary_dataset, database_path)
             if dataset is None:
                 raise ValueError(f"Q current database is not valid: {database_path}")
             path = dataset.database_path or database_path
-            return path, get_samples(dataset.id, path)
+            samples = timed_call(timings, "sqlite_read_s", get_samples, dataset.id, path)
+            prepared = timed_call(timings, "prepare_s", prepare_workspace_data, samples)
+            return path, prepared
 
         self._start_task(load_dataset, self._current_dataset_loaded)
 
     def _current_dataset_loaded(self, loaded):
-        database_path, samples = loaded
+        database_path, prepared = loaded
         self.current_import = None
         self.current_database_path = database_path
-        self._load_samples_into_workspace(samples)
+        self._load_samples_into_workspace(prepared)
         self._set_analysis_result("IMPORTED")
         self.import_button.setEnabled(True)
 
     def _load_samples_into_workspace(self, samples):
-        self.current_samples = list(samples)
+        started = perf_counter()
+        prepared = samples if isinstance(samples, QCurrentWorkspaceData) else prepare_workspace_data(samples)
+        self._workspace_data = prepared
+        self.current_samples = prepared.samples
         self.current_analysis_result = None
         self.current_analysis_settings = None
         self._selected_review_chart_index = None
@@ -1077,6 +1072,15 @@ class QCurrentTab(QWidget):
         self._populate_review_table(self.current_samples)
         self._initialize_analysis_range_from_samples()
         self._update_action_states()
+        self.last_loading_timings["workspace_gui_s"] = perf_counter() - started
+
+    def _get_elapsed_seconds(self):
+        prepared = self._workspace_data
+        if prepared is not None and prepared.samples is self.current_samples:
+            if prepared.timestamp_error is not None:
+                raise ValueError(prepared.timestamp_error)
+            return prepared.elapsed_seconds
+        return calculate_elapsed_seconds(self.current_samples)
 
     def _update_action_states(self):
         has_data = bool(self.current_samples)
@@ -1151,11 +1155,12 @@ class QCurrentTab(QWidget):
         self.current_import = None
         self.current_database_path = None
         self.current_samples = []
+        self._workspace_data = None
         self.current_analysis_result = None
         self.current_analysis_settings = None
         self._selected_review_chart_index = None
         self._chart_ready = False
-        self.review_table.setRowCount(0)
+        self.review_table.model().set_samples([])
         self._clear_current_chart()
         self._reset_analysis_range_controls()
         self.summary_widget.clear_result()
@@ -1163,7 +1168,7 @@ class QCurrentTab(QWidget):
         self._update_action_states()
 
     def _build_chart_data(self):
-        elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+        elapsed_seconds = self._get_elapsed_seconds()
         if not elapsed_seconds:
             raise ValueError("Q current data contains no valid timestamps.")
         current_values = [float(sample.current_mA) for sample in self.current_samples]
@@ -1223,16 +1228,11 @@ class QCurrentTab(QWidget):
             del blocker
 
     def _initialize_analysis_range_from_samples(self):
-        try:
-            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
-        except ValueError:
+        prepared = self._workspace_data
+        if prepared is None or prepared.time_bounds is None:
             self._reset_analysis_range_controls()
             return
-        if not elapsed_seconds:
-            self._reset_analysis_range_controls()
-            return
-        start_time_s = float(min(elapsed_seconds))
-        end_time_s = float(max(elapsed_seconds))
+        start_time_s, end_time_s = prepared.time_bounds
         calculated_end_time_s = start_time_s + self.sampling_duration_edit.value() * 60.0
         maximum_time_s = max(end_time_s, calculated_end_time_s, 0.0)
         for spinbox in (self.analysis_start_time_edit, self.analysis_end_time_edit):
@@ -1283,13 +1283,10 @@ class QCurrentTab(QWidget):
 
 
     def _clamp_manual_end_time_to_dataset(self):
-        try:
-            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
-        except ValueError:
+        prepared = self._workspace_data
+        if prepared is None or prepared.time_bounds is None:
             return
-        if not elapsed_seconds:
-            return
-        available_end_time_s = float(max(elapsed_seconds))
+        available_end_time_s = prepared.time_bounds[1]
         if self.analysis_end_time_edit.value() <= available_end_time_s:
             return
         blocker = QSignalBlocker(self.analysis_end_time_edit)
@@ -1390,7 +1387,7 @@ class QCurrentTab(QWidget):
         if row < 0 or row >= len(self.current_samples):
             return
         try:
-            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+            elapsed_seconds = self._get_elapsed_seconds()
         except ValueError:
             return
         if row >= len(elapsed_seconds):
@@ -1420,7 +1417,7 @@ class QCurrentTab(QWidget):
         row = self.review_table.rowAt(position.y())
         if row < 0 or row >= len(self.current_samples):
             return
-        self.review_table.setCurrentCell(row, 0)
+        self.review_table.setCurrentIndex(self.review_table.model().index(row, 0))
         self.review_table.selectRow(row)
         menu, actions = self._create_review_context_menu()
         set_start_action = actions["set_start_time"]
@@ -1463,7 +1460,7 @@ class QCurrentTab(QWidget):
         if row < 0 or row >= len(self.current_samples):
             return False
         try:
-            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+            elapsed_seconds = self._get_elapsed_seconds()
         except ValueError:
             return False
         if row >= len(elapsed_seconds):
@@ -1894,7 +1891,7 @@ class QCurrentTab(QWidget):
             spinbox.setValue(float(self.chart_time_seconds[sample_index]))
             return True
         try:
-            elapsed_seconds = calculate_elapsed_seconds(self.current_samples)
+            elapsed_seconds = self._get_elapsed_seconds()
         except ValueError:
             return False
         if sample_index < 0 or sample_index >= len(elapsed_seconds):
@@ -2611,33 +2608,9 @@ class QCurrentTab(QWidget):
         
 
     def _populate_review_table(self, samples):
+        started = perf_counter()
         self.review_table.setSortingEnabled(False)
-        self.review_table.setRowCount(0)
-        for row, sample in enumerate(samples):
-            self.review_table.insertRow(row)
-            self.review_table.setItem(
-                row,
-                0,
-                self.review_table.fn_create_item(
-                    row + 1,
-                    row,
-                    Qt.AlignCenter,
-                ),
-            )
-            self.review_table.setItem(
-                row,
-                1,
-                self.review_table.fn_create_item(sample.time, row),
-            )
-            self.review_table.setItem(
-                row,
-                2,
-                self.review_table.fn_create_item(
-                    f"{sample.current_mA:.2f}",
-                    row,
-                    Qt.AlignRight | Qt.AlignVCenter,
-                ),
-            )
+        self.review_table.model().set_samples(samples)
 
         self.review_table.scrollToTop()
         self.review_table.verticalScrollBar().setValue(
@@ -2646,6 +2619,7 @@ class QCurrentTab(QWidget):
         self.review_table.horizontalScrollBar().setValue(
             self.review_table.horizontalScrollBar().minimum()
         )
+        self.last_loading_timings["table_bind_s"] = perf_counter() - started
 
     def copy_data_review(self):
         QApplication.clipboard().setText(self._review_table_to_text())
@@ -2654,17 +2628,11 @@ class QCurrentTab(QWidget):
         QApplication.clipboard().setText(self.summary_widget.to_text())
 
     def _review_table_to_text(self):
-        headers = [
-            self.review_table.horizontalHeaderItem(column).text()
-            for column in range(self.review_table.columnCount())
-        ]
-        rows = ["\t".join(headers)]
-        for row in range(self.review_table.rowCount()):
-            values = []
-            for column in range(self.review_table.columnCount()):
-                item = self.review_table.item(row, column)
-                values.append(item.text() if item is not None else "")
-            rows.append("\t".join(values))
+        model = self.review_table.model()
+        rows = ["\t".join(model.HEADERS)]
+        for row, sample in enumerate(model.samples):
+            timestamp = str(sample.time).replace("\t", " ").replace("\r", " ").replace("\n", " ")
+            rows.append(f"{row + 1}\t{timestamp}\t{sample.current_mA:.2f}")
         return "\n".join(rows)
 
     def _summary_to_text(self):
@@ -2673,6 +2641,7 @@ class QCurrentTab(QWidget):
     def _refresh_dataset_combo(
             self,
             selected_db_path: Path | str | None = None,
+            datasets=None,
         ):
         selected_path = selected_db_path
 
@@ -2687,7 +2656,7 @@ class QCurrentTab(QWidget):
         with QSignalBlocker(self.dataset_combo):
             self.dataset_combo.clear()
 
-            for dataset in list_datasets(self._database_dir):
+            for dataset in (list_datasets(self._database_dir) if datasets is None else datasets):
                 if dataset.database_path is None:
                     continue
 

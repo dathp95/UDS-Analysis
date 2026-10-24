@@ -595,17 +595,17 @@ class QCurrentTabTests(unittest.TestCase):
 
             self.assertEqual(tab.current_database_path, database_file.resolve())
             self.assertEqual(len(tab.current_samples), 3)
-            self.assertEqual(tab.review_table.rowCount(), 3)
-            self.assertEqual(tab.review_table.columnCount(), 3)
+            self.assertEqual(tab.review_table.model().rowCount(), 3)
+            self.assertEqual(tab.review_table.model().columnCount(), 3)
             self.assertEqual(
-                [tab.review_table.horizontalHeaderItem(index).text() for index in range(3)],
+                [tab.review_table.model().headerData(index, Qt.Horizontal) for index in range(3)],
                 ["No.", "Time", "Current (mA)"],
             )
-            self.assertEqual(tab.review_table.item(0, 0).text(), "1")
-            self.assertEqual(tab.review_table.item(0, 1).text(), "26-09-11 11:41:29.036")
-            self.assertEqual(tab.review_table.item(0, 2).text(), "-16.90")
-            self.assertEqual(tab.review_table.item(2, 0).text(), "3")
-            self.assertEqual(tab.review_table.item(2, 2).text(), "-15.80")
+            self.assertEqual(tab.review_table.model().index(0, 0).data(), "1")
+            self.assertEqual(tab.review_table.model().index(0, 1).data(), "26-09-11 11:41:29.036")
+            self.assertEqual(tab.review_table.model().index(0, 2).data(), "-16.90")
+            self.assertEqual(tab.review_table.model().index(2, 0).data(), "3")
+            self.assertEqual(tab.review_table.model().index(2, 2).data(), "-15.80")
             self.assertTrue(tab.import_button.isEnabled())
             self.assertTrue(tab.btn_run.isEnabled())
             self.assertTrue(tab.btn_copy_data_review.isEnabled())
@@ -626,12 +626,12 @@ class QCurrentTabTests(unittest.TestCase):
             ])
 
             tab.review_table.selectRow(0)
-            self.assertTrue(tab.review_table.selectedItems())
+            self.assertTrue(tab.review_table.selectionModel().selectedIndexes())
 
             tab.review_table.focusOutEvent(QFocusEvent(QEvent.FocusOut))
 
-            self.assertFalse(tab.review_table.selectedItems())
-            self.assertEqual(tab.review_table.currentRow(), -1)
+            self.assertFalse(tab.review_table.selectionModel().selectedIndexes())
+            self.assertEqual(tab.review_table.currentIndex().row(), -1)
 
     def test_loading_selected_dataset_resets_review_scrollbar_to_top(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1050,7 +1050,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(tab.analysis_end_time_edit.isEnabled())
             self.assertEqual(tab.analysis_start_time_edit.value(), 0.0)
             self.assertEqual(tab.analysis_end_time_edit.value(), 3.0)
-            self.assertEqual(tab.review_table.rowCount(), 4)
+            self.assertEqual(tab.review_table.model().rowCount(), 4)
 
             tab.analysis_start_time_edit.setValue(2.0)
             tab.analysis_end_time_edit.setValue(3.0)
@@ -1210,7 +1210,7 @@ class QCurrentTabTests(unittest.TestCase):
                 self._sample(1.0, 20.0),
             ])
 
-            tab.review_table.cellClicked.emit(1, 2)
+            tab.review_table.clicked.emit(tab.review_table.model().index(1, 2))
 
             self.assertFalse(tab.hover_marker.isVisible())
             self.assertFalse(tab.hover_label.isVisible())
@@ -1229,9 +1229,9 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_run.click()
             self._wait_for_idle(tab)
 
-            tab.review_table.cellClicked.emit(1, 1)
+            tab.review_table.clicked.emit(tab.review_table.model().index(1, 1))
             first_marker_x, first_marker_y = tab.hover_marker.getData()
-            tab.review_table.cellClicked.emit(1, 2)
+            tab.review_table.clicked.emit(tab.review_table.model().index(1, 2))
             second_marker_x, second_marker_y = tab.hover_marker.getData()
 
             self.assertEqual(first_marker_x.tolist(), [1.0])
@@ -1261,7 +1261,7 @@ class QCurrentTabTests(unittest.TestCase):
             scrollbar_range = tab.current_plot.getPlotItem().viewRange()[0]
             tab._set_chart_x_range(0.0, 20.0, padding=0)
 
-            tab.review_table.cellClicked.emit(2, 2)
+            tab.review_table.clicked.emit(tab.review_table.model().index(2, 2))
 
             row_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(row_range[0], scrollbar_range[0], places=3)
@@ -1285,13 +1285,13 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_run.click()
             self._wait_for_idle(tab)
 
-            tab.review_table.cellClicked.emit(0, 1)
+            tab.review_table.clicked.emit(tab.review_table.model().index(0, 1))
             start_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(start_range[0], 0.0, places=3)
             self.assertAlmostEqual(start_range[1], tab._chart_visible_span, places=3)
             self.assertEqual(tab.chart_scrollbar.value(), tab.chart_scrollbar.minimum())
 
-            tab.review_table.cellClicked.emit(3, 1)
+            tab.review_table.clicked.emit(tab.review_table.model().index(3, 1))
             end_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(end_range[1], 1000.0, places=3)
             self.assertAlmostEqual(end_range[1] - end_range[0], tab._chart_visible_span, places=3)
@@ -1309,7 +1309,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_run.click()
             self._wait_for_idle(tab)
 
-            tab.review_table.cellClicked.emit(1, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(1, 0))
 
             x_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(x_range[0], 0.0, places=3)
@@ -1331,13 +1331,13 @@ class QCurrentTabTests(unittest.TestCase):
             tab.current_plot.setXRange(100.0, 200.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
 
-            tab.review_table.cellClicked.emit(2, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(2, 0))
             first_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(first_range[0], 550.0, places=3)
             self.assertAlmostEqual(first_range[1], 650.0, places=3)
             self.assertAlmostEqual(first_range[1] - first_range[0], 100.0, places=3)
 
-            tab.review_table.cellClicked.emit(3, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(3, 0))
             second_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(second_range[0], 900.0, places=3)
             self.assertAlmostEqual(second_range[1], 1000.0, places=3)
@@ -1383,7 +1383,7 @@ class QCurrentTabTests(unittest.TestCase):
 
             tab.btn_fit_all.click()
             self.assertFalse(tab._chart_user_zoomed)
-            tab.review_table.cellClicked.emit(2, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(2, 0))
 
             x_range = tab.current_plot.getPlotItem().viewRange()[0]
             self.assertAlmostEqual(x_range[0], 400.0, places=3)
@@ -1407,7 +1407,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.current_plot.setXRange(80.0, 140.0, padding=0)
             self.assertTrue(tab._chart_user_zoomed)
 
-            tab.review_table.cellClicked.emit(1, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(1, 0))
             x_range_before_pin = tab.current_plot.getPlotItem().viewRange()[0]
             y_range_before_pin = tab.current_plot.getPlotItem().viewRange()[1]
             self.assertEqual(tab._selected_review_chart_index, 1)
@@ -1426,7 +1426,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_pin.click()
             self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1])
 
-            tab.review_table.cellClicked.emit(2, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(2, 0))
             self.assertEqual(tab._selected_review_chart_index, 2)
             tab.btn_pin.click()
             self.assertEqual([pin.sample_index for pin in tab.chart_pins], [1, 2])
@@ -1453,7 +1453,7 @@ class QCurrentTabTests(unittest.TestCase):
             tab.btn_invert_y_axis.click()
             tab.current_plot.setXRange(40.0, 60.0, padding=0)
 
-            tab.review_table.cellClicked.emit(2, 0)
+            tab.review_table.clicked.emit(tab.review_table.model().index(2, 0))
 
             self.assertTrue(tab._y_axis_inverted)
             self.assertTrue(tab.current_plot.getPlotItem().getViewBox().yInverted())
@@ -2109,7 +2109,7 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertTrue(database_file.exists())
             self.assertEqual(tab.dataset_combo.count(), 1)
             self.assertEqual(tab.current_samples, [])
-            self.assertEqual(tab.review_table.rowCount(), 0)
+            self.assertEqual(tab.review_table.model().rowCount(), 0)
             self.assertIsNone(tab.current_curve.getData()[0])
             self.assertEqual(tab.analysis_progress_bar.text(), "NOT RUN")
             self.assertFalse(tab.btn_run.isEnabled())
@@ -2223,11 +2223,11 @@ class QCurrentTabTests(unittest.TestCase):
             self.assertIs(tab.main_splitter.widget(1), tab.chart_group)
             self.assertIs(tab.main_splitter.widget(2), tab.right_panel)
             self.assertEqual(tab.chart_placeholder.text(), PLACEHOLDER_VALUE)
-            self.assertEqual(tab.review_table.rowCount(), 0)
-            self.assertEqual(tab.review_table.columnCount(), 3)
-            self.assertEqual(tab.review_table.horizontalHeaderItem(0).text(), "No.")
-            self.assertEqual(tab.review_table.horizontalHeaderItem(1).text(), "Time")
-            self.assertEqual(tab.review_table.horizontalHeaderItem(2).text(), "Current (mA)")
+            self.assertEqual(tab.review_table.model().rowCount(), 0)
+            self.assertEqual(tab.review_table.model().columnCount(), 3)
+            self.assertEqual(tab.review_table.model().headerData(0, Qt.Horizontal), "No.")
+            self.assertEqual(tab.review_table.model().headerData(1, Qt.Horizontal), "Time")
+            self.assertEqual(tab.review_table.model().headerData(2, Qt.Horizontal), "Current (mA)")
             self.assertIs(tab.summary_group, tab.summary_widget)
             self.assertIn("result_status", tab.summary_widget.summary_values)
             self.assertIn("average_sleep_current_ma", tab.summary_widget.summary_values)
