@@ -1142,7 +1142,10 @@ class QCurrentTab(QWidget):
             current_values,
             analysis_result.wake_up_intervals,
         )
-        self.summary_widget.set_result(analysis_result)
+        self.summary_widget.set_result(
+            analysis_result,
+            dataset_samples=len(self.current_samples),
+        )
         self.current_analysis_result = analysis_result
         self.current_analysis_settings = settings
         self._chart_ready = True

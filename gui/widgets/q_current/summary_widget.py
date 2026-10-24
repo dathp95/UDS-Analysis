@@ -36,8 +36,10 @@ class QCurrentSummaryWidget(QGroupBox):
             ("source_start_time", "Start Time"),
             ("source_end_time", "End Time"),
             ("duration_s", "Duration"),
-            ("total_samples", "Total Samples"),
+            ("dataset_samples", "Dataset Samples"),
+            ("analyzed_samples", "Analyzed Samples"),
             ("sample_interval_s", "Sample Interval"),
+           
         )
         self._setup_ui()
         self.clear_result()
@@ -47,7 +49,7 @@ class QCurrentSummaryWidget(QGroupBox):
         layout = QGridLayout(self)
         layout.setContentsMargins(12, 16, 12, 12)
         layout.setHorizontalSpacing(10)
-        layout.setVerticalSpacing(6)
+        layout.setVerticalSpacing(15)
 
         for row, (key, label_text) in enumerate(self._rows):
             label = PrimaryLabel(label_text)

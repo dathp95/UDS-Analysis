@@ -160,7 +160,9 @@ def _populate_report_sheet(
     row = _write_metric(sheet, row, "Start Time", _format_source_time(result.source_start_time))
     row = _write_metric(sheet, row, "End Time", _format_source_time(result.source_end_time))
     row = _write_metric(sheet, row, "Duration (s)", result.duration_s, "0.000")
-    row = _write_metric(sheet, row, "Total Samples", result.total_samples)
+    row = _write_metric(sheet, row, "Dataset Samples", len(report_data.samples), "#,##0",)
+
+    row = _write_metric(sheet, row, "Analyzed Samples", result.total_samples, "#,##0",)
     row = _write_metric(sheet, row, "Sample Interval (s)", result.sample_interval_s, "0.000")
 
     row += 1
