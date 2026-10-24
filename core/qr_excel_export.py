@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
-from turtle import position
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as WorkbookImage
