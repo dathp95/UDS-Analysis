@@ -384,7 +384,12 @@ class LogAnalyzerTab(QWidget):
     def fn_log_file_changed(
         self,
         file_path: str,
-    ):
+        ):
+        # Reset selected Quick Filter
+        self.left_panel.quick_access.fn_clear_active_selection()
+
+         # Clear Quick Filter information panel
+        self.right_panel.action_panel.fn_clear_quick_filter_info()
 
         self._parser_diagnostics = None
         self._invalidate_analysis_result()
