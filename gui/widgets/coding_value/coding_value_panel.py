@@ -51,6 +51,8 @@ from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
 
+from gui.widgets.controls.action_button import ActionButton
+
 DEFAULT_CODING_DIR = Path("config/Coding")
 POSITION_COPY_DATA_PAYLOAD = 3
 ACTION_PANEL_WIDTH = 300
@@ -112,7 +114,7 @@ class CodingValuePanel(QGroupBox):
         # Import button
         self.btn_import = PrimaryButton(
             "Import",
-            width=100,
+            width=80,
         )
 
         # Default button
@@ -172,29 +174,40 @@ class CodingValuePanel(QGroupBox):
         )
         self._set_payload_editor_height()
 
-        self.btn_encode = PrimaryButton(
+        self.btn_encode = ActionButton(
             "Encode",
             width=100,
+            variant="primary",
         )
-        self.btn_copy = PrimaryButton(
+
+        self.btn_copy = ActionButton(
             "Copy",
             width=100,
+            variant="secondary",
         )
-        self.btn_clear = PrimaryButton(
+
+        self.btn_clear = ActionButton(
             "Clear",
             width=100,
+            variant="danger",
         )
-        self.btn_preview_refresh = PrimaryButton(
+
+        self.btn_preview_refresh = ActionButton(
             "Refresh",
             width=100,
+            variant="secondary",
         )
-        self.btn_copy_preview = PrimaryButton(
+
+        self.btn_copy_preview = ActionButton(
             "Copy",
             width=100,
+            variant="secondary",
         )
-        self.btn_preview_edit = PrimaryButton(
+
+        self.btn_preview_edit = ActionButton(
             "EDIT",
             width=100,
+            variant="primary",
         )
 
         self.payload_input_row = QWidget()
