@@ -125,7 +125,8 @@ class CodingValuePanel(QGroupBox):
         # Default value combobox (0 / 1)
         self.cmb_default_value = PrimaryComboBox()
         self.cmb_default_value.addItems(["0", "1"])
-        self.cmb_default_value.setCurrentIndex(0)
+        self.cmb_default_value.setCurrentIndex(-1)
+        self.cmb_default_value.setPlaceholderText("")
         self.cmb_default_value.setFixedWidth(file_button_width)
 
         # File action row: Combobox + Default
@@ -534,6 +535,7 @@ class CodingValuePanel(QGroupBox):
             definition,
             coding_file=json_path,
         )
+        self.cmb_default_value.setCurrentIndex(-1)
 
     def _set_coding_definition(
             self,
@@ -747,7 +749,11 @@ class CodingValuePanel(QGroupBox):
         if byte_count <= 0:
             return
 
-        selected = self.cmb_default_value.currentText()
+        selected = self.cmb_default_value.currentText().strip()
+
+        if selected not in ("0", "1"):
+            return
+
         fill_byte = 0x00 if selected == "0" else 0x11
 
         self.txt_coding_value.setPlainText(
