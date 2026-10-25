@@ -165,7 +165,10 @@ class VectorDiscoveryTests(unittest.TestCase):
 
     def test_connect_forwards_optional_metadata_and_legacy_config_still_works(self):
         backend, can, _ = self.backend()
-        backend.fn_open(CANConfig("vector", 1, 500000, serial=123456, channel_index=8))
+        snapshot = types.SimpleNamespace(channelCount=1, channel=[types.SimpleNamespace(
+            channelIndex=8, serialNumber=123456, hwType=57, hwIndex=0, hwChannel=1, channelBusCapabilities=65536)])
+        with patch.object(backend, "_query_driver_config", return_value=(snapshot, 65536)):
+            backend.fn_open(CANConfig("vector", 1, 500000, serial=123456, channel_index=8))
         can.Bus.assert_called_once_with(interface="vector", channel=1, bitrate=500000, app_name="", serial=123456, channel_index=8)
         backend.fn_close()
         can.Bus.reset_mock()

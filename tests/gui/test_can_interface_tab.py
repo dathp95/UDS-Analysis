@@ -10,7 +10,8 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QThread, QTimer
 from gui.themes.theme import ThemeType
 from gui.themes.theme_manager import ThemeManager
-from services.can import CANChannelInfo, CANDeviceInfo, VectorDriverUnavailableError
+from services.can import CANChannelInfo, CANDeviceInfo, VectorDriverUnavailableError, CANConnectionSnapshot, CANConnectionState as State
+from gui.workers.can_connection_worker import CANConnectionTask
 
 from core.diagnostic_sequence import DiagnosticStep, DiagnosticTestCase
 
@@ -34,15 +35,23 @@ class FakeCANService:
         self.discovery_error = None
         self.gate = None
         self.discovery_threads = []
+        self.state = State.DISCONNECTED
+
+    @property
+    def snapshot(self):
+        return CANConnectionSnapshot(self.state, self.config if self.connected else None)
 
     def fn_connect(self, config):
         if self.connect_error is not None:
+            self.state = State.ERROR
             raise self.connect_error
         self.config = config
         self.connected = True
+        self.state = State.CONNECTED
 
     def fn_disconnect(self):
         self.connected = False
+        self.state = State.DISCONNECTED
 
     def fn_is_connected(self):
         return self.connected
@@ -67,6 +76,22 @@ class CANInterfaceTabTests(unittest.TestCase):
     def refresh(self, tab):
         tab.refresh_can_setup()
         self.wait_for_refresh(tab)
+
+    def tearDown(self):
+        for task in self.application.findChildren(CANConnectionTask):
+            task.shutdown()
+        self.application.processEvents()
+
+    def connect(self, tab):
+        tab.connect_can()
+        self.wait_for_connection(tab)
+
+    def wait_for_connection(self, tab):
+        deadline = time.monotonic() + 5
+        while tab._connection_task.running and time.monotonic() < deadline:
+            self.application.processEvents()
+            time.sleep(0.001)
+        self.assertFalse(tab._connection_task.running)
 
     def wait_for_refresh(self, tab):
         deadline = time.monotonic() + 10
@@ -158,7 +183,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.refresh(tab)
         tab.cmb_channel.setCurrentIndex(1)
         tab.cmb_baudrate.setCurrentIndex(3)
-        tab.connect_can()
+        self.connect(tab)
 
         self.assertEqual(service.config.interface, "vector")
         self.assertEqual(service.config.channel, 1)
@@ -178,7 +203,7 @@ class CANInterfaceTabTests(unittest.TestCase):
 
         self.refresh(tab)
         with patch("gui.tabs.can_interface_tab.QMessageBox.warning"):
-            tab.connect_can()
+            self.connect(tab)
 
         self.assertEqual(tab.lbl_status.text(), "Error")
         self.assertIn("Invalid Vector CAN channel", tab.lbl_status.toolTip())
@@ -191,8 +216,9 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.addCleanup(tab.deleteLater)
 
         self.refresh(tab)
-        tab.connect_can()
+        self.connect(tab)
         tab.disconnect_can()
+        self.wait_for_connection(tab)
 
         self.assertFalse(service.connected)
         self.assertEqual(tab.lbl_status.text(), "Disconnected")
@@ -239,7 +265,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.refresh(tab)
         self.assertEqual(tab.cmb_device.currentData().identity, second.identity)
         self.assertEqual(tab.cmb_channel.currentData().channel_index, 20)
-        tab.connect_can()
+        self.connect(tab)
         self.assertEqual((service.config.channel, service.config.channel_index, service.config.serial), (2, 20, 123456))
 
     def test_no_channels_or_unmapped_channel_never_connects(self):
@@ -267,7 +293,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.assertEqual(tab.cmb_channel.currentData().hw_channel, 1)
         self.assertEqual(tab.cmb_channel.currentData().channel_index, 23)
         self.assertEqual(tab.cmb_baudrate.currentData(), 125000)
-        tab.connect_can()
+        self.connect(tab)
         self.assertEqual((service.config.channel, service.config.channel_index), (1, 23))
 
     def test_removed_selected_device_does_not_keep_stale_channels(self):
@@ -315,7 +341,7 @@ class CANInterfaceTabTests(unittest.TestCase):
             self.wait_for_refresh(tab)
         self.assertEqual(service.refresh_count, 1)
         self.assertNotEqual(service.discovery_threads[0], self.application.thread())
-        tab.connect_can()
+        self.connect(tab)
         config = service.config
         tab.refresh_can_setup()
         self.assertEqual(service.refresh_count, 1)

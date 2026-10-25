@@ -21,7 +21,9 @@ from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.workers.can_discovery_worker import CANDiscoveryTask
+from gui.workers.can_connection_worker import CANConnectionOperation as Operation, CANConnectionTask
 from services.can import CANChannelInfo, CANConfig, CANDeviceInfo, CANNoChannelsError, CANService, CANValidationError
+from services.can import CANConnectionState as State
 
 
 class CANInterfaceTab(QWidget):
@@ -49,6 +51,11 @@ class CANInterfaceTab(QWidget):
         self._discovery_task.failed.connect(self._discovery_failed)
         self.destroyed.connect(self._discovery_task.dispose)
         app.aboutToQuit.connect(self._discovery_task.shutdown)
+        self._connection_task = CANConnectionTask(self._service, app)
+        self._connection_task.completed.connect(self._connection_completed)
+        self._connection_task.failed.connect(self._connection_failed)
+        self.destroyed.connect(self._connection_task.dispose)
+        app.aboutToQuit.connect(self._connection_task.shutdown)
 
         self._setup_ui()
         self._connect_signals()
@@ -266,7 +273,7 @@ class CANInterfaceTab(QWidget):
         return layout
 
     def refresh_can_setup(self):
-        if self._closing or self._refreshing or self._service.fn_is_connected():
+        if self._closing or self._refreshing or self._connection_task.running or self._service.snapshot.state not in (State.DISCONNECTED, State.ERROR):
             return
         device = self.cmb_device.currentData()
         channel = self.cmb_channel.currentData()
@@ -316,7 +323,8 @@ class CANInterfaceTab(QWidget):
                         selected = index
                 self.cmb_channel.setCurrentIndex(selected if device.channels else -1)
         self._update_button_states()
-        if not self._refreshing and isinstance(device, CANDeviceInfo) and not self._service.fn_is_connected():
+        if (not self._refreshing and not self._connection_task.running and isinstance(device, CANDeviceInfo)
+                and self._service.snapshot.state in (State.DISCONNECTED, State.ERROR)):
             if not device.channels:
                 self._set_status("No CAN channel", "The detected Vector device has no available CAN channel.")
             else:
@@ -331,34 +339,51 @@ class CANInterfaceTab(QWidget):
             return
         self.cmb_device.clear()
         self.cmb_channel.clear()
-        state = "No CAN channel" if isinstance(error, CANNoChannelsError) else "Error"
-        self._set_status(state, str(error))
-        self._show_error(str(error))
+        snapshot = self._service.snapshot
+        state = (State.RECOVERY_REQUIRED.value if snapshot.state == State.RECOVERY_REQUIRED
+                 else "No CAN channel" if isinstance(error, CANNoChannelsError) else "Error")
+        message = snapshot.error if snapshot.state == State.RECOVERY_REQUIRED else str(error)
+        self._set_status(state, message)
+        self._show_error(message)
 
     def connect_can(self):
-        if self._closing or self._refreshing or self._service.fn_is_connected() or not self._has_selection():
+        if (self._closing or self._refreshing or self._connection_task.running or not self._has_selection()
+                or self._service.snapshot.state not in (State.DISCONNECTED, State.ERROR)
+                or self._service.snapshot.rediscovery_required):
             return
 
         try:
             config = self._read_config()
             self._set_status("Connecting")
-            self._service.fn_connect(config)
+            self._connection_task.start(Operation.CONNECT, config)
+            self._update_button_states()
         except Exception as error:
             self._set_status("Error", str(error))
             self._show_error(str(error))
             return
-
-        self._set_status("Connected")
 
     def disconnect_can(self):
-        try:
-            self._service.fn_disconnect()
-        except Exception as error:
-            self._set_status("Error", str(error))
-            self._show_error(str(error))
+        if (self._closing or self._refreshing or self._connection_task.running
+                or self._service.snapshot.state != State.CONNECTED):
             return
+        self._set_status("Disconnecting")
+        self._connection_task.start(Operation.DISCONNECT)
+        self._update_button_states()
 
-        self._set_status("Disconnected")
+    def _connection_completed(self, operation, snapshot):
+        if self._closing:
+            return
+        config = snapshot.config
+        details = (f"Vector SN {config.serial}, HW {config.hw_type}:{config.hw_index}, CAN {config.channel + 1}, global index {config.channel_index}, "
+                   f"{config.bitrate} bit/s") if config else ""
+        self._set_status(snapshot.state.value, details)
+
+    def _connection_failed(self, operation, error):
+        if self._closing:
+            return
+        snapshot = self._service.snapshot
+        self._set_status(snapshot.state.value, str(error))
+        self._show_error(str(error))
 
     def _read_config(self):
         if not self._has_selection():
@@ -371,13 +396,17 @@ class CANInterfaceTab(QWidget):
             bitrate=int(self.cmb_baudrate.currentData()),
             serial=device.serial,
             channel_index=channel.channel_index,
+            hw_type=device.hw_type,
+            hw_index=device.hw_index,
+            hw_channel=channel.hw_channel,
         )
 
     def _has_selection(self):
         device = self.cmb_device.currentData()
         channel = self.cmb_channel.currentData()
         return (isinstance(device, CANDeviceInfo) and isinstance(channel, CANChannelInfo)
-                and channel in device.channels and channel.can_connect)
+                and channel in device.channels and channel.can_connect
+                and (device.serial is not None or (device.hw_type is not None and device.hw_index is not None)))
 
     def _set_status(self, state, message=""):
         self._status_state = state
@@ -388,23 +417,20 @@ class CANInterfaceTab(QWidget):
         self._refresh_status_theme()
 
     def _update_button_states(self):
-        is_connecting = self._status_state == "Connecting"
-        is_connected = self._status_state == "Connected"
-        try:
-            is_connected = is_connected or self._service.fn_is_connected()
-        except Exception:
-            pass
-
-        busy = is_connecting or self._refreshing or self._closing
-        self.btn_refresh.setEnabled(not is_connected and not busy)
-        self.btn_connect.setEnabled(not is_connected and not busy and self._has_selection())
-        self.btn_disconnect.setEnabled(is_connected and not busy)
+        snapshot = self._service.snapshot
+        idle = snapshot.state in (State.DISCONNECTED, State.ERROR)
+        busy = self._connection_task.running or self._refreshing or self._closing
+        self.btn_refresh.setEnabled(idle and not busy)
+        self.btn_connect.setEnabled(idle and not busy and self._has_selection() and not snapshot.rediscovery_required)
+        self.btn_disconnect.setEnabled(snapshot.state == State.CONNECTED and not busy)
         for combo in (self.cmb_vendor, self.cmb_device, self.cmb_channel, self.cmb_baudrate):
-            combo.setEnabled(not is_connected and not busy)
+            combo.setEnabled(idle and not busy)
 
     def closeEvent(self, event):
-        self._closing = True
-        self._discovery_task.dispose()
+        if not self._closing:
+            self._closing = True
+            self._discovery_task.dispose()
+            self._connection_task.dispose()
         super().closeEvent(event)
 
     def _show_error(self, message):
@@ -435,6 +461,8 @@ class CANInterfaceTab(QWidget):
         state_colors = {
             "Disconnected": colors.SECONDARY_TEXT,
             "Connecting": colors.WARNING,
+            "Disconnecting": colors.WARNING,
+            "Recovery required": colors.DANGER,
             "Connected": colors.SUCCESS,
             "Error": colors.DANGER,
             "Discovering": colors.WARNING,

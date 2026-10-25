@@ -11,3 +11,6 @@ class CANConfig:
     fd: bool = False
     serial: int | None = None
     channel_index: int | None = None
+    hw_type: int | None = None
+    hw_index: int | None = None
+    hw_channel: int | None = None

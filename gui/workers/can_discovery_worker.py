@@ -1,6 +1,6 @@
 import logging
 
-from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
+from PySide6.QtCore import QEventLoop, QObject, QThread, QTimer, Qt, Signal, Slot
 
 from services.can import CANDiscoveryError
 
@@ -44,6 +44,7 @@ class CANDiscoveryTask(QObject):
 
     completed = Signal(object)
     failed = Signal(object)
+    stopped = Signal()
 
     def __init__(self, service, parent):
         super().__init__(parent)
@@ -70,7 +71,6 @@ class CANDiscoveryTask(QObject):
         self._worker.finished.connect(self._thread.quit, Qt.DirectConnection)
         self._thread.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._finish)
-        self._thread.finished.connect(self._thread.deleteLater)
         self._thread.start()
 
     @Slot(object)
@@ -83,11 +83,18 @@ class CANDiscoveryTask(QObject):
 
     @Slot()
     def _finish(self):
+        # finished can precede native thread-local/deferred-delete teardown.
+        # Keep Python wrappers alive until that teardown actually completes.
+        if not self._thread.wait(0):
+            QTimer.singleShot(1, self._finish)
+            return
+        self._thread.deleteLater()
         # Only Python data is recorded directly; all public delivery runs on GUI.
         outcome = self._outcome
         self._worker = None
         self._thread = None
         self._outcome = None
+        self.stopped.emit()
         if self._closed:
             self.deleteLater()
             return
@@ -100,6 +107,8 @@ class CANDiscoveryTask(QObject):
 
     @Slot()
     def dispose(self):
+        if self._closed:
+            return
         self._closed = True
         if self.running:
             self._thread.requestInterruption()
@@ -108,9 +117,9 @@ class CANDiscoveryTask(QObject):
 
     @Slot()
     def shutdown(self):
-        self._closed = True
+        self.dispose()
         if self.running:
-            self._thread.requestInterruption()
-            self._thread.quit()
-            # Application exit only: never destroy a thread inside an XL call.
-            self._thread.wait()
+            loop = QEventLoop()
+            self.stopped.connect(loop.quit)
+            loop.exec()
+            self.stopped.disconnect(loop.quit)

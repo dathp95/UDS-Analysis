@@ -6,6 +6,8 @@ import logging
 from numbers import Integral
 
 from services.can.can_config import CANConfig
+from services.can.can_connection import CANConnectionError
+from services.can.owned_vector_bus import new_owned_vector_bus
 from services.can.can_device import (
     CANChannelInfo, CANDeviceInfo, CANDependencyError, CANDiscoveryError,
     CANNoChannelsError, VectorDriverUnavailableError,
@@ -14,20 +16,19 @@ from services.can.can_device import (
 LOG = logging.getLogger(__name__)
 
 
-class CANConnectionError(RuntimeError):
-    pass
-
-
 class VectorBackend:
 
     def __init__(self, *, can_module=None, vector_module=None):
         self._bus = None
         self._can_module = can_module
         self._vector_module = vector_module
+        self._cleanup_failed = False
 
     def fn_open(self, config: CANConfig):
         if self._bus is not None:
-            self.fn_close()
+            raise CANConnectionError("Disconnect cleanly before opening another CAN connection.")
+        if self._cleanup_failed:
+            raise CANConnectionError("CAN resource cleanup is uncertain. Restart V-CODE.", recovery_required=True)
 
         try:
             can = self._can_module or import_module("can")
@@ -36,28 +37,78 @@ class VectorBackend:
                 "python-can is not installed. Please install python-can before connecting Vector hardware."
             ) from error
 
+        candidate = None
         try:
+            if config.channel_index is not None:
+                self._revalidate_target(config)
             metadata = {}
             if config.serial is not None:
                 metadata["serial"] = config.serial
             if config.channel_index is not None:
                 metadata["channel_index"] = config.channel_index
-            self._bus = can.Bus(
-                interface=config.interface,
+            arguments = dict(
                 channel=config.channel,
                 bitrate=config.bitrate,
                 app_name="",
                 **metadata,
             )
+            if self._can_module is not None:
+                # Injectable factory for hardware-free tests / existing callers.
+                candidate = can.Bus(interface=config.interface, **arguments)
+            else:
+                try:
+                    vector = self._vector_module or import_module("can.interfaces.vector.canlib")
+                except (ImportError, OSError) as error:
+                    raise CANConnectionError("Vector XL Driver is unavailable.") from error
+                if vector.xldriver is None:
+                    raise CANConnectionError("Vector XL Driver is unavailable.")
+                candidate = new_owned_vector_bus(vector)
+                candidate.__init__(**arguments)
+            self._bus = candidate
         except Exception as error:
-            self._bus = None
+            LOG.exception("Vector connection initialization failed")
+            if candidate is not None:
+                try:
+                    candidate.shutdown()
+                except Exception:
+                    LOG.exception("Partial Vector connection cleanup failed")
+                    self._bus = candidate
+                    self._cleanup_failed = True
+            if self._cleanup_failed:
+                raise CANConnectionError("Cannot confirm cleanup after Vector initialization failure. Restart V-CODE.", recovery_required=True) from error
+            if isinstance(error, CANConnectionError):
+                raise
+            # A foreign factory may allocate resources before raising, without
+            # exposing an object to close. Never declare that case clean.
+            uncertain = candidate is None and self._can_module is not None
+            self._cleanup_failed = uncertain
             raise CANConnectionError(
-                self._translate_error(error)
+                self._translate_error(error), recovery_required=uncertain,
+                rediscovery_required=getattr(error, "error_code", None) in (120, 129)
             ) from error
 
+    def _revalidate_target(self, config):
+        try:
+            vector = self._vector_module or import_module("can.interfaces.vector.canlib")
+            snapshot, can_mask = self._query_driver_config(vector)
+        except Exception as error:
+            raise CANConnectionError("Vector XL Driver is unavailable.") from error
+        matches = [snapshot.channel[i] for i in range(snapshot.channelCount)
+                   if snapshot.channel[i].channelIndex == config.channel_index]
+        if len(matches) != 1:
+            raise CANConnectionError("Selected Vector channel is unavailable. Refresh devices.", rediscovery_required=True)
+        channel = matches[0]
+        fields = ((config.serial, channel.serialNumber), (config.hw_type, channel.hwType),
+                  (config.hw_index, channel.hwIndex), (config.hw_channel, channel.hwChannel))
+        if (not channel.channelBusCapabilities & can_mask
+                or config.channel != channel.hwChannel
+                or any(expected is not None and expected != actual for expected, actual in fields)):
+            raise CANConnectionError("Selected Vector hardware/channel changed. Refresh devices; no alternate channel was opened.", rediscovery_required=True)
+
     def fn_close(self):
+        if self._cleanup_failed:
+            raise CANConnectionError("CAN resource cleanup is uncertain. Restart V-CODE.", recovery_required=True)
         bus = self._bus
-        self._bus = None
         if bus is None:
             return
 
@@ -65,21 +116,31 @@ class VectorBackend:
             shutdown = getattr(bus, "shutdown", None)
             if callable(shutdown):
                 shutdown()
+                self._bus = None
                 return
 
             close = getattr(bus, "close", None)
             if callable(close):
                 close()
+                self._bus = None
+                return
+            raise RuntimeError("CAN bus has no cleanup method")
         except Exception as error:
+            LOG.exception("Vector CAN cleanup failed")
+            self._cleanup_failed = True
             raise CANConnectionError(
-                f"Cannot release Vector CAN resource: {error}"
+                "Cannot release Vector CAN resource. Restart V-CODE before reconnecting.", recovery_required=True
             ) from error
 
     def fn_is_connected(self):
         return self._bus is not None
 
+    @property
+    def recovery_required(self):
+        return self._cleanup_failed
+
     def fn_refresh(self) -> tuple[CANDeviceInfo, ...]:
-        if self.fn_is_connected():
+        if self.fn_is_connected() or self._cleanup_failed:
             raise CANDiscoveryError("Disconnect the active CAN session before refreshing Vector devices.")
         try:
             can = self._can_module or import_module("can")
@@ -96,20 +157,9 @@ class VectorBackend:
         # driver query distinguishes a driver failure from a valid empty result.
         # Reuse its existing XL bindings, never xlOpenPort or can.Bus here.
         # Source: https://python-can.readthedocs.io/en/stable/_modules/can/interfaces/vector/canlib.html
-        driver = vector.xldriver
-        try:
-            driver.xlOpenDriver()
-            try:
-                snapshot = vector.xlclass.XLdriverConfig()
-                driver.xlGetDriverConfig(snapshot)
-                can_mask = int(vector.xldefine.XL_BusCapabilities.XL_BUS_ACTIVE_CAP_CAN)
-                total = snapshot.channelCount
-                can_count = sum(bool(snapshot.channel[i].channelBusCapabilities & can_mask) for i in range(total))
-            finally:
-                driver.xlCloseDriver()
-        except Exception as error:
-            LOG.exception("Vector driver configuration query failed")
-            raise VectorDriverUnavailableError("Vector XL Driver is unavailable.") from error
+        snapshot, can_mask = self._query_driver_config(vector)
+        total = snapshot.channelCount
+        can_count = sum(bool(snapshot.channel[i].channelBusCapabilities & can_mask) for i in range(total))
         if not total:
             return ()
         if not can_count:
@@ -126,6 +176,27 @@ class VectorBackend:
         except Exception as error:
             LOG.exception("Unexpected Vector discovery failure")
             raise CANDiscoveryError("Vector device discovery failed. Check the application log.") from error
+
+    def _query_driver_config(self, vector):
+        driver = vector.xldriver
+        if driver is None:
+            raise VectorDriverUnavailableError("Vector XL Driver is unavailable.")
+        try:
+            driver.xlOpenDriver()
+            try:
+                snapshot = vector.xlclass.XLdriverConfig()
+                driver.xlGetDriverConfig(snapshot)
+                can_mask = int(vector.xldefine.XL_BusCapabilities.XL_BUS_ACTIVE_CAP_CAN)
+            finally:
+                try:
+                    driver.xlCloseDriver()
+                except Exception:
+                    self._cleanup_failed = True
+                    raise
+        except Exception as error:
+            LOG.exception("Vector driver configuration query failed")
+            raise VectorDriverUnavailableError("Vector XL Driver is unavailable.") from error
+        return snapshot, can_mask
 
     @staticmethod
     def _normalize_devices(records, can_mask):
@@ -184,6 +255,15 @@ class VectorBackend:
 
     @staticmethod
     def _translate_error(error: Exception):
+        code = getattr(error, "error_code", None)
+        if code in (120, 129):
+            return "Selected Vector hardware is unavailable. Refresh devices before connecting."
+        if code in (111, 112, 147, 204):
+            return "Selected Vector CAN channel is unavailable or invalid."
+        if code in (116, 158):
+            return "Selected Vector channel is busy or initialization access is unavailable."
+        if code == 201:
+            return "Vector XL Driver is unavailable."
         message = str(error).strip() or error.__class__.__name__
         lower_message = message.lower()
 
@@ -205,4 +285,4 @@ class VectorBackend:
         if "bitrate" in lower_message or "baud" in lower_message:
             return "Cannot configure the requested CAN bitrate."
 
-        return f"Cannot connect to Vector CAN interface: {message}"
+        return "Cannot initialize Vector CAN. Check the application log."
