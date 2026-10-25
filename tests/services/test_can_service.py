@@ -1,6 +1,6 @@
 import unittest
 
-from services.can import CANConfig, CANService, CANValidationError
+from services.can import CANChannelInfo, CANDeviceInfo, CANDiscoveryError, CANConfig, CANService, CANValidationError
 
 
 class FakeCANBackend:
@@ -10,6 +10,7 @@ class FakeCANBackend:
         self.close_count = 0
         self.connected = False
         self.refresh_count = 0
+        self.devices = ()
 
     def fn_open(self, config):
         self.opened_config = config
@@ -24,7 +25,7 @@ class FakeCANBackend:
 
     def fn_refresh(self):
         self.refresh_count += 1
-        return None
+        return self.devices
 
 
 class CANServiceTests(unittest.TestCase):
@@ -87,6 +88,43 @@ class CANServiceTests(unittest.TestCase):
         service.fn_refresh()
 
         self.assertEqual(backend.refresh_count, 1)
+
+    def test_refresh_returns_immutable_devices_and_preserves_empty_result(self):
+        backend = FakeCANBackend()
+        service = CANService(backend)
+        self.assertEqual(service.fn_refresh(), ())
+        device = CANDeviceInfo("Vector Device", 100, 57, 0, (CANChannelInfo(0, 7, "CAN 1", False),))
+        backend.devices = [device]
+        self.assertEqual(service.fn_refresh(), (device,))
+
+    def test_refresh_rejects_invalid_or_ambiguous_metadata(self):
+        backend = FakeCANBackend()
+        service = CANService(backend)
+        first = CANDeviceInfo("Vector", 100, 57, 0, (CANChannelInfo(0, 7, "CAN 1", False),))
+        second = CANDeviceInfo("Vector", 200, 57, 1, (CANChannelInfo(0, 7, "CAN 1", False),))
+        for devices in (None, ({},), (first, second)):
+            backend.devices = devices
+            with self.assertRaises(CANDiscoveryError):
+                service.fn_refresh()
+
+    def test_refresh_while_connected_never_queries_or_closes_backend(self):
+        backend = FakeCANBackend()
+        service = CANService(backend)
+        service.fn_connect(CANConfig("vector", 0, 500000))
+        with self.assertRaises(CANDiscoveryError):
+            service.fn_refresh()
+        self.assertEqual(backend.refresh_count, 0)
+        self.assertEqual(backend.close_count, 0)
+        self.assertTrue(service.fn_is_connected())
+
+    def test_optional_metadata_validation_does_not_break_legacy_constructor(self):
+        backend = FakeCANBackend()
+        service = CANService(backend)
+        service.fn_connect(CANConfig("vector", 0, 500000))
+        self.assertIsNone(backend.opened_config.serial)
+        self.assertIsNone(backend.opened_config.channel_index)
+        with self.assertRaises(CANValidationError):
+            service.fn_connect(CANConfig("vector", 0, 500000, channel_index=-1))
 
 
 if __name__ == "__main__":

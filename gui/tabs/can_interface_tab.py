@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -19,7 +20,8 @@ from gui.widgets.diagnostic import (
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
-from services.can import CANConfig, CANService
+from gui.workers.can_discovery_worker import CANDiscoveryTask
+from services.can import CANChannelInfo, CANConfig, CANDeviceInfo, CANNoChannelsError, CANService, CANValidationError
 
 
 class CANInterfaceTab(QWidget):
@@ -31,24 +33,22 @@ class CANInterfaceTab(QWidget):
         (1000000, "1000 kbit/s"),
     )
 
-    CHANNELS = (
-        (0, "CAN 1"),
-        (1, "CAN 2"),
-        (2, "CAN 3"),
-        (3, "CAN 4"),
-    )
-
-    DEVICES = (
-        "VN1630A",
-        "VN1640A",
-    )
-
     def __init__(self, service=None):
         super().__init__()
 
-        self._service = service or CANService()
+        self._service = service if service is not None else CANService()
         self._status_state = "Disconnected"
         self._status_message = ""
+        self._refreshing = False
+        self._closing = False
+        self._previous_device = None
+        self._previous_channel = None
+        app = QApplication.instance()
+        self._discovery_task = CANDiscoveryTask(self._service, app)
+        self._discovery_task.completed.connect(self._discovery_completed)
+        self._discovery_task.failed.connect(self._discovery_failed)
+        self.destroyed.connect(self._discovery_task.dispose)
+        app.aboutToQuit.connect(self._discovery_task.shutdown)
 
         self._setup_ui()
         self._connect_signals()
@@ -219,6 +219,8 @@ class CANInterfaceTab(QWidget):
         self.btn_refresh.clicked.connect(self.refresh_can_setup)
         self.btn_connect.clicked.connect(self.connect_can)
         self.btn_disconnect.clicked.connect(self.disconnect_can)
+        self.cmb_device.currentIndexChanged.connect(self._populate_device_channels)
+        self.cmb_channel.currentIndexChanged.connect(self._update_button_states)
         self.sequence_list.sequence_selected.connect(
             self._on_sequence_selected
         )
@@ -235,16 +237,13 @@ class CANInterfaceTab(QWidget):
 
     def _create_device_combo(self):
         combo = PrimaryComboBox()
-        combo.addItems(self.DEVICES)
-        combo.setMaxVisibleItems(len(self.DEVICES))
+        combo.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(combo.view())
         return combo
 
     def _create_channel_combo(self):
         combo = PrimaryComboBox()
-        for channel_index, label in self.CHANNELS:
-            combo.addItem(label, channel_index)
-        combo.setMaxVisibleItems(len(self.CHANNELS))
+        combo.setMaxVisibleItems(10)
         fn_apply_scrollbar_style(combo.view())
         return combo
 
@@ -267,23 +266,82 @@ class CANInterfaceTab(QWidget):
         return layout
 
     def refresh_can_setup(self):
-        try:
-            self._service.fn_refresh()
-        except Exception as error:
-            self._set_status("Error", str(error))
-            self._show_error(str(error))
+        if self._closing or self._refreshing or self._service.fn_is_connected():
             return
+        device = self.cmb_device.currentData()
+        channel = self.cmb_channel.currentData()
+        self._previous_device = device.identity if isinstance(device, CANDeviceInfo) else None
+        self._previous_channel = channel.identity if isinstance(channel, CANChannelInfo) else None
+        self._refreshing = True
+        self._set_status("Discovering", "Searching for Vector CAN devices.")
+        self._discovery_task.start()
 
+    def _discovery_completed(self, devices):
+        if self._closing:
+            return
+        self._refreshing = False
+        # External connections must never be replaced by a late discovery result.
         if self._service.fn_is_connected():
             self._set_status("Connected")
-        else:
-            self._set_status("Disconnected")
+            return
+        with QSignalBlocker(self.cmb_device):
+            self.cmb_device.clear()
+            selected = 0
+            for index, device in enumerate(devices):
+                parts = [device.name]
+                if device.serial is not None:
+                    parts.append(f"SN {device.serial}")
+                if device.hw_index is not None:
+                    parts.append(f"HW {device.hw_type}:{device.hw_index}" if device.hw_type is not None else f"HW index {device.hw_index}")
+                if device.hw_type is None or device.hw_index is None:
+                    global_index = device.channels[0].channel_index if device.channels else None
+                    parts.append(f"Index {global_index}" if global_index is not None else f"Discovery {index + 1}")
+                self.cmb_device.addItem(" - ".join(parts), device)
+                if device.identity == self._previous_device:
+                    selected = index
+            self.cmb_device.setCurrentIndex(selected if devices else -1)
+        self._populate_device_channels()
+        if not devices:
+            self._set_status("No devices", "No Vector CAN device detected.")
+
+    def _populate_device_channels(self):
+        device = self.cmb_device.currentData()
+        with QSignalBlocker(self.cmb_channel):
+            self.cmb_channel.clear()
+            selected = 0
+            if isinstance(device, CANDeviceInfo):
+                for index, channel in enumerate(device.channels):
+                    self.cmb_channel.addItem(channel.name, channel)
+                    if device.identity == self._previous_device and channel.identity == self._previous_channel:
+                        selected = index
+                self.cmb_channel.setCurrentIndex(selected if device.channels else -1)
+        self._update_button_states()
+        if not self._refreshing and isinstance(device, CANDeviceInfo) and not self._service.fn_is_connected():
+            if not device.channels:
+                self._set_status("No CAN channel", "The detected Vector device has no available CAN channel.")
+            else:
+                self._set_status("Disconnected", "" if self._has_selection() else "The selected channel has no unambiguous global channel index.")
+
+    def _discovery_failed(self, error):
+        if self._closing:
+            return
+        self._refreshing = False
+        if self._service.fn_is_connected():
+            self._set_status("Connected")
+            return
+        self.cmb_device.clear()
+        self.cmb_channel.clear()
+        state = "No CAN channel" if isinstance(error, CANNoChannelsError) else "Error"
+        self._set_status(state, str(error))
+        self._show_error(str(error))
 
     def connect_can(self):
-        config = self._read_config()
-        self._set_status("Connecting")
+        if self._closing or self._refreshing or self._service.fn_is_connected() or not self._has_selection():
+            return
 
         try:
+            config = self._read_config()
+            self._set_status("Connecting")
             self._service.fn_connect(config)
         except Exception as error:
             self._set_status("Error", str(error))
@@ -303,11 +361,23 @@ class CANInterfaceTab(QWidget):
         self._set_status("Disconnected")
 
     def _read_config(self):
+        if not self._has_selection():
+            raise CANValidationError("Select a detected Vector CAN channel before connecting.")
+        device = self.cmb_device.currentData()
+        channel = self.cmb_channel.currentData()
         return CANConfig(
             interface=self.cmb_vendor.currentData(),
-            channel=int(self.cmb_channel.currentData()),
+            channel=channel.channel,
             bitrate=int(self.cmb_baudrate.currentData()),
+            serial=device.serial,
+            channel_index=channel.channel_index,
         )
+
+    def _has_selection(self):
+        device = self.cmb_device.currentData()
+        channel = self.cmb_channel.currentData()
+        return (isinstance(device, CANDeviceInfo) and isinstance(channel, CANChannelInfo)
+                and channel in device.channels and channel.can_connect)
 
     def _set_status(self, state, message=""):
         self._status_state = state
@@ -325,9 +395,17 @@ class CANInterfaceTab(QWidget):
         except Exception:
             pass
 
-        self.btn_refresh.setEnabled(not is_connecting)
-        self.btn_connect.setEnabled(not is_connected and not is_connecting)
-        self.btn_disconnect.setEnabled(is_connected and not is_connecting)
+        busy = is_connecting or self._refreshing or self._closing
+        self.btn_refresh.setEnabled(not is_connected and not busy)
+        self.btn_connect.setEnabled(not is_connected and not busy and self._has_selection())
+        self.btn_disconnect.setEnabled(is_connected and not busy)
+        for combo in (self.cmb_vendor, self.cmb_device, self.cmb_channel, self.cmb_baudrate):
+            combo.setEnabled(not is_connected and not busy)
+
+    def closeEvent(self, event):
+        self._closing = True
+        self._discovery_task.dispose()
+        super().closeEvent(event)
 
     def _show_error(self, message):
         QMessageBox.warning(
@@ -359,6 +437,9 @@ class CANInterfaceTab(QWidget):
             "Connecting": colors.WARNING,
             "Connected": colors.SUCCESS,
             "Error": colors.DANGER,
+            "Discovering": colors.WARNING,
+            "No devices": colors.SECONDARY_TEXT,
+            "No CAN channel": colors.WARNING,
         }
         self.lbl_status.setStyleSheet(
             f"""

@@ -9,3 +9,5 @@ class CANConfig:
     channel: int
     bitrate: int
     fd: bool = False
+    serial: int | None = None
+    channel_index: int | None = None
