@@ -166,18 +166,13 @@ class MainWindowShortcutTests(unittest.TestCase):
         )
 
     def test_can_interface_tab_is_available_after_crc_converter(self):
-        with patch.dict(
-            sys.modules,
-            {
-                "can": types.SimpleNamespace(),
-                "pandas": types.SimpleNamespace(),
-            },
-        ):
-            from gui.windows.main_window import MainWindow
-            from gui.tabs.can_interface_tab import CANInterfaceTab
+        # Installed dependencies are available; a flat fake `can` hides can.io
+        # required by the existing direct BLF reader during application import.
+        from gui.windows.main_window import MainWindow
+        from gui.tabs.can_interface_tab import CANInterfaceTab
 
-            with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
-                window = MainWindow()
+        with patch("gui.windows.main_window.load_shortcuts", return_value=[]):
+            window = MainWindow()
 
         self.addCleanup(window.deleteLater)
         self.addCleanup(self._clear_imported_gui_modules)
@@ -185,7 +180,8 @@ class MainWindowShortcutTests(unittest.TestCase):
         self.assertIsInstance(window.can_interface_tab, CANInterfaceTab)
         self.assertIs(window.tabs.widget(3), window.can_interface_tab)
         self.assertEqual(window.can_interface_tab.cmb_vendor.currentText(), "Vector")
-        self.assertEqual(window.can_interface_tab.cmb_channel.currentData(), 0)
+        self.assertIsNone(window.can_interface_tab.cmb_channel.currentData())
+        self.assertFalse(window.can_interface_tab.btn_connect.isEnabled())
         self.assertEqual(window.can_interface_tab.cmb_baudrate.currentData(), 500000)
 
     def test_q_current_tab_is_available_after_can_interface(self):

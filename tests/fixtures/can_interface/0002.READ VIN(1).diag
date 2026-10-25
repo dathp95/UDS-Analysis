@@ -1,0 +1,248 @@
+{
+  "Header": {
+    "IDVehicle": 8,
+    "Description": null
+  },
+  "TestCaseItem": [
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_01",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_02",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_03",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_04",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_05",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_06",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_07",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_08",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_09",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_10",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_11",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_12",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_13",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_14",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_15",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    },
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_16",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": " 62 f1 90",
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "Header": {
+    "IDVehicle": 8,
+    "Description": null
+  },
+  "TestCaseItem": [
+    {
+      "ECUObj": {
+        "ECUName": "TEST_ECU_01",
+        "IDReq": 1665,
+        "IDResp": 1537,
+        "DLLFile": "UNUSED_SYNTHETIC_RESOURCE.dll"
+      },
+      "TransMess": " 22 f1 90",
+      "ExpectMess": null,
+      "DelayTime": 100,
+      "RepeatTimes": 1,
+      "Remark": null,
+      "TransmitRule": {},
+      "ReceiveRule": {}
+    }
+  ]
+}

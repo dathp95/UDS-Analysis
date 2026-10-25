@@ -119,7 +119,7 @@ class CANConnectionTabTests(unittest.TestCase):
             raise CANConnectionError("Selected hardware is unavailable.", rediscovery_required=True)
 
         self.backend.fn_open = unplugged
-        with patch("gui.tabs.can_interface_tab.QMessageBox.warning") as warning:
+        with patch("gui.controllers.can_connection_controller.QMessageBox.warning") as warning:
             self.connect()
         warning.assert_called_once()
         self.assertEqual(self.service.snapshot.state, State.ERROR)
@@ -138,7 +138,7 @@ class CANConnectionTabTests(unittest.TestCase):
             raise RuntimeError("native close failed")
 
         self.backend.fn_close = fail
-        with patch("gui.tabs.can_interface_tab.QMessageBox.warning"):
+        with patch("gui.controllers.can_connection_controller.QMessageBox.warning"):
             self.tab.disconnect_can()
             self.wait(lambda: self.tab._connection_task.running)
         self.assertEqual(self.service.snapshot.state, State.RECOVERY_REQUIRED)
@@ -155,7 +155,7 @@ class CANConnectionTabTests(unittest.TestCase):
     def test_discovery_cleanup_failure_shows_recovery_message(self):
         self.backend.recovery_required = True
         self.backend.fn_refresh = Mock(side_effect=VectorDriverUnavailableError("Vector XL Driver is unavailable."))
-        with patch("gui.tabs.can_interface_tab.QMessageBox.warning") as warning:
+        with patch("gui.controllers.can_connection_controller.QMessageBox.warning") as warning:
             self.tab.refresh_can_setup()
             self.wait(lambda: self.tab._discovery_task.running)
         self.assertEqual(self.tab.lbl_status.text(), "Recovery required")

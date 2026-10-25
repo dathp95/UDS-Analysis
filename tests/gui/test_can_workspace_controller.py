@@ -1,0 +1,116 @@
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+from PySide6.QtWidgets import QApplication, QMessageBox
+from gui.controllers.can_workspace_controller import CanWorkspaceController
+from gui.widgets.can_interface.sequence_sidebar import CanSequenceSidebar
+from gui.widgets.can_interface.diagnostic_table_panel import CanDiagnosticTablePanel
+from repositories.can_interface_ui_store import CanInterfaceUiStore
+from repositories.can_sequence_repository import CanSequenceRepository
+from models.vehicle import Vehicle
+from models.ecu import ECU
+
+
+class CanWorkspaceControllerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app=QApplication.instance() or QApplication([])
+
+    def test_import_save_as_order_and_vehicle_preferences_do_not_cross(self):
+        fixtures=Path(__file__).parents[1]/'fixtures'/'can_interface'
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            root=Path(directory)
+            source=root/'source.diag'
+            source.write_bytes((fixtures/'0002.READ VIN(1).diag').read_bytes())
+            original=source.read_bytes()
+            repo=CanSequenceRepository(root)
+            store=CanInterfaceUiStore(root/'prefs.ui')
+            sidebar=CanSequenceSidebar(repo,store)
+            panel=CanDiagnosticTablePanel(vehicle_service=SimpleNamespace(list_vehicles=lambda:['BENCH'],load_vehicle=lambda _: Vehicle('BENCH',ecus=[ECU('TEST_ECU_01')])))
+            controller=CanWorkspaceController(sidebar,panel,repo,store)
+            self.addCleanup(controller.deleteLater)
+            self.addCleanup(panel.deleteLater)
+            self.addCleanup(sidebar.deleteLater)
+            self.assertTrue(controller.open_source(str(source)))
+            panel.vehicle_selector.fn_set_vehicle('BENCH')
+            panel.table.item(0,panel.COL_COMMENT).setText('native comment')
+            self.assertIsNone(controller.save_sequence(source))
+            target=root/'converted.json'
+            self.assertEqual(controller.save_sequence(target),target)
+            self.assertEqual(source.read_bytes(),original)
+            self.assertEqual(repo.fn_load_sequence(target).steps[0].comment,'native comment')
+            sidebar.reorder(tuple(reversed(sidebar.source_ids())))
+            self.assertTrue(sidebar.btn_save_order.isEnabled())
+            panel.table.item(0,panel.COL_COMMENT).setText('second edit')
+            controller.save_sequence()
+            self.assertTrue(sidebar.btn_save_order.isEnabled())
+            self.assertEqual(store.load().order,())
+            self.assertEqual(store.load().vehicles[str(target)],'BENCH')
+            self.assertNotIn('IDReq',target.read_text(encoding='utf-8'))
+
+    def test_invalid_preferences_and_invalid_source_do_not_crash(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            store=CanInterfaceUiStore(Path(directory)/'prefs')
+            store.path.write_text('{bad',encoding='utf-8')
+            self.assertEqual(store.load().selected_id,'')
+            repo=CanSequenceRepository(directory,sources=('not-a-sequence.invalid',))
+            sidebar=CanSequenceSidebar(repo,store)
+            panel=CanDiagnosticTablePanel(vehicle_service=SimpleNamespace(list_vehicles=lambda:[]))
+            controller=CanWorkspaceController(sidebar,panel,repo,store)
+            self.addCleanup(controller.deleteLater)
+            self.addCleanup(panel.deleteLater)
+            self.addCleanup(sidebar.deleteLater)
+            self.assertFalse(controller.open_source(Path(directory)/'missing.diag'))
+            self.assertIn('missing.diag',panel.notice.text())
+
+    def test_unsaved_switch_can_be_cancelled(self):
+        fixtures=Path(__file__).parents[1]/'fixtures'/'can_interface'
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            repo=CanSequenceRepository(directory)
+            store=CanInterfaceUiStore(Path(directory)/'prefs')
+            sidebar=CanSequenceSidebar(repo,store)
+            panel=CanDiagnosticTablePanel(vehicle_service=SimpleNamespace(list_vehicles=lambda:[]))
+            controller=CanWorkspaceController(sidebar,panel,repo,store)
+            for obj in (controller,panel,sidebar): self.addCleanup(obj.deleteLater)
+            first=fixtures/'0001.READ&CDS(1).diag'
+            controller.open_source(first)
+            panel.table.item(0,panel.COL_COMMENT).setText('unsaved')
+            with patch.object(QMessageBox,'question',return_value=QMessageBox.Cancel):
+                self.assertFalse(controller.open_source(fixtures/'0002.READ VIN(1).diag'))
+            self.assertEqual(controller.source,first.resolve())
+            self.assertEqual(panel.fn_current_sequence().steps[0].comment,'unsaved')
+
+    def test_external_inventory_and_active_source_restore_without_saving_order(self):
+        fixtures=Path(__file__).parents[1]/'fixtures'/'can_interface'
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            store=CanInterfaceUiStore(Path(directory)/'prefs')
+            first=(fixtures/'0001.READ&CDS(1).diag').resolve()
+            second=(fixtures/'0002.READ VIN(1).diag').resolve()
+            store.save_selection(str(first))
+            store.save_selection(str(second))
+            state=store.load()
+            self.assertEqual(state.order,())
+            repo=CanSequenceRepository(Path(directory)/'empty',sources=state.sources)
+            self.assertEqual(set(repo.fn_list_sequences()),{first,second})
+            sidebar=CanSequenceSidebar(repo,store)
+            panel=CanDiagnosticTablePanel(vehicle_service=SimpleNamespace(list_vehicles=lambda:[]))
+            controller=CanWorkspaceController(sidebar,panel,repo,store)
+            for obj in (controller,panel,sidebar): self.addCleanup(obj.deleteLater)
+            controller.restore()
+            self.assertEqual(controller.source,second)
+            self.assertEqual(len(panel.fn_current_sequence().steps),16)
+
+    def test_preference_write_failure_is_atomic_and_removes_temporary(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            store=CanInterfaceUiStore(Path(directory)/'prefs')
+            store.save_order(('first','second'))
+            original=store.path.read_bytes()
+            with patch('repositories.can_interface_ui_store.os.replace',side_effect=OSError('disk full')):
+                with self.assertRaises(OSError): store.save_order(('second','first'))
+            self.assertEqual(store.path.read_bytes(),original)
+            self.assertEqual(list(Path(directory).glob('*.tmp')),[])

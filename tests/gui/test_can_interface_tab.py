@@ -128,7 +128,7 @@ class CANInterfaceTabTests(unittest.TestCase):
 
     def test_real_service_starts_without_loading_python_can_and_reports_missing_dependency(self):
         with patch("services.can.vector_backend.import_module", side_effect=ImportError("missing")) as load, patch(
-            "gui.tabs.can_interface_tab.QMessageBox.warning"
+            "gui.controllers.can_connection_controller.QMessageBox.warning"
         ) as warning:
             tab = CANInterfaceTab()
             self.addCleanup(tab.deleteLater)
@@ -202,7 +202,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.addCleanup(tab.deleteLater)
 
         self.refresh(tab)
-        with patch("gui.tabs.can_interface_tab.QMessageBox.warning"):
+        with patch("gui.controllers.can_connection_controller.QMessageBox.warning"):
             self.connect(tab)
 
         self.assertEqual(tab.lbl_status.text(), "Error")
@@ -315,7 +315,7 @@ class CANInterfaceTabTests(unittest.TestCase):
         self.addCleanup(tab.deleteLater)
         self.refresh(tab)
         service.discovery_error = VectorDriverUnavailableError("Vector XL Driver is unavailable.")
-        with patch("gui.tabs.can_interface_tab.QMessageBox.warning") as warning:
+        with patch("gui.controllers.can_connection_controller.QMessageBox.warning") as warning:
             self.refresh(tab)
         warning.assert_called_once()
         self.assertEqual(tab.cmb_device.count(), 0)
