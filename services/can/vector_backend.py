@@ -6,6 +6,9 @@ import logging
 import time
 from threading import get_ident
 from numbers import Integral
+from collections import deque
+from math import isfinite
+from uuid import uuid4
 
 from services.can.can_config import CANConfig
 from services.can.can_connection import CANConnectionError, CANIoError
@@ -74,6 +77,11 @@ class VectorBackend:
             self._owner_thread_id = get_ident()
             self._channel = config.channel
             self._time_origin = time.monotonic()
+            self._wall_origin = time.time()
+            self._last_wall = self._wall_origin
+            self._session_id = uuid4().hex
+            self._sequence = 0
+            self._accepted_tx = deque(maxlen=256)
         except Exception as error:
             LOG.exception("Vector connection initialization failed")
             if candidate is not None:
@@ -148,6 +156,10 @@ class VectorBackend:
     def fn_is_connected(self):
         return self._bus is not None
 
+    @property
+    def capture_session_id(self):
+        return self._session_id if self._bus is not None else ''
+
     def _guard_io(self):
         if self._bus is None or self._cleanup_failed or self._owner_thread_id != get_ident():
             raise CANConnectionError('Vector I/O requires a connected bus on its owner thread.')
@@ -161,9 +173,9 @@ class VectorBackend:
         except Exception as error:
             LOG.exception('Vector send failed')
             raise CANIoError('Vector CAN send failed. Disconnect/rediscovery is required.') from error
-        now=time.monotonic()
-        return CanFrameView(now-self._time_origin,'TX',can_id,len(data),bytes(data),time.time(),now,
-                            self._channel,False,'driver_accepted')
+        frame=self._raw_frame('TX',can_id,len(data),bytes(data),origin='driver_accepted')
+        self._accepted_tx.append(frame)
+        return frame
 
     def fn_receive_frame(self):
         self._guard_io()
@@ -174,14 +186,43 @@ class VectorBackend:
             raise CANIoError('Vector CAN receive failed. Disconnect/rediscovery is required.') from error
         if message is None:
             return None
+        if message.channel is not None and message.channel != self._channel:
+            raise ValueError('Vector RX channel does not match the selected local CAN port; capture mapping is uncertain.')
         if message.is_fd:
             LOG.warning('Ignoring unsupported CAN FD frame on Classical CAN session')
             return None
-        now=time.monotonic()
         rx=message.is_rx
-        return CanFrameView(now-self._time_origin,'RX' if rx else 'TX',message.arbitration_id,message.dlc,
-                            bytes(message.data),message.timestamp,now,message.channel if message.channel is not None else self._channel,
-                            message.is_extended_id,'' if rx else 'observed_echo',message.is_remote_frame,message.is_error_frame)
+        return self._raw_frame('RX' if rx else 'TX',message.arbitration_id,message.dlc,bytes(message.data),
+            stamp=message.timestamp,source_channel=message.channel,extended=message.is_extended_id,
+            origin='' if rx else 'observed_echo',remote=message.is_remote_frame,error=message.is_error_frame)
+
+    def _raw_frame(self,direction,can_id,dlc,data,*,stamp=None,source_channel=None,
+                   extended=False,origin='',remote=False,error=False):
+        now=time.monotonic()
+        fallback=self._wall_origin+(now-self._time_origin)
+        usable=isinstance(stamp,(int,float)) and not isinstance(stamp,bool) and isfinite(stamp) and abs(stamp-fallback)<86400
+        wall=stamp if usable else fallback
+        policy='driver' if usable else 'anchored_tx' if direction=='TX' and origin=='driver_accepted' else 'fallback'
+        # Acquisition order is authoritative, including accepted TX before FC.
+        # Retain the original driver stamp and expose every adjustment explicitly.
+        if wall<self._last_wall:
+            wall=self._last_wall
+            policy+='_clamped'
+        self._last_wall=wall
+        self._sequence+=1
+        echo_of=None
+        if origin=='observed_echo':
+            for accepted in tuple(self._accepted_tx):
+                age=now-accepted.monotonic_timestamp_s
+                if age>1.0:
+                    self._accepted_tx.remove(accepted)
+                elif (accepted.can_id,accepted.data,accepted.is_extended_id)==(can_id,data,extended):
+                    echo_of=accepted.sequence
+                    self._accepted_tx.remove(accepted)
+                    break
+        return CanFrameView(max(0,wall-self._wall_origin),direction,can_id,dlc,data,wall,now,
+            self._channel,extended,origin,remote,error,self._session_id,self._sequence,
+            source_channel,stamp if isinstance(stamp,(int,float)) and isfinite(stamp) else None,policy,echo_of)
 
     @property
     def recovery_required(self):

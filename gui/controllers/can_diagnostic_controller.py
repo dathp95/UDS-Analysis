@@ -23,6 +23,7 @@ class CanDiagnosticController(QObject):
         panel.vehicle_configuration_changed.connect(self.invalidate)
         task.diagnostic_finished.connect(self._result)
         task.frame_batch.connect(self._frames)
+        task.monitoring_changed.connect(lambda active:monitor.set_monitoring_state('Monitoring' if active else 'Stopped'))
         task.completed.connect(self._state)
         task.failed.connect(self._state)
         task.started.connect(self._state)
@@ -62,7 +63,6 @@ class CanDiagnosticController(QObject):
             self.panel.set_request_busy(True)
             self.panel.set_step_running(key)
             self.panel.show_notice('One manual UDS request running. TX indicates driver acceptance, not ECU acknowledgement.')
-            self.monitor.set_monitoring_state('Captured during request')
         except (ValueError,RuntimeError) as error:
             self.panel.show_notice(str(error))
             self.panel.set_step_result(key,'','Error',str(error))
@@ -80,7 +80,6 @@ class CanDiagnosticController(QObject):
         self.panel.set_request_busy(False)
         self._state()
         if self._closed: return
-        self.monitor.set_monitoring_state('Capture stopped')
         request=result.request
         if request.generation != self.generation or self.panel.step_for_id(request.step_id) is None:
             return

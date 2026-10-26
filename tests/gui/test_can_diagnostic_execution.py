@@ -108,8 +108,9 @@ class CanDiagnosticExecutionTests(unittest.TestCase):
         for theme in (ThemeType.DARK,ThemeType.LIGHT):
             ThemeManager.fn_set_theme(theme);self.tab.fn_refresh_theme();self.assertEqual(self.outcome(),'Passed')
         self.assertFalse(panel.btn_run.isEnabled())
-        self.assertFalse(self.tab.monitor_panel.btn_blf.isEnabled())
-        self.assertFalse(self.tab.monitor_panel.btn_export.isEnabled())
+        self.tab.recording_controller.refresh()
+        self.assertTrue(self.tab.monitor_panel.btn_blf.isEnabled())
+        self.assertTrue(self.tab.monitor_panel.btn_export.isEnabled())
 
     def test_security_and_unconfirmed_write_never_send(self):
         panel=self.tab.sequence_table

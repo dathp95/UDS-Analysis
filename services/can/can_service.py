@@ -109,6 +109,10 @@ class CANService:
     def fn_is_connected(self):
         return self.snapshot.state == State.CONNECTED
 
+    @property
+    def capture_session_id(self):
+        return self._backend.capture_session_id if self.fn_is_connected() else ''
+
     def fn_begin_diagnostic(self, request):
         validate_send_policy(request)
         if not self._operation_lock.acquire(blocking=False):
@@ -131,6 +135,12 @@ class CANService:
 
     def fn_receive_diagnostic_frame(self):
         self._guard_diagnostic_owner()
+        return self.fn_receive_capture_frame()
+
+    def fn_receive_capture_frame(self):
+        """Nonblocking read on the native owner; idle capture holds no lease."""
+        if self.snapshot.state != State.CONNECTED:
+            raise CANConnectionError('Capture requires a connected CAN bus.')
         return self._backend.fn_receive_frame()
 
     def fn_end_diagnostic(self, transaction_id):

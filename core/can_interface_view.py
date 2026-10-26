@@ -1,4 +1,4 @@
-"""Future monitor input is presentation data, not a bus or transport API."""
+"""Immutable Classical CAN acquisition record; no driver or widget ownership."""
 from dataclasses import dataclass
 from math import isfinite
 
@@ -17,6 +17,12 @@ class CanFrameView:
     tx_origin: str = ''
     is_remote_frame: bool = False
     is_error_frame: bool = False
+    session_id: str = ''
+    sequence: int = 0
+    source_channel: int | str | None = None
+    source_timestamp_s: float | None = None
+    timestamp_source: str = ''
+    echo_of_sequence: int | None = None
 
     def __post_init__(self):
         for value in (self.wall_timestamp_s,self.monotonic_timestamp_s):
