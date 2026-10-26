@@ -18,6 +18,7 @@ class DiagnosticOutcome(Enum):
 
 SAFE_SERVICES = frozenset((0x19, 0x22, 0x3E))
 CONFIRM_SERVICES = frozenset((0x10, 0x11, 0x14, 0x2E, 0x31, 0x85))
+TRUSTED_BENCH_PAYLOADS = frozenset((b'\x10\x01', b'\x10\x03', b'\x14\xff\xff\xff'))
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class DiagnosticRequest:
     settings: DiagnosticSettings = field(default_factory=DiagnosticSettings)
     confirmed: bool = False
     extended: bool = False
+    bench_authorization_id: str = ''
 
     def __post_init__(self):
         if not all(isinstance(x,str) and x for x in (self.transaction_id,self.step_id,self.vehicle_name,self.ecu_name)):
@@ -85,6 +87,9 @@ class DiagnosticRequest:
             raise DiagnosticValidationError('Invalid expected response.')
         if not isinstance(self.confirmed,bool):
             raise DiagnosticValidationError('Invalid confirmation value.')
+        if not isinstance(self.bench_authorization_id,str) or (self.bench_authorization_id and
+                (not self.confirmed or self.uds_payload not in TRUSTED_BENCH_PAYLOADS)):
+            raise DiagnosticValidationError('Payload is not authorized for Trusted Bench Session.')
 
     @property
     def requires_confirmation(self):
@@ -97,6 +102,18 @@ def validate_send_policy(request):
     request.__post_init__()
     if request.requires_confirmation and not request.confirmed:
         raise DiagnosticValidationError('Manual confirmation is required for this state-changing service.')
+
+
+@dataclass(frozen=True)
+class TrustedBenchAuthorization:
+    """In-memory grant issued by CANService, scoped to one connection and Vehicle."""
+    authorization_id: str
+    connection_id: str
+    vehicle_name: str
+
+    def permits(self, request, connection_id):
+        return (connection_id == self.connection_id and request.vehicle_name == self.vehicle_name
+                and request.uds_payload in TRUSTED_BENCH_PAYLOADS)
 
 
 def response_belongs_to_request(request, payload):

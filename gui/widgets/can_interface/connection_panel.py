@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWi
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
+from gui.widgets.controls.action_button import ActionButton
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 
 
@@ -17,7 +18,14 @@ class CanConnectionPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         self.title = PrimaryLabel("Connection")
-        layout.addWidget(self.title)
+        self.btn_trusted_bench = ActionButton('Trusted Bench: OFF', width=164, height=24)
+        self.btn_trusted_bench.setCheckable(True)
+        self.btn_trusted_bench.setEnabled(False)
+        self.btn_trusted_bench.setAccessibleName('Authorize or revoke Trusted Bench Session')
+        header = QHBoxLayout()
+        header.addWidget(self.title, 1)
+        header.addWidget(self.btn_trusted_bench)
+        layout.addLayout(header)
         grid = QGridLayout()
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(6)
@@ -56,6 +64,7 @@ class CanConnectionPanel(QWidget):
 
     def fn_refresh_theme(self):
         self.title.fn_refresh_theme()
+        self.btn_trusted_bench.fn_refresh_theme()
         for name in self.CONTROLS:
             widget = getattr(self, name)
             if hasattr(widget, "fn_refresh_theme"):

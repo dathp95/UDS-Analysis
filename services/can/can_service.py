@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from numbers import Integral
 from threading import Lock, RLock, get_ident
-from core.diagnostic_request import validate_send_policy
+from core.diagnostic_request import validate_send_policy, DiagnosticValidationError, TrustedBenchAuthorization
+from dataclasses import replace
+from uuid import uuid4
 import logging
 
 from services.can.can_config import CANConfig
@@ -34,6 +36,7 @@ class CANService:
         self._snapshot = CANConnectionSnapshot()
         self._diagnostic_request = None
         self._diagnostic_owner = None
+        self._trusted_bench = None
 
     @property
     def snapshot(self) -> CANConnectionSnapshot:
@@ -53,6 +56,8 @@ class CANService:
             if state not in allowed[self._snapshot.state]:
                 raise CANConnectionError("Invalid CAN connection state transition.")
             self._snapshot = CANConnectionSnapshot(state, config, error, rediscovery_required)
+            if state != State.CONNECTED:
+                self._trusted_bench = None
 
     def fn_connect(self, config: CANConfig):
         self._validate_config(config)
@@ -113,15 +118,48 @@ class CANService:
     def capture_session_id(self):
         return self._backend.capture_session_id if self.fn_is_connected() else ''
 
+    @property
+    def trusted_bench(self):
+        with self._state_lock:
+            grant = self._trusted_bench
+            return grant if grant and self.fn_is_connected() and grant.connection_id == self.capture_session_id else None
+
+    def fn_authorize_trusted_bench(self, vehicle_name, connection_id, *, approved=False):
+        """Called only after explicit bench approval; never persisted or inferred from a request."""
+        with self._state_lock:
+            if (approved is not True or not isinstance(vehicle_name,str) or not vehicle_name.strip()
+                    or not connection_id or not self.fn_is_connected() or connection_id != self.capture_session_id):
+                raise DiagnosticValidationError('Explicit approval for the current connected Vehicle bench session is required.')
+            self._trusted_bench = TrustedBenchAuthorization(uuid4().hex, connection_id, vehicle_name)
+            return self._trusted_bench
+
+    def fn_revoke_trusted_bench(self):
+        with self._state_lock: self._trusted_bench = None
+
+    def fn_confirm_trusted_request(self, request):
+        with self._state_lock:
+            grant = self.trusted_bench
+            if grant is None or not grant.permits(request,self.capture_session_id): return None
+            return replace(request, confirmed=True, bench_authorization_id=grant.authorization_id)
+
     def fn_begin_diagnostic(self, request):
         validate_send_policy(request)
         if not self._operation_lock.acquire(blocking=False):
             raise CANConnectionError('A CAN operation is already running.')
-        if self.snapshot.state != State.CONNECTED:
+        try:
+            with self._state_lock:
+                if self.snapshot.state != State.CONNECTED:
+                    raise CANConnectionError('Connect the selected Vector channel before sending.')
+                if request.bench_authorization_id:
+                    grant = self.trusted_bench
+                    if (grant is None or grant.authorization_id != request.bench_authorization_id
+                            or not grant.permits(request,self.capture_session_id)):
+                        raise DiagnosticValidationError('Trusted Bench authorization expired or does not cover this request.')
+                self._diagnostic_request=request
+                self._diagnostic_owner=get_ident()
+        except Exception:
             self._operation_lock.release()
-            raise CANConnectionError('Connect the selected Vector channel before sending.')
-        self._diagnostic_request=request
-        self._diagnostic_owner=get_ident()
+            raise
 
     def _guard_diagnostic_owner(self):
         if self._diagnostic_request is None or self._diagnostic_owner != get_ident() or self.snapshot.state != State.CONNECTED:

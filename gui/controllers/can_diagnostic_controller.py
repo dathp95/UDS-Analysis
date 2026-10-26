@@ -9,9 +9,11 @@ from services.can.ecu_diagnostic_resolver import resolve_request
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
-    def __init__(self,panel,monitor,service,task,parent=None):
+    def __init__(self,panel,monitor,service,task,parent=None,*,bench_button=None):
         super().__init__(parent)
         self.panel,self.monitor,self.service,self.task=panel,monitor,service,task
+        self.bench_button=bench_button
+        if bench_button is not None: bench_button.clicked.connect(self.toggle_trusted_bench)
         self.settings=DiagnosticSettings()
         self.generation=0
         self._active=None
@@ -20,7 +22,7 @@ class CanDiagnosticController(QObject):
         panel.row_send_requested.connect(self.send_row)
         panel.document_changed.connect(self.invalidate)
         panel.sequence_modified.connect(self.invalidate)
-        panel.vehicle_configuration_changed.connect(self.invalidate)
+        panel.vehicle_configuration_changed.connect(self._vehicle_configuration_changed)
         task.diagnostic_finished.connect(self._result)
         task.frame_batch.connect(self._frames)
         task.monitoring_changed.connect(lambda active:monitor.set_monitoring_state('Monitoring' if active else 'Stopped'))
@@ -32,8 +34,55 @@ class CanDiagnosticController(QObject):
         self._state()
 
     def _state(self,*_):
+        if self.task.running or self._closed: self.service.fn_revoke_trusted_bench()
         self.panel.set_send_available(not self._closed and self.service.snapshot.state == CANConnectionState.CONNECTED
                                       and self.task.alive and not self.task.running)
+        if self.bench_button is not None:
+            grant=self.service.trusted_bench
+            self.bench_button.setChecked(grant is not None)
+            self.bench_button.setText('Trusted Bench: ON' if grant else 'Trusted Bench: OFF')
+            self.bench_button.setEnabled(not self._closed and not self._preparing and self._active is None
+                and not self.task.running and self.service.snapshot.state == CANConnectionState.CONNECTED
+                and bool(self.panel.fn_current_vehicle()))
+            self.bench_button.setToolTip(
+                f'Authorized Vehicle: {grant.vehicle_name}. Click to revoke.\n' if grant else 'Click to explicitly authorize an automotive test-bench session.\n')
+            self.bench_button.setToolTip(self.bench_button.toolTip()+
+                'Only manual 10 01, 10 03 and 14 FF FF FF. Other state-changing services still require confirmation.\n'
+                'Expires on Disconnect, reconnect, close or Vehicle/configuration change; never saved.')
+
+    def toggle_trusted_bench(self):
+        if self._preparing or self._active is not None or self._closed: return
+        if self.service.trusted_bench is not None:
+            self.service.fn_revoke_trusted_bench();self._state();return
+        vehicle=self.panel.fn_current_vehicle()
+        generation=self.generation
+        connection_id=self.service.capture_session_id
+        self._preparing=True
+        try:
+            if not vehicle or not connection_id or self.task.running:
+                raise DiagnosticValidationError('Connect the intended test bench and select its Vehicle first.')
+            config=self.service.snapshot.config
+            answer=QMessageBox.question(self.panel,'Authorize Trusted Bench Session',
+                f'Vehicle: {vehicle}\nSelected CAN port: {config.channel+1}; Vector serial: {config.serial}\n\n'
+                'I confirm this connected interface is an explicitly authorized automotive test bench.\n'
+                'Allow manual 10 01 (Default Session), 10 03 (Extended Session), and\n'
+                '14 FF FF FF (clear all DTCs) without a popup for each click?\n'
+                'Other state-changing services still require confirmation. This authorization is never saved.',
+                QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
+            if answer != QMessageBox.Yes: return
+            if generation != self.generation or vehicle != self.panel.fn_current_vehicle() or self.task.running:
+                raise DiagnosticValidationError('Vehicle/connection changed; bench authorization was not enabled.')
+            self.service.fn_authorize_trusted_bench(vehicle,connection_id,approved=True)
+        except (ValueError,RuntimeError) as error:
+            self.panel.show_notice(str(error))
+        finally:
+            self._preparing=False
+            self._state()
+
+    def _vehicle_configuration_changed(self,*_):
+        self.service.fn_revoke_trusted_bench()
+        self.invalidate()
+        self._state()
 
     def send_row(self,key):
         if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy:
@@ -48,6 +97,9 @@ class CanDiagnosticController(QObject):
                 raise DiagnosticValidationError('Connect the selected Vector channel before sending.')
             request=resolve_request(self.panel._vehicle_service,vehicle,step,key,generation,self.settings)
             if request.requires_confirmation:
+                authorized=self.service.fn_confirm_trusted_request(request)
+                if authorized is not None: request=authorized
+            if request.requires_confirmation and not request.confirmed:
                 answer=QMessageBox.question(self.panel,'Confirm one state-changing diagnostic request',
                     f'Vehicle: {vehicle}\nECU: {request.ecu_name}\nTX: 0x{request.tx_id:03X}, RX: 0x{request.rx_id:03X}\n'
                     f'Payload: {request.uds_payload.hex(" ").upper()}\nSend this one request on the test bench?',
@@ -68,10 +120,13 @@ class CanDiagnosticController(QObject):
             self.panel.set_step_result(key,'','Error',str(error))
         finally:
             self._preparing=False
+            self._state()
 
     def invalidate(self,*_):
         self.generation+=1
-        if self._active is not None: self.task.cancel_diagnostic()
+        if self._active is not None:
+            self.task.cancel_diagnostic()
+            self.panel.invalidate_step_result(self._active.step_id)
 
     def _result(self,result):
         if self._active is None or result.request.transaction_id != self._active.transaction_id:
@@ -94,4 +149,5 @@ class CanDiagnosticController(QObject):
 
     def close(self):
         self._closed=True
+        self.service.fn_revoke_trusted_bench()
         self.task.cancel_diagnostic()

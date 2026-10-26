@@ -36,6 +36,10 @@ class FakeCANService:
         self.gate = None
         self.discovery_threads = []
         self.state = State.DISCONNECTED
+        self.trusted_bench = None
+
+    def fn_revoke_trusted_bench(self):
+        self.trusted_bench = None
 
     @property
     def snapshot(self):

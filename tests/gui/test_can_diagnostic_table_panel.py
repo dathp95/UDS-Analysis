@@ -86,6 +86,8 @@ class CanDiagnosticTableTests(unittest.TestCase):
             self.assertEqual(panel.table.item(0,panel.COL_RESULT).foreground().color().name(),ThemeManager.fn_colors().SUCCESS.lower())
             self.assertFalse(panel.fn_is_dirty())
         panel.table.item(0,panel.COL_COMMENT).setText('changed')
+        self.assertEqual(panel.table.item(0,panel.COL_RESULT).text(),'Passed')
+        panel.table.item(0,panel.COL_REQUEST).setText('22 F1 91')
         self.assertEqual(panel.table.item(0,panel.COL_RESULT).text(),'—')
 
     def test_added_row_hidden_sequence_name_remains_native_saveable(self):

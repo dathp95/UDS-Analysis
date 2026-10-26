@@ -45,6 +45,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.step_ids = []
         self._checked = set()
         self._runtime = {}
+        self._step_signatures = {}
         self._request_busy=False
         self._send_available=True  # Standalone view can still emit typed action intent.
         super().__init__(parent, vehicle_service)
@@ -110,6 +111,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._checked.clear()
         self._runtime.clear()
         super().fn_load_sequence(test_case)
+        self._step_signatures = self._runtime_signatures()
         self.title.setText(test_case.name if test_case else "Select a sequence")
         self.title.setToolTip(self.title.text())
         self.notice.clear()
@@ -187,12 +189,24 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         super()._on_item_changed(item)
 
     def _mark_dirty(self):
-        self._runtime.clear()
-        with QSignalBlocker(self.table):
-            for row in range(self.table.rowCount()):
+        current = self._runtime_signatures()
+        for key in self._step_signatures.keys() | current.keys():
+            if self._step_signatures.get(key) != current.get(key):
+                self.invalidate_step_result(key)
+        self._step_signatures = current
+        super()._mark_dirty()
+
+    def _runtime_signatures(self):
+        return {key: (step.ecu, step.request, step.expected_response, step.match)
+                for key, step in zip(self.step_ids, self._test_case.steps if self._test_case else ())}
+
+    def invalidate_step_result(self, key):
+        self._runtime.pop(key, None)
+        if key in self.step_ids:
+            row = self.step_ids.index(key)
+            with QSignalBlocker(self.table):
                 self._render_runtime(row)
                 self._set_button_state(row)
-        super()._mark_dirty()
 
     def _request_step(self, key):
         if key in self.step_ids:
@@ -273,6 +287,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             QApplication.clipboard().setText(item.text())
 
     def fn_refresh_vehicles(self, selected_vehicle_name=""):
+        self.reset_runtime_results()
         chosen = selected_vehicle_name or self._current_vehicle_name
         try:
             names = self._vehicle_service.list_vehicles()
@@ -285,10 +300,16 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.vehicle_configuration_changed.emit()
 
     def _on_vehicle_changed(self, vehicle_name):
+        self.reset_runtime_results()
         super()._on_vehicle_changed(vehicle_name)
         if vehicle_name and self._current_vehicle is None:
             self.show_notice(f"Cannot load Vehicle '{vehicle_name}'.")
         self.vehicle_changed.emit(vehicle_name)
+        self.vehicle_configuration_changed.emit()
+
+    def fn_set_vehicle(self, vehicle):
+        self.reset_runtime_results()
+        super().fn_set_vehicle(vehicle)
         self.vehicle_configuration_changed.emit()
 
     def _set_ecu_combo(self, row, ecu):
