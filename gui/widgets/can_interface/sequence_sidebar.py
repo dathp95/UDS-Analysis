@@ -1,12 +1,15 @@
 from pathlib import Path
+from html import escape
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import QAbstractItemView, QListWidget, QStyle, QStyleOptionViewItem
+from PySide6.QtWidgets import QAbstractItemView, QListWidget, QListWidgetItem, QStyle, QStyleOptionViewItem, QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 
 from gui.widgets.diagnostic.diagnostic_sequence_list import DiagnosticSequenceList
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from gui.widgets.controls.secondary_button import SecondaryButton
+from gui.widgets.controls.primary_button import PrimaryButton
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.themes.theme_manager import ThemeManager
 from repositories.can_interface_ui_store import CanInterfaceUiStore
 from gui.widgets.can_interface.panel_theme import apply_panel_theme
@@ -32,16 +35,24 @@ class CanSequenceSidebar(DiagnosticSequenceList):
     sequence_open_requested = Signal(str)
     checked_sequences_changed = Signal(tuple)
     order_save_requested = Signal(tuple)
+    add_requested = Signal()
+    import_requested = Signal()
+    export_requested = Signal()
+    save_requested = Signal()
 
     def __init__(self, repository=None, store=None):
         self.store = store if store is not None else CanInterfaceUiStore()
         self._saved_order = ()
         self._active_source = self.store.load().selected_id
+        self._drafts = {}
+        self._dirty_ids = set()
+        self._draft_order_baseline = ()
+        self._draft_order_dirty = False
         super().__init__(repository)
 
     def _setup_ui(self):
         super()._setup_ui()
-        self.setMinimumWidth(180)
+        self.setMinimumWidth(280)
         self.title = PrimaryLabel("Test Sequence")
         self.edit_search = PrimaryLineEdit("Search...")
         self.layout().insertWidget(0, self.title)
@@ -53,17 +64,46 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.list_sequences.setDefaultDropAction(Qt.MoveAction)
         self.list_sequences.setDropIndicatorShown(True)
         self.list_sequences.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.list_sequences.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.list_sequences.setTextElideMode(Qt.ElideRight)
         self.layout().replaceWidget(old, self.list_sequences)
         old.hide()
         old.deleteLater()
+        self.layout().setStretchFactor(self.list_sequences, 1)
         self.lbl_selected = PrimaryLabel("0 selected")
         self.btn_save_order = SecondaryButton("Save Order", height=30, width=90)
         self.layout().addWidget(self.lbl_selected)
-        self.layout().addWidget(self.btn_save_order)
         self.feedback = PrimaryLabel("")
         self.lbl_error.setTextFormat(Qt.PlainText)
         self.feedback.setTextFormat(Qt.PlainText)
         self.layout().addWidget(self.feedback)
+        for label in (self.lbl_empty, self.lbl_error, self.lbl_selected, self.feedback):
+            label.setMaximumHeight(22)
+            label.setWordWrap(False)
+            label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self.footer = QWidget(self)
+        footer_layout = QVBoxLayout(self.footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(6)
+        self.footer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.btn_add = SecondaryButton('+ Add', width=52, height=30)
+        self.btn_import = SecondaryButton('Import SEQ', width=84, height=30)
+        self.btn_export = SecondaryButton('Export SEQ', width=84, height=30)
+        self.btn_save = PrimaryButton('Save', width=70, height=30)
+        self.footer_buttons = (self.btn_add, self.btn_import, self.btn_export, self.btn_save, self.btn_save_order)
+        for buttons in (self.footer_buttons[:3], self.footer_buttons[3:]):
+            row = QHBoxLayout()
+            row.setSpacing(6)
+            for button in buttons:
+                button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                row.addWidget(button, 1)
+            footer_layout.addLayout(row)
+        self.layout().addWidget(self.footer)
+        self.btn_save.setEnabled(False)
+        self.btn_export.setEnabled(False)
+        for button, signal in ((self.btn_add,self.add_requested), (self.btn_import,self.import_requested),
+                               (self.btn_export,self.export_requested), (self.btn_save,self.save_requested)):
+            button.clicked.connect(signal)
         self.edit_search.textChanged.connect(self._filter)
         self.list_sequences.model().rowsMoved.connect(self._order_changed)
         self.list_sequences.itemActivated.connect(self._activate_item)
@@ -79,19 +119,119 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         return tuple(self._selected_paths())
 
     def fn_refresh_sequences(self):
-        pending = self.source_ids() if hasattr(self, 'list_sequences') and self.source_ids() != self._saved_order else ()
+        current = self.source_ids()
+        pending = current if self.order_is_dirty() else ()
+        checked = set(self.checked_ids())
+        scroll = self.list_sequences.verticalScrollBar().value()
         super().fn_refresh_sequences()
+        for source_id, case in self._drafts.items():
+            item = self._draft_item(source_id, case)
+            if source_id in checked:
+                item.setCheckState(Qt.Checked)
+            self.list_sequences.addItem(item)
         ids = self.source_ids()
         saved = self.store.load().order
-        self._saved_order = tuple(x for x in saved if x in ids) + tuple(x for x in ids if x not in saved)
-        self._apply_order(tuple(x for x in pending if x in ids) + tuple(x for x in self._saved_order if x not in pending)
-                          if pending else self._saved_order)
+        persistent = self.persistent_ids()
+        self._saved_order = tuple(x for x in saved if x in persistent) + tuple(x for x in persistent if x not in saved)
+        order = tuple(x for x in pending if x in ids) + tuple(x for x in ids if x not in pending) if pending else (*self._saved_order,*self._drafts)
+        self._apply_order(order)
         self._filter(self.edit_search.text())
         self._order_changed()
         self.mark_opened(self._active_source, persist=False)
+        self.list_sequences.verticalScrollBar().setValue(scroll)
+        self.set_document_dirty(self._active_source, self._active_source in self._dirty_ids)
+        self._emit_selection_changed()
 
     def _create_sequence_item(self, path, test_case):
-        return super()._create_sequence_item(str(Path(path).resolve()), test_case)
+        item = super()._create_sequence_item(str(Path(path).resolve()), test_case)
+        item.setData(Qt.UserRole + 2, item.text())
+        return item
+
+    def persistent_ids(self):
+        return tuple(value for value in self.source_ids() if value not in self._drafts)
+
+    def _draft_item(self, source_id, case):
+        item = QListWidgetItem(case.name)
+        item.setData(self.ITEM_PATH_ROLE, source_id)
+        item.setData(self.ITEM_MODEL_ROLE, case)
+        item.setData(Qt.UserRole + 2, case.name)
+        item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+        item.setCheckState(Qt.Unchecked)
+        return item
+
+    def add_draft(self, source_id, case):
+        self._drafts[source_id] = case
+        self.list_sequences.addItem(self._draft_item(source_id, case))
+        self._draft_order_baseline = self.source_ids()
+        self._draft_order_dirty = False
+        self._refresh_empty_state()
+        self.mark_opened(source_id, persist=False)
+        self._sync_select_all_state()
+        self._emit_selection_changed()
+
+    def remove_draft(self, source_id):
+        self._drafts.pop(source_id, None)
+        self._dirty_ids.discard(source_id)
+        for index, value in enumerate(self.source_ids()):
+            if value == source_id:
+                self.list_sequences.takeItem(index)
+                break
+        self._sync_select_all_state()
+        self._emit_selection_changed()
+        self._refresh_empty_state()
+        self._order_changed()
+
+    def replace_draft_id(self, old, new):
+        was_draft = old in self._drafts
+        order_was_dirty = self.order_is_dirty()
+        self._drafts.pop(old, None)
+        self._dirty_ids.discard(old)
+        if not was_draft:
+            return  # Save As retains the original file-backed identity and its order.
+        for index, value in enumerate(self.source_ids()):
+            if value == old:
+                self.list_sequences.item(index).setData(self.ITEM_PATH_ROLE,new)
+                break
+        if not order_was_dirty:
+            self._saved_order = self.persistent_ids()
+
+    def set_document_dirty(self, source_id, dirty):
+        if dirty:
+            self._dirty_ids.add(source_id)
+        else:
+            self._dirty_ids.discard(source_id)
+        updating = self._is_updating
+        self._is_updating = True
+        try:
+            for index, value in enumerate(self.source_ids()):
+                item = self.list_sequences.item(index)
+                item.setText(item.data(Qt.UserRole + 2) + (' *' if value in self._dirty_ids else ''))
+                item.setToolTip('Unsaved native sequence; Save creates a JSON file.' if value in self._drafts else escape(value))
+        finally:
+            self._is_updating = updating
+
+    def update_document_model(self, source_id, case):
+        if source_id in self._drafts:
+            self._drafts[source_id] = case
+        updating = self._is_updating
+        self._is_updating = True
+        try:
+            for index, value in enumerate(self.source_ids()):
+                if value == source_id:
+                    self.list_sequences.item(index).setData(self.ITEM_MODEL_ROLE, case)
+                    break
+        finally:
+            self._is_updating = updating
+
+    def set_document_actions(self, exists, save_enabled):
+        self.btn_save.setEnabled(bool(exists and save_enabled))
+        self.btn_export.setEnabled(bool(exists))
+
+    def _set_errors(self, errors):
+        self.sequence_errors = tuple(errors)
+        self.lbl_error.setText(f'{len(errors)} sequence error(s); hover for details.' if errors else '')
+        self.lbl_error.setToolTip(escape('\n'.join(errors)))
+        self.lbl_error.setVisible(bool(errors))
 
     @staticmethod
     def _display_name(path, test_case):
@@ -120,12 +260,23 @@ class CanSequenceSidebar(DiagnosticSequenceList):
 
     def _order_changed(self, *_):
         if not self._is_updating:
-            dirty = self.source_ids() != self._saved_order
+            current = self.source_ids()
+            common = set(current) & set(self._draft_order_baseline)
+            self._draft_order_dirty = any(
+                set(current[:current.index(key)]) & common !=
+                set(self._draft_order_baseline[:self._draft_order_baseline.index(key)]) & common
+                for key in self._drafts if key in common)
+            dirty = self.order_is_dirty()
             self.btn_save_order.setEnabled(dirty)
             self.btn_save_order.setText("Save Order *" if dirty else "Save Order")
 
     def _save_order(self):
-        ids = self.source_ids()
+        if self._draft_order_dirty:
+            text = 'Save the new sequence before saving its position.'
+            self.feedback.setText(text)
+            self.feedback.setToolTip(text)
+            return
+        ids = self.persistent_ids()
         self.order_save_requested.emit(ids)
         try:
             self.store.save_order(ids)
@@ -137,6 +288,9 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.feedback.setText("Order saved.")
         self._feedback_timer.start(1800)
 
+    def order_is_dirty(self):
+        return self._draft_order_dirty or self.persistent_ids() != self._saved_order
+
     def mark_opened(self, source_id, *, persist=True):
         self._active_source = source_id
         for index, item_id in enumerate(self.source_ids()):
@@ -146,7 +300,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         else:
             self.list_sequences.setCurrentRow(-1)
             self.list_sequences.clearSelection()
-        if persist:
+        if persist and source_id not in self._drafts:
             try:
                 self.store.save_selection(source_id)
             except OSError as error:
@@ -206,9 +360,12 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.checked_sequences_changed.emit(ids)
 
     def fn_refresh_theme(self):
+        scroll = self.list_sequences.verticalScrollBar().value()
         apply_panel_theme(self, "canSequenceSidebar")
         super().fn_refresh_theme()
-        for widget in (self.title, self.edit_search, self.lbl_selected, self.btn_save_order, self.feedback):
+        for widget in (self.title, self.edit_search, self.lbl_selected, *self.footer_buttons, self.feedback):
             widget.fn_refresh_theme()
         self.list_sequences.setStyleSheet(self.list_sequences.styleSheet() +
             f"QListWidget::drop-indicator {{ background: {ThemeManager.fn_colors().PRIMARY}; height: 2px; }}")
+        fn_apply_scrollbar_style(self.list_sequences)
+        self.list_sequences.verticalScrollBar().setValue(scroll)

@@ -26,6 +26,8 @@ class CANConnectionTabTests(unittest.TestCase):
 
     def setUp(self):
         self.backend = FakeCANBackend()
+        # Connection-only tests have no traffic but must satisfy continuous RX.
+        self.backend.fn_receive_frame = lambda: None
         self.backend.devices = FakeCANService().devices
         self.service = CANService(self.backend)
         self.tab = CANInterfaceTab(self.service)

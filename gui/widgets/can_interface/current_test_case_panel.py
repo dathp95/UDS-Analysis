@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QSizePolicy, QVBoxLayout, QWidget
 from gui.widgets.controls.primary_label import PrimaryLabel
+from html import escape
 
 
 class CurrentTestCasePanel(QWidget):
@@ -51,7 +52,7 @@ class CurrentTestCasePanel(QWidget):
                       Expected=step.expected_response or "—", Delay="—" if step.delay_ms is None else f"{step.delay_ms} ms", Repeat=str(step.repeat))
         for name, text in values.items():
             self.values[name].setText(text)
-            self.values[name].setToolTip(text)
+            self.values[name].setToolTip(escape(text))
 
     def fn_refresh_theme(self):
         self.title.fn_refresh_theme()

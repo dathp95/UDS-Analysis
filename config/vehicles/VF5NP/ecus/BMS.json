@@ -4,11 +4,12 @@
     "response_id": "613",
     "aliases": [],
     "resources": {
-        "dll": "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\Alll Key DLL VF5 NP\\BMS.dll",
+        "dll": "resources/dll/BMS/BMS.dll",
         "dbc": "",
         "odx": "",
         "dtc": "",
-        "request_library": ""
+        "request_library": "",
+        "dll_path_base": "vehicle"
     },
     "quick_requests": []
 }

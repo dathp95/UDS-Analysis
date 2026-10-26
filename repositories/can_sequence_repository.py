@@ -1,4 +1,8 @@
 from pathlib import Path
+from dataclasses import replace
+import json
+import os
+import tempfile
 
 from core.diagnostic_sequence_import import import_diag
 from repositories.diagnostic_sequence_repository import DiagnosticSequenceRepository, DiagnosticSequenceValidationError
@@ -6,6 +10,7 @@ from repositories.diagnostic_sequence_repository import DiagnosticSequenceReposi
 
 class CanSequenceRepository(DiagnosticSequenceRepository):
     """Read native JSON/external .diag; write native JSON only."""
+    ALLOW_EMPTY_ECU = True  # Unresolved editor rows remain non-sendable drafts.
     def __init__(self, root=None, sources=()):
         super().__init__(root)
         self._external_sources = set()
@@ -43,4 +48,24 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
     def fn_save_sequence(self, test_case, path):
         if Path(path).suffix.lower() != ".json":
             raise DiagnosticSequenceValidationError("Imported .diag is read-only. Save As V-CODE Sequence (.json).")
-        return super().fn_save_sequence(test_case, path)
+        normalized = self._normalize_test_case(test_case)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
+                                             suffix='.tmp', delete=False) as stream:
+                temporary = Path(stream.name)
+                json.dump(self._test_case_to_json(normalized), stream, indent=4, ensure_ascii=False)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+        return path
+
+    def _to_step(self, payload, index):
+        step = super()._to_step(payload, index)
+        comment = payload.get('comment', '')
+        return replace(step, comment=comment) if isinstance(comment, str) else step

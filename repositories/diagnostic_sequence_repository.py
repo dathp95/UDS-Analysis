@@ -27,6 +27,7 @@ class DiagnosticSequenceValidationError(ValueError):
 
 
 class DiagnosticSequenceRepository:
+    ALLOW_EMPTY_ECU = False
 
     def __init__(self, root: str | Path | None = None):
         self.root = Path(root) if root is not None else DIAGNOSTIC_SEQUENCES_DIR
@@ -222,10 +223,8 @@ class DiagnosticSequenceRepository:
                 payload["sequence_name"],
                 f"step {index} sequence_name",
             ),
-            ecu=self._to_required_text(
-                payload["ecu"],
-                f"step {index} ecu",
-            ),
+            ecu=(self._to_text(payload["ecu"]) if self.ALLOW_EMPTY_ECU else
+                 self._to_required_text(payload["ecu"], f"step {index} ecu")),
             request=self._normalize_hex(
                 payload["request"],
                 f"step {index} request",

@@ -40,7 +40,8 @@ class StepRuntimeTests(unittest.TestCase):
 
     def test_comment_delay_repeat_keep_all_results(self):
         p=self.panel
-        for column,value in ((p.COL_COMMENT,'note'),(p.COL_DELAY,'250'),(p.COL_REPEAT,'3')):
+        for column,value in ((p.COL_COMMENT,'note'),(p.COL_DELAY,'250'),(p.COL_REPEAT,'3'),
+                             (p.COL_SEQUENCE_NAME,'Renamed diagnostic step')):
             p.table.item(0,column).setText(value)
             self.assertEqual(p._runtime,self.original)
 

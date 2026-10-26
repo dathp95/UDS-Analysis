@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from dataclasses import replace
 from html import escape
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from core.dll_resource import inspect_dll_resource
 from gui.widgets.controls.primary_label import PrimaryLabel
 
@@ -22,6 +22,7 @@ from gui.widgets.controls.secondary_button import (
 
 
 class ECUResourceWidget(QWidget):
+    dll_browsed = Signal()
 
     def __init__(self):
 
@@ -209,6 +210,7 @@ class ECUResourceWidget(QWidget):
         if metadata.configurable:
             self.txt_dll.setText(metadata.path)
             self._browsed_dll = metadata.path
+            self.dll_browsed.emit()
 
     def _refresh_dll_metadata(self):
         value = self.txt_dll.text()

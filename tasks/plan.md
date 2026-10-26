@@ -1,5 +1,17 @@
 # M05B implementation plan (commit 62 baseline)
 
+## Commit 64 implementation (baseline 37e0f1b)
+
+Authoritative specification: `.codex/skills/can-sequence-editor-commit64/SKILL.md`.
+1. Pure bounded TSV/quoted CSV codec and validation tests; results are informational only.
+2. Fixed two-row sidebar footer and native draft document/controller/dialog actions;
+   restore sequence-name column, retain stable step IDs and unresolved ECU diagnostics.
+3. In-memory per-Vehicle/ECU field snapshots, including explicit DLL import intent;
+   dirty indicators and scoped discard/save/delete/rename lifecycle.
+4. Focused tests, CAN/UDS/BLF/portable DLL regressions, Light/Dark visual checks, report.
+No CAN transport/security execution changes or commits. Protect pre-existing Vehicle JSON
+edits with before/after hashes. Tests use temporary configs and synthetic PE fixtures.
+
 The user-approved M05B skill is the specification and acceptance contract. Implement
 portable per-Vehicle/per-ECU import on explicit Browse/update + Save; no OEM execution.
 

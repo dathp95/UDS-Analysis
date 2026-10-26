@@ -25,7 +25,8 @@ class CanDiagnosticTableTests(unittest.TestCase):
 
     def test_exact_columns_stable_actions_and_independent_checks(self):
         panel = self.make_panel()
-        self.assertEqual(panel.HEADERS, ('✓','Step','ECU','Payload (HEX)','>','Delay (ms)','Repeat',
+        panel.vehicle_selector.fn_set_vehicle('BENCH')
+        self.assertEqual(panel.HEADERS, ('✓','Step','Test sequence name','ECU','Payload (HEX)','>','Delay (ms)','Repeat',
                          'Expected Response (HEX)','Receive Message (HEX)','Results','Comment'))
         self.assertFalse(panel.table.isSortingEnabled())
         original = panel.step_ids[0]

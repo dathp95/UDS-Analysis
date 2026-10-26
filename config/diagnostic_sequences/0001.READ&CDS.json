@@ -10,8 +10,8 @@
     "steps": [
         {
             "step": 1,
-            "sequence_name": "0001.READ&CDS",
-            "ecu": "ACM,ACU",
+            "sequence_name": "123",
+            "ecu": "",
             "request": "22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -21,7 +21,7 @@
         },
         {
             "step": 2,
-            "sequence_name": "0001.READ&CDS",
+            "sequence_name": "456",
             "ecu": "BCM",
             "request": "22 F1 08",
             "delay_ms": 100,
@@ -32,7 +32,7 @@
         },
         {
             "step": 3,
-            "sequence_name": "0001.READ&CDS",
+            "sequence_name": "789",
             "ecu": "BCM",
             "request": "22 F1 21",
             "delay_ms": 100,
@@ -43,8 +43,8 @@
         },
         {
             "step": 4,
-            "sequence_name": "0001.READ&CDS",
-            "ecu": "BPM",
+            "sequence_name": "132",
+            "ecu": "",
             "request": "22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -54,7 +54,7 @@
         },
         {
             "step": 5,
-            "sequence_name": "0001.READ&CDS",
+            "sequence_name": "465",
             "ecu": "EPS",
             "request": "22 F1 08",
             "delay_ms": 100,
@@ -65,7 +65,7 @@
         },
         {
             "step": 6,
-            "sequence_name": "0001.READ&CDS",
+            "sequence_name": "798",
             "ecu": "ESC",
             "request": "22 F1 08",
             "delay_ms": 100,
@@ -77,7 +77,7 @@
         {
             "step": 7,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "SGC",
+            "ecu": "",
             "request": "22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -88,7 +88,7 @@
         {
             "step": 8,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "SGC",
+            "ecu": "",
             "request": "22 F1 12",
             "delay_ms": 100,
             "repeat": 1,
@@ -99,7 +99,7 @@
         {
             "step": 9,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "MHU",
+            "ecu": "",
             "request": "22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -110,7 +110,7 @@
         {
             "step": 10,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "MHU",
+            "ecu": "",
             "request": "22 F1 11",
             "delay_ms": 100,
             "repeat": 1,
@@ -121,7 +121,7 @@
         {
             "step": 11,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "MHU",
+            "ecu": "",
             "request": "22 F1 12",
             "delay_ms": 1000,
             "repeat": 1,
@@ -132,7 +132,7 @@
         {
             "step": 12,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "MHU",
+            "ecu": "",
             "request": "22 F1 21",
             "delay_ms": 100,
             "repeat": 1,
@@ -143,7 +143,7 @@
         {
             "step": 13,
             "sequence_name": "0001.READ&CDS",
-            "ecu": "MHU",
+            "ecu": "",
             "request": "22 F1 15",
             "delay_ms": 1000,
             "repeat": 1,

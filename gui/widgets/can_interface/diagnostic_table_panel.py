@@ -1,5 +1,6 @@
 from dataclasses import replace
 from uuid import uuid4
+from html import escape
 
 from PySide6.QtCore import Qt, QSignalBlocker, Signal
 from PySide6.QtGui import QColor, QFontDatabase, QKeySequence, QShortcut
@@ -36,9 +37,8 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     vehicle_configuration_changed=Signal()
     vehicle_resources_changed=Signal()
 
-    COL_CHECK, COL_STEP, COL_ECU, COL_REQUEST, COL_SEND, COL_DELAY, COL_REPEAT, COL_EXPECTED, COL_RECEIVE, COL_RESULT, COL_COMMENT = range(11)
-    COL_SEQUENCE_NAME = -1  # Definition field remains in the model, not a visible column.
-    HEADERS = ("✓", "Step", "ECU", "Payload (HEX)", ">", "Delay (ms)", "Repeat",
+    COL_CHECK, COL_STEP, COL_SEQUENCE_NAME, COL_ECU, COL_REQUEST, COL_SEND, COL_DELAY, COL_REPEAT, COL_EXPECTED, COL_RECEIVE, COL_RESULT, COL_COMMENT = range(12)
+    HEADERS = ("✓", "Step", "Test sequence name", "ECU", "Payload (HEX)", ">", "Delay (ms)", "Repeat",
                "Expected Response (HEX)", "Receive Message (HEX)", "Results", "Comment")
     OUTCOMES = frozenset(("Pending", "Running", "Passed", "Failed", "Timeout", "Error", "Not Evaluated", "Cancelled"))
 
@@ -49,6 +49,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._step_signatures = {}
         self._request_busy=False
         self._send_available=True  # Standalone view can still emit typed action intent.
+        self.import_diagnostics = ()
         super().__init__(parent, vehicle_service)
 
     def _setup_ui(self):
@@ -66,6 +67,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.notice = PrimaryLabel("")
         self.notice.setTextFormat(Qt.PlainText)
         self.notice.setWordWrap(True)
+        self.notice.setMaximumHeight(40)
         self.notice.hide()
         self.btn_delete = ActionButton("Delete", width=62, height=30)
         self.btn_load = ActionButton("Load .diag", width=85, height=30)
@@ -74,6 +76,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.btn_settings.toggled.connect(self.execution_settings.setVisible)
         self.btn_add.setText("Add Row")
         self.btn_export.setText("Save")
+        self.btn_export.hide()  # Compatibility signal remains; visible Save belongs to sidebar.
         self.btn_run.setText("Run Selected")
         self.btn_run.setEnabled(False)
         self.btn_stop.setEnabled(False)
@@ -102,7 +105,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._copy_shortcut.activated.connect(self.copy_current_cell)
 
     def _configure_columns(self):
-        for column, width in enumerate((34, 50, 110, 165, 36, 85, 65, 185, 185, 100, 160)):
+        for column, width in enumerate((34, 50, 160, 110, 165, 36, 85, 65, 185, 185, 100, 160)):
             self.table.setColumnWidth(column, width)
             self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.Interactive)
         self.table.setMinimumHeight(120)
@@ -111,6 +114,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.step_ids = [uuid4().hex for _ in test_case.steps] if test_case else []
         self._checked.clear()
         self._runtime.clear()
+        self.import_diagnostics = ()
         super().fn_load_sequence(test_case)
         self._step_signatures = self._runtime_signatures()
         self.title.setText(test_case.name if test_case else "Select a sequence")
@@ -130,8 +134,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         super().fn_add_step_after_selected()
 
     def _replace_steps(self, steps):
-        # The native model requires a per-step sequence_name. It is no longer a
-        # visible column, so new rows inherit the document title, not an uneditable blank.
+        # Newly inserted rows inherit the document title until explicitly edited.
         named = [replace(step, sequence_name=self._test_case.name) if not step.sequence_name else step for step in steps]
         super()._replace_steps(named)
 
@@ -152,6 +155,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         check.setFlags(check.flags() | Qt.ItemIsUserCheckable)
         check.setCheckState(Qt.Checked if step_id in self._checked else Qt.Unchecked)
         self._set_item(row, self.COL_STEP, step.step, editable=False)
+        self._set_item(row, self.COL_SEQUENCE_NAME, step.sequence_name, editable=True)
         self._set_ecu_combo(row, step.ecu)
         for column, value in ((self.COL_REQUEST, step.request), (self.COL_DELAY, self._format_optional_int(step.delay_ms)),
                               (self.COL_REPEAT, step.repeat), (self.COL_EXPECTED, step.expected_response),
@@ -166,11 +170,14 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     def _set_item(self, row, column, value, editable):
         super()._set_item(row, column, value, editable)
         item = self.table.item(row, column)
-        item.setToolTip(str(value))
+        item.setToolTip(escape(str(value)))
         if column in (self.COL_REQUEST, self.COL_EXPECTED, self.COL_RECEIVE):
             item.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
 
     def _updated_step_from_item(self, step, column, text):
+        if column == self.COL_SEQUENCE_NAME and not text.strip():
+            self.show_notice('Test sequence name cannot be empty.')
+            return None
         updated = replace(step, comment=text) if column == self.COL_COMMENT else super()._updated_step_from_item(step, column, text)
         if updated is None:
             self.show_notice("Invalid value; the previous value was retained.")
@@ -215,6 +222,8 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             step=self._test_case.steps[row]
             if (self._normalize_hex(step.request,allow_empty=True) or '').startswith('27'):
                 self.show_notice('Security Access is not enabled.');return
+            if not self._resolved_ecu(step.ecu):
+                self.show_notice('Select Vehicle and a configured ECU before sending.');return
             if not self._request_busy and self._send_available: self.row_send_requested.emit(key)
 
     def set_request_busy(self,busy):
@@ -228,14 +237,17 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     def _set_button_state(self,row):
         button=self.table.cellWidget(row,self.COL_SEND)
         security=self._test_case.steps[row].request.strip().upper().startswith('27')
-        button.setEnabled(self._send_available and not self._request_busy and not security)
+        target_valid = self._resolved_ecu(self._test_case.steps[row].ecu)
+        button.setEnabled(self._send_available and not self._request_busy and not security and target_valid)
         button.setToolTip('Security Access is not enabled.' if security else
                           'A diagnostic request is running.' if self._request_busy else
+                          'Select Vehicle and a configured ECU first.' if not target_valid else
                           'Connect the selected Vector channel first.' if not self._send_available else
                           'Send one manual UDS request; Delay and Repeat do not run automatically.')
 
     def show_notice(self, text):
         self.notice.setText(text)
+        self.notice.setToolTip(escape(text))
         self.notice.setVisible(bool(text))
 
     def checked_step_ids(self):
@@ -327,26 +339,83 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         combo = PrimaryComboBox(minimum_height=28)
         candidates = [value for value in self._available_ecus if value.name == ecu]
         valid = len(candidates) == 1
-        if not valid:
-            combo.addItem(f"⚠ {ecu or 'Select ECU'}", None)
+        combo.addItem('', None)
+        if self._current_vehicle is None and ecu:
+            combo.addItem(ecu, None)  # Preserve text until a Vehicle can actually resolve it.
         for value in self._available_ecus:
-            combo.addItem(value.name, value)
-        combo.setCurrentIndex(combo.findText(ecu) if valid else 0)
+            if self._resolved_ecu(value.name):
+                combo.addItem(value.name, value)
+        combo.setCurrentIndex(combo.findText(ecu) if valid or (self._current_vehicle is None and ecu) else 0)
         if not self._current_vehicle:
             combo.setToolTip(f"Select Vehicle to resolve ECU '{ecu}'.")
         elif not valid:
             combo.setToolTip(f"ECU '{ecu}' is missing or ambiguous in the selected Vehicle.")
         else:
             combo.setToolTip(ecu)
+        combo.setToolTip(escape(combo.toolTip()))
         key = self.step_ids[row]
         combo.currentIndexChanged.connect(lambda index, target=key, control=combo: self._ecu_changed(target, control))
         fn_apply_scrollbar_style(combo.view())
         self.table.setCellWidget(row, self.COL_ECU, combo)
 
+    def _resolved_ecu(self, name):
+        return bool(name and name.strip() and self._current_vehicle is not None
+                    and sum(ecu.name == name for ecu in self._available_ecus) == 1)
+
+    def unresolved_ecus(self):
+        if self._current_vehicle is None or self._test_case is None:
+            return ()
+        return tuple((row + 1, step.ecu) for row, step in enumerate(self._test_case.steps)
+                     if not self._resolved_ecu(step.ecu))
+
+    def _refresh_ecu_combos(self):
+        super()._refresh_ecu_combos()
+        for row in range(self.table.rowCount()):
+            self._set_button_state(row)
+        unknown = self.unresolved_ecus()
+        if unknown:
+            self.show_notice('Unresolved ECU selectors are empty. Save normalizes these targets to blank.\n' +
+                             '\n'.join(f'Row {row}: {name!r}' for row, name in unknown))
+
+    def sequence_for_save(self):
+        if self._test_case is None or self._current_vehicle is None:
+            return self._test_case
+        return replace(self._test_case, steps=[step if self._resolved_ecu(step.ecu) else replace(step, ecu='')
+                                              for step in self._test_case.steps])
+
+    def exchange_text(self):
+        from core.sequence_exchange import export_sequence_text
+        case = self.sequence_for_save()
+        return export_sequence_text(case.steps if case else (),
+                                    [self._runtime.get(key, ('', '', ''))[1] for key in self.step_ids])
+
+    def apply_import(self, imported, mode):
+        if mode not in ('append', 'replace') or self._test_case is None:
+            raise ValueError('Select an active document and explicit Append or Replace mode.')
+        if mode == 'replace':
+            self.fn_load_sequence(replace(self._test_case, steps=list(imported.steps)))
+        else:
+            self.step_ids.extend(uuid4().hex for _ in imported.steps)
+            self._replace_steps([*self._test_case.steps, *imported.steps])
+            self._reload_steps_into_table()
+        self.import_diagnostics = imported.diagnostics
+        self._mark_dirty()
+        self._refresh_ecu_combos()
+        if imported.diagnostics:
+            self.show_notice('\n'.join(imported.diagnostics))
+
     def _ecu_changed(self, key, combo):
         value = combo.currentData()
-        if value is not None and key in self.step_ids:
-            self._on_ecu_changed(self.step_ids.index(key), value.name)
+        if key not in self.step_ids or self._is_populating:
+            return
+        row = self.step_ids.index(key)
+        name = value.name if value is not None else ''
+        step = self._test_case.steps[row]
+        if step.ecu != name:
+            steps = list(self._test_case.steps)
+            steps[row] = replace(step, ecu=name)
+            self._replace_steps(steps)
+            self._mark_dirty()
 
     def fn_refresh_theme(self):
         apply_panel_theme(self, "canDiagnosticTablePanel")

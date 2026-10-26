@@ -19,6 +19,7 @@ from gui.dialogs.export_vehicle_dialog import ExportVehicleDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.dialogs.shortcuts_dialog import ShortcutsDialog
 from gui.controllers.vehicle_controller import VehicleController
+from gui.controllers.ecu_draft_controller import EcuDraftController
 from repositories.vehicle_dll_storage import ResourceCleanupError
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
@@ -72,6 +73,7 @@ class VehicleManagerTab(QWidget):
         self._create_controller()
 
         self._setup_ui()
+        self.ecu_drafts = EcuDraftController(self)
 
         self._connect_signals()
 
@@ -506,6 +508,7 @@ class VehicleManagerTab(QWidget):
             self,
             vehicle_name: str,
         ):
+        self.ecu_drafts.leave()
 
         if not vehicle_name:
 
@@ -560,6 +563,7 @@ class VehicleManagerTab(QWidget):
     # ==========================================
 
     def _clear_vehicle_state(self):
+        self.ecu_drafts.leave()
 
         self._current_vehicle_name = ""
 
@@ -670,7 +674,7 @@ class VehicleManagerTab(QWidget):
         answer = QMessageBox.question(
             self,
             "Delete Vehicle",
-            f"Delete vehicle package '{vehicle_name}'?",
+            f"Delete vehicle package '{vehicle_name}' and its unsaved ECU drafts?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -695,6 +699,7 @@ class VehicleManagerTab(QWidget):
 
             return
 
+        self.ecu_drafts.deleted_vehicle(vehicle_name)
         self._refresh_vehicle_list()
 
         self._notify_vehicle_data_changed()
@@ -746,14 +751,7 @@ class VehicleManagerTab(QWidget):
 
                 self._current_ecu = ecu
 
-                self.ecu_info.fn_set_ecu(
-                    ecu
-                )
-
-                self.ecu_resource.fn_set_ecu(
-                    ecu,
-                    dll_metadata=self._controller.resolve_ecu_dll_resource(self._current_vehicle_name, ecu.name),
-                )
+                self.ecu_drafts.activate(self._current_vehicle_name, ecu)
 
                 self.btn_save.setEnabled(True)
 
@@ -830,7 +828,7 @@ class VehicleManagerTab(QWidget):
         answer = QMessageBox.question(
             self,
             "Delete ECU",
-            f"Delete ECU '{ecu_name}'?",
+            f"Delete ECU '{ecu_name}' and its unsaved draft?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -843,11 +841,13 @@ class VehicleManagerTab(QWidget):
             self._controller.delete_ecu(self._current_vehicle_name, ecu_name)
         except (ValueError, OSError) as error:
             if isinstance(error, ResourceCleanupError):
+                self.ecu_drafts.saved(self._current_vehicle_name, ecu_name)
                 self._reload_current_vehicle(selected_ecu_name='')
                 self._notify_vehicle_data_changed()
             QMessageBox.warning(self, 'Delete ECU', str(error))
             return
 
+        self.ecu_drafts.saved(self._current_vehicle_name, ecu_name)
         next_ecu_name = ""
 
         remaining_ecus = [
@@ -1115,6 +1115,7 @@ class VehicleManagerTab(QWidget):
         self.ecu_list.fn_set_ecus(
             ecu_names
         )
+        self.ecu_drafts.apply_markers()
 
         if selected_ecu_name:
 
@@ -1184,14 +1185,14 @@ class VehicleManagerTab(QWidget):
 
         except (OSError, ValueError) as error:
             if isinstance(error, ResourceCleanupError):
+                self.ecu_drafts.saved(self._current_vehicle_name, old_ecu_name)
                 self._reload_current_vehicle(selected_ecu_name=draft_ecu.name)
                 self._notify_vehicle_data_changed()
             QMessageBox.warning(self, "Save ECU", str(error))
             return
 
-        self._reload_current_vehicle(
-            selected_ecu_name=draft_ecu.name
-        )
+        self.ecu_drafts.saved(self._current_vehicle_name, old_ecu_name)
+        self._reload_current_vehicle(selected_ecu_name=draft_ecu.name)
 
         self._show_auto_close_info(
             "Save ECU",
