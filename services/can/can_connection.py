@@ -20,6 +20,10 @@ class CANConnectionError(RuntimeError):
         self.rediscovery_required = rediscovery_required
 
 
+class CANIoError(CANConnectionError):
+    """A native I/O failure, distinct from ISO-TP silence or protocol timeout."""
+
+
 @dataclass(frozen=True)
 class CANConnectionSnapshot:
     state: CANConnectionState = CANConnectionState.DISCONNECTED

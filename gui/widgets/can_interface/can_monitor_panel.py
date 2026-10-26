@@ -1,5 +1,5 @@
 from collections import deque
-from PySide6.QtCore import QThread, Qt
+from PySide6.QtCore import QThread, Qt, QSignalBlocker
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from core.can_interface_view import CanFrameView
@@ -17,6 +17,7 @@ class CanMonitorPanel(QWidget):
         if isinstance(capacity, bool) or not isinstance(capacity, int) or not 1 <= capacity <= 10000:
             raise ValueError("Monitor display capacity must be in range 1..10000.")
         self._buffer = deque(maxlen=capacity)
+        self._rendered_frames = ()
         self.frames = self.displayed = self.dropped = 0
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -59,10 +60,11 @@ class CanMonitorPanel(QWidget):
         self.cmb_direction.currentTextChanged.connect(self._render)
         self._render()
 
-    def append_frame_batch(self, frames):
+    def append_frame_batch(self, frames, *, dropped=0):
         if QThread.currentThread() != self.thread():
             raise RuntimeError("Monitor view updates must run on the GUI thread.")
         try:
+            self.dropped+=dropped
             for frame in frames:
                 if not isinstance(frame, CanFrameView):
                     raise TypeError("Expected CanFrameView presentation data.")
@@ -79,8 +81,8 @@ class CanMonitorPanel(QWidget):
         self._render()
 
     def set_monitoring_state(self, state):
-        if state != "Not monitoring":
-            raise NotImplementedError("Live monitoring is unavailable in M03.")
+        if state not in ('Not monitoring','Captured during request','Capture stopped'):
+            raise NotImplementedError("Continuous monitoring is not implemented.")
         self.status.setText(state)
 
     def set_logging_state(self, state, path=None):
@@ -101,15 +103,27 @@ class CanMonitorPanel(QWidget):
             frames = []
             self.feedback.setText("Invalid CAN ID filter. Enter HEX digits.")
             self.feedback.show()
-        self.table.setRowCount(len(frames))
-        for row, frame in enumerate(frames):
-            values = (f"{frame.timestamp_s:.6f}", frame.direction, f"{frame.can_id:03X}" if frame.can_id <= 0x7FF else f"{frame.can_id:08X}", str(frame.dlc), frame.data.hex(' ').upper())
-            for column, value in enumerate(values):
-                item = self.table.fn_create_item(value, row)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                item.setToolTip(value)
-                if column == 4: item.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
-                self.table.setItem(row, column, item)
+        self.table.setUpdatesEnabled(False)
+        try:
+            with QSignalBlocker(self.table):
+                self.table.setRowCount(len(frames))
+                for row, frame in enumerate(frames):
+                    if row < len(self._rendered_frames) and self._rendered_frames[row] == frame:
+                        continue
+                    values = (f"{frame.timestamp_s:.6f}", frame.direction, f"{frame.can_id:08X}" if frame.is_extended_id else f"{frame.can_id:03X}", str(frame.dlc), frame.data.hex(' ').upper())
+                    for column, value in enumerate(values):
+                        item = self.table.item(row,column)
+                        if item is None:
+                            item = self.table.fn_create_item(value, row)
+                            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                            if column == 4: item.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+                            self.table.setItem(row,column,item)
+                        else:
+                            item.setText(value)
+                        item.setToolTip(f'{value}\nWall timestamp: {frame.wall_timestamp_s}\nChannel: {frame.channel}; extended: {frame.is_extended_id}\nTX origin: {frame.tx_origin or "RX"}')
+                self._rendered_frames=tuple(frames)
+        finally:
+            self.table.setUpdatesEnabled(True)
         self.displayed = len(frames)
         self.counters.setText(f"Frames: {self.frames}    Displayed: {self.displayed}    Dropped: {self.dropped}")
 

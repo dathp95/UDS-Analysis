@@ -29,6 +29,7 @@ class CanConnectionController(QObject):
         self._connection_task = CANConnectionTask(self._service, app)
         self._connection_task.completed.connect(self._connection_completed)
         self._connection_task.failed.connect(self._connection_failed)
+        self._connection_task.connection_fault.connect(self._transport_fault)
         self.destroyed.connect(self._connection_task.dispose)
         app.aboutToQuit.connect(self._connection_task.shutdown)
 
@@ -154,6 +155,9 @@ class CanConnectionController(QObject):
         snapshot = self._service.snapshot
         self._set_status(snapshot.state.value, str(error))
         self._show_error(str(error))
+
+    def _transport_fault(self,snapshot):
+        if not self._closing: self._set_status(snapshot.state.value,snapshot.error)
 
     def _read_config(self):
         if not self._has_selection():

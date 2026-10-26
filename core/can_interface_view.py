@@ -10,8 +10,18 @@ class CanFrameView:
     can_id: int
     dlc: int
     data: bytes
+    wall_timestamp_s: float | None = None
+    monotonic_timestamp_s: float | None = None
+    channel: int | str | None = None
+    is_extended_id: bool = False
+    tx_origin: str = ''
+    is_remote_frame: bool = False
+    is_error_frame: bool = False
 
     def __post_init__(self):
+        for value in (self.wall_timestamp_s,self.monotonic_timestamp_s):
+            if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float)) or not isfinite(value)):
+                raise ValueError('Invalid raw frame timestamp.')
         if (isinstance(self.timestamp_s, bool) or not isinstance(self.timestamp_s, (int, float))
                 or not isfinite(self.timestamp_s) or self.timestamp_s < 0):
             raise ValueError("Frame timestamp must be finite and nonnegative.")

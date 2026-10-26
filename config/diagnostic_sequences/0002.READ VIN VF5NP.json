@@ -1,0 +1,199 @@
+{
+    "schema_version": 1,
+    "name": "0002.READ VIN",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "BCM",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 2,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "BMS",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "3N1",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "ACM,ACU",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "AVAS",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 6,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "BPM",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 7,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "EDS",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 8,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "EPS",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 9,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "ESC",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 10,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "SGC",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 11,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "MHU",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 12,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "PTC",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 13,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "SS",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 14,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "USS_F",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 15,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "USS_R",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 16,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "VDKCU",
+            "request": "22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 17,
+            "sequence_name": "0002.READ VIN",
+            "ecu": "MHU",
+            "request": "22 F1 08",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 08",
+            "match": "prefix",
+            "comment": ""
+        }
+    ]
+}

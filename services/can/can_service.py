@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from numbers import Integral
-from threading import Lock, RLock
+from threading import Lock, RLock, get_ident
+from core.diagnostic_request import validate_send_policy
 import logging
 
 from services.can.can_config import CANConfig
@@ -31,6 +32,8 @@ class CANService:
         self._operation_lock = Lock()
         self._state_lock = RLock()
         self._snapshot = CANConnectionSnapshot()
+        self._diagnostic_request = None
+        self._diagnostic_owner = None
 
     @property
     def snapshot(self) -> CANConnectionSnapshot:
@@ -105,6 +108,43 @@ class CANService:
 
     def fn_is_connected(self):
         return self.snapshot.state == State.CONNECTED
+
+    def fn_begin_diagnostic(self, request):
+        validate_send_policy(request)
+        if not self._operation_lock.acquire(blocking=False):
+            raise CANConnectionError('A CAN operation is already running.')
+        if self.snapshot.state != State.CONNECTED:
+            self._operation_lock.release()
+            raise CANConnectionError('Connect the selected Vector channel before sending.')
+        self._diagnostic_request=request
+        self._diagnostic_owner=get_ident()
+
+    def _guard_diagnostic_owner(self):
+        if self._diagnostic_request is None or self._diagnostic_owner != get_ident() or self.snapshot.state != State.CONNECTED:
+            raise CANConnectionError('Diagnostic I/O requires the active transaction owner.')
+
+    def fn_send_diagnostic_frame(self, can_id, data):
+        self._guard_diagnostic_owner()
+        if can_id != self._diagnostic_request.tx_id or not isinstance(data,bytes) or not 1 <= len(data) <= 8:
+            raise CANConnectionError('Invalid diagnostic transport frame/target.')
+        return self._backend.fn_send_frame(can_id,data)
+
+    def fn_receive_diagnostic_frame(self):
+        self._guard_diagnostic_owner()
+        return self._backend.fn_receive_frame()
+
+    def fn_end_diagnostic(self, transaction_id):
+        self._guard_diagnostic_owner()
+        if self._diagnostic_request.transaction_id != transaction_id:
+            raise CANConnectionError('Stale diagnostic transaction.')
+        self._diagnostic_request=None
+        self._diagnostic_owner=None
+        self._operation_lock.release()
+
+    def fn_transport_failed(self, error):
+        """Owner calls after ending the lease; never used for ordinary silence."""
+        self.fn_disconnect()
+        self._transition(State.DISCONNECTED,error=str(error),rediscovery_required=True)
 
     def fn_refresh(self) -> tuple[CANDeviceInfo, ...]:
         if not self._operation_lock.acquire(blocking=False):

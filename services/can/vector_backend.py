@@ -3,10 +3,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from importlib import import_module
 import logging
+import time
+from threading import get_ident
 from numbers import Integral
 
 from services.can.can_config import CANConfig
-from services.can.can_connection import CANConnectionError
+from services.can.can_connection import CANConnectionError, CANIoError
+from core.can_interface_view import CanFrameView
 from services.can.owned_vector_bus import new_owned_vector_bus
 from services.can.can_device import (
     CANChannelInfo, CANDeviceInfo, CANDependencyError, CANDiscoveryError,
@@ -23,6 +26,9 @@ class VectorBackend:
         self._can_module = can_module
         self._vector_module = vector_module
         self._cleanup_failed = False
+        self._owner_thread_id = None
+        self._time_origin = time.monotonic()
+        self._channel = None
 
     def fn_open(self, config: CANConfig):
         if self._bus is not None:
@@ -65,6 +71,9 @@ class VectorBackend:
                 candidate = new_owned_vector_bus(vector)
                 candidate.__init__(**arguments)
             self._bus = candidate
+            self._owner_thread_id = get_ident()
+            self._channel = config.channel
+            self._time_origin = time.monotonic()
         except Exception as error:
             LOG.exception("Vector connection initialization failed")
             if candidate is not None:
@@ -106,6 +115,8 @@ class VectorBackend:
             raise CANConnectionError("Selected Vector hardware/channel changed. Refresh devices; no alternate channel was opened.", rediscovery_required=True)
 
     def fn_close(self):
+        if self._owner_thread_id is not None and self._owner_thread_id != get_ident():
+            raise CANConnectionError('Vector bus must be closed on its owner thread.')
         if self._cleanup_failed:
             raise CANConnectionError("CAN resource cleanup is uncertain. Restart V-CODE.", recovery_required=True)
         bus = self._bus
@@ -117,12 +128,14 @@ class VectorBackend:
             if callable(shutdown):
                 shutdown()
                 self._bus = None
+                self._owner_thread_id = None
                 return
 
             close = getattr(bus, "close", None)
             if callable(close):
                 close()
                 self._bus = None
+                self._owner_thread_id = None
                 return
             raise RuntimeError("CAN bus has no cleanup method")
         except Exception as error:
@@ -134,6 +147,41 @@ class VectorBackend:
 
     def fn_is_connected(self):
         return self._bus is not None
+
+    def _guard_io(self):
+        if self._bus is None or self._cleanup_failed or self._owner_thread_id != get_ident():
+            raise CANConnectionError('Vector I/O requires a connected bus on its owner thread.')
+
+    def fn_send_frame(self, can_id, data):
+        self._guard_io()
+        can = self._can_module or import_module('can')
+        try:
+            message = can.Message(arbitration_id=can_id, data=data, is_extended_id=False, check=True)
+            self._bus.send(message, timeout=0.0)
+        except Exception as error:
+            LOG.exception('Vector send failed')
+            raise CANIoError('Vector CAN send failed. Disconnect/rediscovery is required.') from error
+        now=time.monotonic()
+        return CanFrameView(now-self._time_origin,'TX',can_id,len(data),bytes(data),time.time(),now,
+                            self._channel,False,'driver_accepted')
+
+    def fn_receive_frame(self):
+        self._guard_io()
+        try:
+            message=self._bus.recv(timeout=0.0)
+        except Exception as error:
+            LOG.exception('Vector receive failed')
+            raise CANIoError('Vector CAN receive failed. Disconnect/rediscovery is required.') from error
+        if message is None:
+            return None
+        if message.is_fd:
+            LOG.warning('Ignoring unsupported CAN FD frame on Classical CAN session')
+            return None
+        now=time.monotonic()
+        rx=message.is_rx
+        return CanFrameView(now-self._time_origin,'RX' if rx else 'TX',message.arbitration_id,message.dlc,
+                            bytes(message.data),message.timestamp,now,message.channel if message.channel is not None else self._channel,
+                            message.is_extended_id,'' if rx else 'observed_echo',message.is_remote_frame,message.is_error_frame)
 
     @property
     def recovery_required(self):

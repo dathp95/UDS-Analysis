@@ -17,8 +17,8 @@ from gui.widgets.can_interface.panel_theme import apply_panel_theme
 class _RowButton(ActionButton):
     def __init__(self):
         super().__init__(">", width=32, height=28)
-        self.setToolTip("Diagnostic execution not available until transport milestone.")
-        self.setAccessibleName("Request this diagnostic step (UI intent only)")
+        self.setToolTip("Send one manual UDS request on the connected channel.")
+        self.setAccessibleName("Send this one diagnostic step")
 
     def fn_refresh_theme(self):
         super().fn_refresh_theme()
@@ -32,17 +32,21 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     save_requested = Signal()
     load_requested = Signal()
     vehicle_changed = Signal(str)
+    document_changed=Signal()
+    vehicle_configuration_changed=Signal()
 
     COL_CHECK, COL_STEP, COL_ECU, COL_REQUEST, COL_SEND, COL_DELAY, COL_REPEAT, COL_EXPECTED, COL_RECEIVE, COL_RESULT, COL_COMMENT = range(11)
     COL_SEQUENCE_NAME = -1  # Definition field remains in the model, not a visible column.
     HEADERS = ("✓", "Step", "ECU", "Payload (HEX)", ">", "Delay (ms)", "Repeat",
                "Expected Response (HEX)", "Receive Message (HEX)", "Results", "Comment")
-    OUTCOMES = frozenset(("Pending", "Running", "Passed", "Failed", "Timeout", "Error", "Not Evaluated"))
+    OUTCOMES = frozenset(("Pending", "Running", "Passed", "Failed", "Timeout", "Error", "Not Evaluated", "Cancelled"))
 
     def __init__(self, parent=None, vehicle_service=None):
         self.step_ids = []
         self._checked = set()
         self._runtime = {}
+        self._request_busy=False
+        self._send_available=True  # Standalone view can still emit typed action intent.
         super().__init__(parent, vehicle_service)
 
     def _setup_ui(self):
@@ -71,7 +75,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.btn_run.setText("Run Selected")
         self.btn_run.setEnabled(False)
         self.btn_stop.setEnabled(False)
-        self.btn_run.setToolTip("Diagnostic execution not available until transport milestone.")
+        self.btn_run.setToolTip("Automatic sequence execution is not enabled in M04.")
         self.btn_stop.setToolTip(self.btn_run.toolTip())
         self.btn_stop.hide()
         self.vehicle_selector.setMaximumWidth(210)
@@ -111,6 +115,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.notice.clear()
         self.notice.hide()
         self._selection_changed()
+        self.document_changed.emit()
 
     def mark_saved(self):
         self._is_dirty = False
@@ -152,6 +157,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         button = _RowButton()
         button.clicked.connect(lambda checked=False, key=step_id: self._request_step(key))
         self.table.setCellWidget(row, self.COL_SEND, button)
+        self._set_button_state(row)
         self._render_runtime(row)
 
     def _set_item(self, row, column, value, editable):
@@ -185,12 +191,33 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         with QSignalBlocker(self.table):
             for row in range(self.table.rowCount()):
                 self._render_runtime(row)
+                self._set_button_state(row)
         super()._mark_dirty()
 
     def _request_step(self, key):
         if key in self.step_ids:
-            self.show_notice("Diagnostic execution not available until transport milestone.")
-            self.row_send_requested.emit(key)
+            row=self.step_ids.index(key)
+            step=self._test_case.steps[row]
+            if (self._normalize_hex(step.request,allow_empty=True) or '').startswith('27'):
+                self.show_notice('Security Access is not enabled.');return
+            if not self._request_busy and self._send_available: self.row_send_requested.emit(key)
+
+    def set_request_busy(self,busy):
+        self._request_busy=bool(busy)
+        for row in range(self.table.rowCount()): self._set_button_state(row)
+
+    def set_send_available(self,available):
+        self._send_available=bool(available)
+        for row in range(self.table.rowCount()): self._set_button_state(row)
+
+    def _set_button_state(self,row):
+        button=self.table.cellWidget(row,self.COL_SEND)
+        security=self._test_case.steps[row].request.strip().upper().startswith('27')
+        button.setEnabled(self._send_available and not self._request_busy and not security)
+        button.setToolTip('Security Access is not enabled.' if security else
+                          'A diagnostic request is running.' if self._request_busy else
+                          'Connect the selected Vector channel first.' if not self._send_available else
+                          'Send one manual UDS request; Delay and Repeat do not run automatically.')
 
     def show_notice(self, text):
         self.notice.setText(text)
@@ -255,12 +282,14 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.vehicle_selector.fn_set_vehicles(names, chosen if chosen in names else "", allow_empty_selection=True)
         self._load_vehicle_by_name(self.vehicle_selector.fn_vehicle())
         self._refresh_ecu_combos()
+        self.vehicle_configuration_changed.emit()
 
     def _on_vehicle_changed(self, vehicle_name):
         super()._on_vehicle_changed(vehicle_name)
         if vehicle_name and self._current_vehicle is None:
             self.show_notice(f"Cannot load Vehicle '{vehicle_name}'.")
         self.vehicle_changed.emit(vehicle_name)
+        self.vehicle_configuration_changed.emit()
 
     def _set_ecu_combo(self, row, ecu):
         combo = PrimaryComboBox(minimum_height=28)

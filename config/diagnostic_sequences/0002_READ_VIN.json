@@ -3,15 +3,19 @@
     "name": "READ VIN",
     "description": "Read VIN from selected ECUs",
     "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
     "steps": [
         {
             "step": 1,
             "sequence_name": "Read VIN",
-            "ecu": "ACU",
+            "ecu": "BCM",
             "request": "22 F1 90",
             "delay_ms": 100,
             "repeat": 1,
-            "expected_response": "62 F1 90",
+            "expected_response": "62 F1 08 00 32 54 39 39 30 39 30 36 26 03 02 01 01 00 10 22 22 00 22 22 12 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0F",
             "match": "prefix",
             "comment": ""
         }

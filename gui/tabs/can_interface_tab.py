@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QHBoxLayout, QSplitter, QWidget
 
 from gui.controllers.can_connection_controller import CanConnectionController
 from gui.controllers.can_workspace_controller import CanWorkspaceController
+from gui.controllers.can_diagnostic_controller import CanDiagnosticController
 from gui.widgets.can_interface.can_monitor_panel import CanMonitorPanel
 from gui.widgets.can_interface.session_panel import CanSessionPanel
 from gui.widgets.can_interface.sequence_sidebar import CanSequenceSidebar
@@ -52,6 +53,7 @@ class CANInterfaceTab(QWidget):
         self._connection_task = self.connection_controller._connection_task
         self._discovery_task = self.connection_controller._discovery_task
         self.workspace_controller = CanWorkspaceController(self.sequence_list, self.sequence_table, repository, self.ui_store, self)
+        self.diagnostic_controller=CanDiagnosticController(self.sequence_table,self.monitor_panel,self._service,self._connection_task,self)
         self.sequence_table.row_selected.connect(self._update_current_step)
         self.sequence_table.sequence_modified.connect(self._update_current_step)
         self.workspace_controller.restore()
@@ -84,6 +86,7 @@ class CANInterfaceTab(QWidget):
         super().showEvent(event)
 
     def closeEvent(self, event):
+        self.diagnostic_controller.close()
         self.connection_controller.close()
         super().closeEvent(event)
 
