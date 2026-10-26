@@ -109,4 +109,4 @@ class CanWorkspaceController(QObject):
                 self.panel.show_notice(f"Cannot save Vehicle view preference: {error}")
 
     def refresh_vehicles(self, changed_name=""):
-        self.panel.fn_refresh_vehicles()
+        self.panel.fn_refresh_vehicles(preserve_unchanged=True)

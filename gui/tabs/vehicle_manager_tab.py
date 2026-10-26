@@ -1138,11 +1138,11 @@ class VehicleManagerTab(QWidget):
 
         )
 
-        self.ecu_resource.fn_get_ecu(
-
-            draft_ecu
-
-        )
+        try:
+            draft_ecu = self.ecu_resource.fn_get_ecu(draft_ecu)
+        except ValueError:
+            # Resource widget already presents a non-modal validation message.
+            return
 
         if draft_ecu.name.lower() != old_ecu_name.lower():
 

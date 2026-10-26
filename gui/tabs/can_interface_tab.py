@@ -5,6 +5,7 @@ from gui.controllers.can_connection_controller import CanConnectionController
 from gui.controllers.can_workspace_controller import CanWorkspaceController
 from gui.controllers.can_diagnostic_controller import CanDiagnosticController
 from gui.controllers.can_recording_controller import CanRecordingController
+from gui.controllers.can_dll_resource_controller import CanDllResourceController
 from gui.widgets.can_interface.can_monitor_panel import CanMonitorPanel
 from gui.widgets.can_interface.session_panel import CanSessionPanel
 from gui.widgets.can_interface.sequence_sidebar import CanSequenceSidebar
@@ -59,6 +60,8 @@ class CANInterfaceTab(QWidget):
                                                         self.sequence_table.fn_current_vehicle,self)
         self.sequence_table.row_selected.connect(self._update_current_step)
         self.sequence_table.sequence_modified.connect(self._update_current_step)
+        self.dll_resource_controller = CanDllResourceController(
+            self.sequence_table, self.session_panel.current_test_case, self)
         self.workspace_controller.restore()
         self.fn_refresh_theme()
 

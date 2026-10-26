@@ -45,6 +45,11 @@ class VehicleService:
             vehicle
         )
 
+    def resolve_ecu_dll_resource(self, vehicle_name, ecu_name):
+        """Return immutable static metadata; never load or execute a configured DLL."""
+        from services.ecu_dll_resource import resolve_ecu_dll_resource
+        return resolve_ecu_dll_resource(self,vehicle_name,ecu_name)
+
     def delete_vehicle(
         self,
         vehicle_name: str,
@@ -104,6 +109,14 @@ class VehicleService:
             ecu=ecu,
             existing_ecu_name=existing_ecu_name or ecu.name,
         )
+
+        previous = next((item for item in vehicle.ecus if item.name == (existing_ecu_name or ecu.name)),None)
+        old_dll = (previous.resources or {}).get('dll','') if previous else ''
+        new_dll = (ecu.resources or {}).get('dll','')
+        if new_dll != old_dll and new_dll:
+            from core.dll_resource import inspect_dll_resource
+            metadata = inspect_dll_resource(new_dll)
+            if not metadata.configurable: raise ValueError(metadata.message)
 
         self._repository.save_ecu(
             vehicle_name,

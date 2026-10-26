@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from core.diagnostic_request import DiagnosticRequest, DiagnosticSettings, DiagnosticValidationError as Invalid
 from repositories.diagnostic_sequence_repository import DiagnosticSequenceRepository
+from services.ecu_configuration import resolve_vehicle_ecu
 
 
 def parse_can_id(value):
@@ -15,18 +16,10 @@ def parse_can_id(value):
 
 
 def resolve_request(vehicle_service, vehicle_name, step, step_id, generation, settings=None):
-    if not vehicle_name:
-        raise Invalid('Select Vehicle before sending a diagnostic request.')
     try:
-        vehicle=vehicle_service.load_vehicle(vehicle_name)
-    except Exception as error:
-        raise Invalid('Cannot load the selected Vehicle configuration.') from error
-    if vehicle.name != vehicle_name:
-        raise Invalid('Selected Vehicle changed while resolving the request.')
-    matches=[ecu for ecu in vehicle.ecus if ecu.name == step.ecu]
-    if len(matches) != 1:
-        raise Invalid(f"ECU '{step.ecu}' is missing or ambiguous in the selected Vehicle.")
-    ecu=matches[0]
+        vehicle,ecu=resolve_vehicle_ecu(vehicle_service,vehicle_name,step.ecu)
+    except ValueError as error:
+        raise Invalid(str(error)) from error
     tx_id,rx_id=parse_can_id(ecu.request_id),parse_can_id(ecu.response_id)
     for other in vehicle.ecus:
         if other is ecu: continue

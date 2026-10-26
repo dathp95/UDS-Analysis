@@ -34,6 +34,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     vehicle_changed = Signal(str)
     document_changed=Signal()
     vehicle_configuration_changed=Signal()
+    vehicle_resources_changed=Signal()
 
     COL_CHECK, COL_STEP, COL_ECU, COL_REQUEST, COL_SEND, COL_DELAY, COL_REPEAT, COL_EXPECTED, COL_RECEIVE, COL_RESULT, COL_COMMENT = range(11)
     COL_SEQUENCE_NAME = -1  # Definition field remains in the model, not a visible column.
@@ -286,8 +287,14 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         if item is not None:
             QApplication.clipboard().setText(item.text())
 
-    def fn_refresh_vehicles(self, selected_vehicle_name=""):
-        self.reset_runtime_results()
+    def _transport_configuration(self):
+        if self._current_vehicle is None:
+            return None
+        return (self._current_vehicle_name, tuple(sorted(
+            (ecu.name, ecu.request_id, ecu.response_id) for ecu in self._available_ecus)))
+
+    def fn_refresh_vehicles(self, selected_vehicle_name="", *, preserve_unchanged=False):
+        previous = self._transport_configuration()
         chosen = selected_vehicle_name or self._current_vehicle_name
         try:
             names = self._vehicle_service.list_vehicles()
@@ -297,7 +304,11 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.vehicle_selector.fn_set_vehicles(names, chosen if chosen in names else "", allow_empty_selection=True)
         self._load_vehicle_by_name(self.vehicle_selector.fn_vehicle())
         self._refresh_ecu_combos()
-        self.vehicle_configuration_changed.emit()
+        if preserve_unchanged and previous is not None and previous == self._transport_configuration():
+            self.vehicle_resources_changed.emit()
+        else:
+            self.reset_runtime_results()
+            self.vehicle_configuration_changed.emit()
 
     def _on_vehicle_changed(self, vehicle_name):
         self.reset_runtime_results()

@@ -2,7 +2,13 @@ from PySide6.QtWidgets import (
     QWidget,
     QFormLayout,
     QHBoxLayout,
+    QFileDialog,
 )
+from dataclasses import replace
+from html import escape
+from PySide6.QtCore import Qt
+from core.dll_resource import inspect_dll_resource
+from gui.widgets.controls.primary_label import PrimaryLabel
 
 from models.ecu import ECU
 
@@ -54,6 +60,13 @@ class ECUResourceWidget(QWidget):
                 self.btn_dll,
             ),
         )
+        self.lbl_dll_status = PrimaryLabel('DLL not configured.')
+        self.lbl_dll_status.setTextFormat(Qt.PlainText)
+        self.lbl_dll_status.setWordWrap(True)
+        layout.addRow('', self.lbl_dll_status)
+        self.btn_dll.clicked.connect(self._browse_dll)
+        self.txt_dll.textChanged.connect(self.txt_dll.setToolTip)
+        self.txt_dll.editingFinished.connect(self._refresh_dll_metadata)
 
         layout.addRow(
             "ODX",
@@ -125,63 +138,78 @@ class ECUResourceWidget(QWidget):
         self,
         ecu: ECU,
     ):
-
+        resources = ecu.resources or {}
+        self._saved_dll_value = resources.get('dll','') or ''
         self.txt_dll.setText(
-            ecu.resources.get(
+            resources.get(
                 "dll",
                 "",
             )
         )
 
         self.txt_odx.setText(
-            ecu.resources.get(
+            resources.get(
                 "odx",
                 "",
             )
         )
 
         self.txt_dbc.setText(
-            ecu.resources.get(
+            resources.get(
                 "dbc",
                 "",
             )
         )
 
         self.txt_dtc.setText(
-            ecu.resources.get(
+            resources.get(
                 "dtc",
                 "",
             )
         )
 
         self.txt_request.setText(
-            ecu.resources.get(
+            resources.get(
                 "request_library",
                 "",
             )
         )
+        self._refresh_dll_metadata()
 
     def fn_get_ecu(
         self,
         ecu: ECU,
     ) -> ECU:
 
-        ecu.resources["dll"] = self.txt_dll.text()
+        value = self.txt_dll.text()
+        if value != self._saved_dll_value and value.strip():
+            metadata = self._refresh_dll_metadata()
+            if not metadata.configurable: raise ValueError(metadata.message)
+            value = metadata.path
+        resources = dict(ecu.resources or {})
+        resources.update(dll=value,odx=self.txt_odx.text(),dbc=self.txt_dbc.text(),
+                         dtc=self.txt_dtc.text(),request_library=self.txt_request.text())
+        return replace(ecu,resources=resources)
 
-        ecu.resources["odx"] = self.txt_odx.text()
+    def _browse_dll(self):
+        value,_ = QFileDialog.getOpenFileName(self,'Select ECU DLL','','DLL files (*.dll)')
+        if not value: return
+        metadata = inspect_dll_resource(value)
+        self._show_dll_metadata(metadata)
+        if metadata.configurable: self.txt_dll.setText(metadata.path)
 
-        ecu.resources["dbc"] = self.txt_dbc.text()
+    def _refresh_dll_metadata(self):
+        metadata = inspect_dll_resource(self.txt_dll.text())
+        self._show_dll_metadata(metadata)
+        return metadata
 
-        ecu.resources["dtc"] = self.txt_dtc.text()
-
-        ecu.resources["request_library"] = (
-            self.txt_request.text()
-        )
-
-        return ecu
+    def _show_dll_metadata(self,metadata):
+        self.lbl_dll_status.setText(metadata.message)
+        self.lbl_dll_status.setToolTip(escape(f'{metadata.machine}; {metadata.bits or "unknown"}-bit\n'
+            f'Exports: {", ".join(metadata.exports[:16]) or "none"}\nStatic inspection only; no ABI or execution verified.'))
 
     def fn_clear(self):
-
+        self._saved_dll_value = ''
         self.txt_dll.clear()
 
         self.txt_odx.clear()
@@ -191,9 +219,10 @@ class ECUResourceWidget(QWidget):
         self.txt_dtc.clear()
 
         self.txt_request.clear()
+        self._refresh_dll_metadata()
 
     def fn_refresh_theme(self):
-
+        self.lbl_dll_status.fn_refresh_theme()
         self.txt_dll.fn_refresh_theme()
 
         self.txt_odx.fn_refresh_theme()

@@ -33,6 +33,11 @@ class CurrentTestCasePanel(QWidget):
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
         layout.addWidget(self.fields)
+        self.dll_status = PrimaryLabel("DLL: select a diagnostic row and Vehicle.")
+        self.dll_status.setTextFormat(Qt.PlainText)
+        self.dll_status.setWordWrap(True)
+        self.dll_status.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        layout.addWidget(self.dll_status)
         layout.addStretch(1)
         self.display_step()
 
@@ -51,5 +56,6 @@ class CurrentTestCasePanel(QWidget):
     def fn_refresh_theme(self):
         self.title.fn_refresh_theme()
         self.empty.fn_refresh_theme()
+        self.dll_status.fn_refresh_theme()
         for widget in (*self.labels.values(), *self.values.values()):
             widget.fn_refresh_theme()
