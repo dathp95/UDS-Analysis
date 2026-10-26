@@ -7,6 +7,11 @@ class DiagnosticValidationError(ValueError):
     pass
 
 
+class DiagnosticCancelled(RuntimeError):
+    """Cooperative cancellation shared by admission/TX policy and transport."""
+    pass
+
+
 class DiagnosticOutcome(Enum):
     PASSED = 'Passed'
     FAILED = 'Failed'
@@ -89,7 +94,7 @@ class DiagnosticRequest:
             raise DiagnosticValidationError('Invalid confirmation value.')
         if not isinstance(self.bench_authorization_id,str) or (self.bench_authorization_id and
                 (not self.confirmed or self.uds_payload not in TRUSTED_BENCH_PAYLOADS)):
-            raise DiagnosticValidationError('Payload is not authorized for Trusted Bench Session.')
+            raise DiagnosticValidationError('Payload is not covered by connection bench authorization.')
 
     @property
     def requires_confirmation(self):
@@ -106,14 +111,13 @@ def validate_send_policy(request):
 
 @dataclass(frozen=True)
 class TrustedBenchAuthorization:
-    """In-memory grant issued by CANService, scoped to one connection and Vehicle."""
+    """In-memory grant for one connection generation and configured bench context."""
     authorization_id: str
     connection_id: str
-    vehicle_name: str
+    context_id: str
 
     def permits(self, request, connection_id):
-        return (connection_id == self.connection_id and request.vehicle_name == self.vehicle_name
-                and request.uds_payload in TRUSTED_BENCH_PAYLOADS)
+        return connection_id == self.connection_id and request.uds_payload in TRUSTED_BENCH_PAYLOADS
 
 
 def response_belongs_to_request(request, payload):

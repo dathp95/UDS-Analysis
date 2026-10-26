@@ -7,6 +7,8 @@ from gui.workers.can_connection_worker import CANConnectionOperation
 from tests.gui import test_can_diagnostic_execution as fixtures
 from core.diagnostic_sequence import DiagnosticStep,DiagnosticTestCase
 from models.ecu import ECU
+from tests.gui import test_can_connection_bench_policy as policy
+from core.bench_authorization import BenchAuthorizationContext
 
 
 class TrustedBenchGuiTests(unittest.TestCase):
@@ -15,15 +17,13 @@ class TrustedBenchGuiTests(unittest.TestCase):
     wait=fixtures.CanDiagnosticExecutionTests.wait
     click=fixtures.CanDiagnosticExecutionTests.click
     outcome=fixtures.CanDiagnosticExecutionTests.outcome
+    enable=policy.ConnectionBenchPolicyGuiTests.authorize_connection
 
     def test_explicit_opt_in_skips_only_three_exact_requests_and_reconnect_resets(self):
         panel=self.tab.sequence_table
-        button=self.tab.session_panel.connection.btn_trusted_bench
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.No): button.click()
         self.assertIsNone(self.service.trusted_bench)
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.Yes) as prompt: button.click()
-        prompt.assert_called_once()
-        self.assertIn('ON',button.text())
+        with patch.object(QMessageBox,'question',side_effect=AssertionError('No connection authorization popup')):
+            self.enable()
         self.tab.diagnostic_controller.settings=DiagnosticSettings(p2_s=.03,p2_star_s=.05,total_s=.2)
         for payload in ('10 01','10 03','14 FF FF FF'):
             panel.table.item(0,panel.COL_REQUEST).setText(payload)
@@ -33,7 +33,7 @@ class TrustedBenchGuiTests(unittest.TestCase):
             self.assertEqual(len(self.bus.sent),before+1)
         self.tab.disconnect_can();self.wait(lambda:not self.tab._connection_task.running)
         self.assertIsNone(self.service.trusted_bench)
-        self.assertIn('OFF',button.text())
+        self.assertEqual(self.tab.session_panel.connection.cmb_bench_policy.currentIndex(),0)
         self.tab._connection_task.start(CANConnectionOperation.CONNECT,CANConfig('vector',0,500000))
         self.wait(lambda:not self.tab._connection_task.running)
         panel.table.item(0,panel.COL_REQUEST).setText('10 03')
@@ -41,26 +41,21 @@ class TrustedBenchGuiTests(unittest.TestCase):
         with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
         prompt.assert_called_once();self.assertEqual(len(self.bus.sent),before)
 
-    def test_other_services_still_prompt_and_vehicle_change_revokes(self):
+    def test_other_services_still_prompt_and_vehicle_refresh_preserves_connection_grant(self):
         panel=self.tab.sequence_table
-        button=self.tab.session_panel.connection.btn_trusted_bench
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.Yes): button.click()
+        self.enable()
         for payload in ('11 01','2E F1 90 01','31 01 12 34','85 02','14 00 00 00','10 81'):
             panel.table.item(0,panel.COL_REQUEST).setText(payload)
             with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
             prompt.assert_called_once()
         self.assertEqual(self.bus.sent,[])
         panel.fn_refresh_vehicles()
-        self.assertIsNone(self.service.trusted_bench)
-        self.assertIn('OFF',button.text())
+        self.assertIsNotNone(self.service.trusted_bench)
 
-    def test_approval_rechecks_context_and_metadata_edit_cancels_running_result(self):
+    def test_explicit_context_change_revokes_and_metadata_edit_cancels_running_result(self):
         panel=self.tab.sequence_table
-        button=self.tab.session_panel.connection.btn_trusted_bench
-        def changed_context(*_):
-            panel.fn_refresh_vehicles()
-            return QMessageBox.Yes
-        with patch.object(QMessageBox,'question',side_effect=changed_context): button.click()
+        self.enable()
+        self.service.fn_configure_bench_context(BenchAuthorizationContext('another-bench',authorized=True))
         self.assertIsNone(self.service.trusted_bench)
         self.bus.mode='pending';self.click();self.wait(lambda:bool(self.bus.sent))
         panel.table.item(0,panel.COL_COMMENT).setText('metadata edit during pending')
@@ -88,12 +83,11 @@ class TrustedBenchGuiTests(unittest.TestCase):
     def test_trust_revocation_and_theme_do_not_grant_extra_permissions(self):
         from gui.themes.theme_manager import ThemeManager
         from gui.themes.theme import ThemeType
-        button=self.tab.session_panel.connection.btn_trusted_bench
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.Yes): button.click()
+        self.enable()
+        grant=self.service.trusted_bench
         self.addCleanup(ThemeManager.fn_set_theme,ThemeManager.fn_theme())
         for theme in (ThemeType.LIGHT,ThemeType.DARK):
             ThemeManager.fn_set_theme(theme);self.tab.fn_refresh_theme()
-            self.assertIn('ON',button.text())
-        button.click()
+            self.assertEqual(self.service.trusted_bench,grant)
+        self.service.fn_configure_bench_context(None)
         self.assertIsNone(self.service.trusted_bench)
-        self.assertIn('OFF',button.text())

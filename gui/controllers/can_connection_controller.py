@@ -5,6 +5,7 @@ from gui.workers.can_discovery_worker import CANDiscoveryTask
 from gui.workers.can_connection_worker import CANConnectionOperation as Operation, CANConnectionTask
 from services.can import CANChannelInfo, CANConfig, CANDeviceInfo, CANNoChannelsError, CANService, CANValidationError
 from services.can import CANConnectionState as State
+from core.bench_authorization import BenchAuthorizationContext
 
 
 class CanConnectionController(QObject):
@@ -145,19 +146,28 @@ class CanConnectionController(QObject):
         if self._closing:
             return
         config = snapshot.config
+        if operation == Operation.DISCONNECT:
+            self.cmb_bench_policy.setCurrentIndex(0)
         details = (f"Vector SN {config.serial}, HW {config.hw_type}:{config.hw_index}, CAN {config.channel + 1}, global index {config.channel_index}, "
                    f"{config.bitrate} bit/s") if config else ""
+        if config and config.bench_context:
+            authorized = self._service.trusted_bench is not None
+            details += (f'; bench context: {config.bench_context.context_id}; '
+                        f'authorization: {"active" if authorized else "unavailable"}; only 10 01, 10 03, 14 FF FF FF')
         self._set_status(snapshot.state.value, details)
 
     def _connection_failed(self, operation, error):
         if self._closing:
             return
         snapshot = self._service.snapshot
+        if snapshot.state != State.CONNECTED: self.cmb_bench_policy.setCurrentIndex(0)
         self._set_status(snapshot.state.value, str(error))
         self._show_error(str(error))
 
     def _transport_fault(self,snapshot):
-        if not self._closing: self._set_status(snapshot.state.value,snapshot.error)
+        if not self._closing:
+            self.cmb_bench_policy.setCurrentIndex(0)
+            self._set_status(snapshot.state.value,snapshot.error)
 
     def _read_config(self):
         if not self._has_selection():
@@ -173,6 +183,8 @@ class CanConnectionController(QObject):
             hw_type=device.hw_type,
             hw_index=device.hw_index,
             hw_channel=channel.hw_channel,
+            bench_context=(BenchAuthorizationContext(self.cmb_bench_policy.currentData(),authorized=True)
+                           if self.cmb_bench_policy.currentData() is not None else None),
         )
 
     def _has_selection(self):
@@ -197,7 +209,7 @@ class CanConnectionController(QObject):
         self.btn_refresh.setEnabled(idle and not busy)
         self.btn_connect.setEnabled(idle and not busy and self._has_selection() and not snapshot.rediscovery_required)
         self.btn_disconnect.setEnabled(snapshot.state == State.CONNECTED and not busy)
-        for combo in (self.cmb_vendor, self.cmb_device, self.cmb_channel, self.cmb_baudrate):
+        for combo in (self.cmb_vendor, self.cmb_device, self.cmb_channel, self.cmb_baudrate,self.cmb_bench_policy):
             combo.setEnabled(idle and not busy)
 
     def close(self):

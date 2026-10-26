@@ -9,11 +9,9 @@ from services.can.ecu_diagnostic_resolver import resolve_request
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
-    def __init__(self,panel,monitor,service,task,parent=None,*,bench_button=None):
+    def __init__(self,panel,monitor,service,task,parent=None):
         super().__init__(parent)
         self.panel,self.monitor,self.service,self.task=panel,monitor,service,task
-        self.bench_button=bench_button
-        if bench_button is not None: bench_button.clicked.connect(self.toggle_trusted_bench)
         self.settings=DiagnosticSettings()
         self.generation=0
         self._active=None
@@ -28,59 +26,20 @@ class CanDiagnosticController(QObject):
         task.monitoring_changed.connect(lambda active:monitor.set_monitoring_state('Monitoring' if active else 'Stopped'))
         task.completed.connect(self._state)
         task.failed.connect(self._state)
-        task.started.connect(self._state)
+        task.started.connect(self._connection_started)
         task.connection_fault.connect(self._state)
         self.destroyed.connect(task.cancel_diagnostic)
         self._state()
 
     def _state(self,*_):
-        if self.task.running or self._closed: self.service.fn_revoke_trusted_bench()
         self.panel.set_send_available(not self._closed and self.service.snapshot.state == CANConnectionState.CONNECTED
                                       and self.task.alive and not self.task.running)
-        if self.bench_button is not None:
-            grant=self.service.trusted_bench
-            self.bench_button.setChecked(grant is not None)
-            self.bench_button.setText('Trusted Bench: ON' if grant else 'Trusted Bench: OFF')
-            self.bench_button.setEnabled(not self._closed and not self._preparing and self._active is None
-                and not self.task.running and self.service.snapshot.state == CANConnectionState.CONNECTED
-                and bool(self.panel.fn_current_vehicle()))
-            self.bench_button.setToolTip(
-                f'Authorized Vehicle: {grant.vehicle_name}. Click to revoke.\n' if grant else 'Click to explicitly authorize an automotive test-bench session.\n')
-            self.bench_button.setToolTip(self.bench_button.toolTip()+
-                'Only manual 10 01, 10 03 and 14 FF FF FF. Other state-changing services still require confirmation.\n'
-                'Expires on Disconnect, reconnect, close or Vehicle/configuration change; never saved.')
 
-    def toggle_trusted_bench(self):
-        if self._preparing or self._active is not None or self._closed: return
-        if self.service.trusted_bench is not None:
-            self.service.fn_revoke_trusted_bench();self._state();return
-        vehicle=self.panel.fn_current_vehicle()
-        generation=self.generation
-        connection_id=self.service.capture_session_id
-        self._preparing=True
-        try:
-            if not vehicle or not connection_id or self.task.running:
-                raise DiagnosticValidationError('Connect the intended test bench and select its Vehicle first.')
-            config=self.service.snapshot.config
-            answer=QMessageBox.question(self.panel,'Authorize Trusted Bench Session',
-                f'Vehicle: {vehicle}\nSelected CAN port: {config.channel+1}; Vector serial: {config.serial}\n\n'
-                'I confirm this connected interface is an explicitly authorized automotive test bench.\n'
-                'Allow manual 10 01 (Default Session), 10 03 (Extended Session), and\n'
-                '14 FF FF FF (clear all DTCs) without a popup for each click?\n'
-                'Other state-changing services still require confirmation. This authorization is never saved.',
-                QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
-            if answer != QMessageBox.Yes: return
-            if generation != self.generation or vehicle != self.panel.fn_current_vehicle() or self.task.running:
-                raise DiagnosticValidationError('Vehicle/connection changed; bench authorization was not enabled.')
-            self.service.fn_authorize_trusted_bench(vehicle,connection_id,approved=True)
-        except (ValueError,RuntimeError) as error:
-            self.panel.show_notice(str(error))
-        finally:
-            self._preparing=False
-            self._state()
+    def _connection_started(self,*_):
+        self.service.fn_revoke_trusted_bench()
+        self._state()
 
     def _vehicle_configuration_changed(self,*_):
-        self.service.fn_revoke_trusted_bench()
         self.invalidate()
         self._state()
 

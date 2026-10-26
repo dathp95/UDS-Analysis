@@ -4,6 +4,7 @@ from core.diagnostic_request import DiagnosticValidationError,validate_send_poli
 from services.can import CANService,CANConfig
 from tests.services.test_can_service import FakeCANBackend
 from tests.services.test_isotp_transport import request
+from core.bench_authorization import BenchAuthorizationContext
 
 
 class TrustedBenchTests(unittest.TestCase):
@@ -13,14 +14,17 @@ class TrustedBenchTests(unittest.TestCase):
         self.service.fn_connect(CANConfig('vector',0,500000))
         self.addCleanup(self.service.fn_disconnect)
 
-    def enable(self):
-        return self.service.fn_authorize_trusted_bench('BENCH','connection-1',approved=True)
+    def enable(self,authorized=True):
+        self.service.fn_disconnect()
+        self.service.fn_connect(CANConfig('vector',0,500000,
+            bench_context=BenchAuthorizationContext('bench-A',authorized=authorized)))
+        return self.service.trusted_bench
 
     def test_explicit_approval_connection_and_exact_payload_scope(self):
-        with self.assertRaises(DiagnosticValidationError):
-            self.service.fn_authorize_trusted_bench('BENCH','connection-1',approved=False)
-        with self.assertRaises(DiagnosticValidationError):
-            self.service.fn_authorize_trusted_bench('BENCH','old-connection',approved=True)
+        self.assertIsNone(self.enable(authorized=False))
+        with self.assertRaises(ValueError): BenchAuthorizationContext('',authorized=True)
+        with self.assertRaises(ValueError):
+            self.service.fn_connect(CANConfig('vector',0,500000,bench_context='not-a-context'))
         for payload in ('10 01','10 03','14 FF FF FF'):
             req=request(uds_payload=bytes.fromhex(payload))
             self.assertIsNone(self.service.fn_confirm_trusted_request(req))
@@ -40,7 +44,7 @@ class TrustedBenchTests(unittest.TestCase):
             with self.assertRaises(DiagnosticValidationError): validate_send_policy(req)
         with self.assertRaises(DiagnosticValidationError): request(uds_payload=bytes.fromhex('27 01'))
         other=request(vehicle_name='OTHER',uds_payload=bytes.fromhex('10 03'))
-        self.assertIsNone(self.service.fn_confirm_trusted_request(other))
+        self.assertIsNotNone(self.service.fn_confirm_trusted_request(other))
 
     def test_stale_forged_and_reconnected_authorizations_rejected_before_tx(self):
         self.enable()

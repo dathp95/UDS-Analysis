@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from core.bench_authorization import BenchAuthorizationContext
 
 
 @dataclass(frozen=True)
@@ -14,3 +15,4 @@ class CANConfig:
     hw_type: int | None = None
     hw_index: int | None = None
     hw_channel: int | None = None
+    bench_context: BenchAuthorizationContext | None = None

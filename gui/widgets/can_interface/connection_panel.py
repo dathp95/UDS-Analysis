@@ -3,14 +3,13 @@ from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWi
 from gui.widgets.controls.primary_button import PrimaryButton
 from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
-from gui.widgets.controls.action_button import ActionButton
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 
 
 class CanConnectionPanel(QWidget):
     CONTROLS = ("lbl_vendor", "lbl_device", "lbl_channel", "lbl_baudrate", "cmb_vendor",
                 "cmb_device", "cmb_channel", "cmb_baudrate", "btn_refresh", "btn_connect",
-                "btn_disconnect", "lbl_status", "action_layout")
+                "btn_disconnect", "lbl_status", "action_layout", "cmb_bench_policy")
 
     def __init__(self):
         super().__init__()
@@ -18,13 +17,20 @@ class CanConnectionPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         self.title = PrimaryLabel("Connection")
-        self.btn_trusted_bench = ActionButton('Trusted Bench: OFF', width=164, height=24)
-        self.btn_trusted_bench.setCheckable(True)
-        self.btn_trusted_bench.setEnabled(False)
-        self.btn_trusted_bench.setAccessibleName('Authorize or revoke Trusted Bench Session')
+        self.cmb_bench_policy = PrimaryComboBox(minimum_height=24)
+        self.cmb_bench_policy.addItem('Standard: confirm state changes', None)
+        self.cmb_bench_policy.addItem('I authorize test-bench diagnostics', 'manual-automotive-bench')
+        self.cmb_bench_policy.setMinimumContentsLength(20)
+        self.cmb_bench_policy.setMaximumWidth(275)
+        self.cmb_bench_policy.setAccessibleName('Connection diagnostic authorization policy')
+        self.cmb_bench_policy.setToolTip(
+            'Before Connect, explicitly authorize this automotive test-bench connection.\n'
+            'Only manual 10 01 (Default Session), 10 03 (Extended Session), and\n'
+            '14 FF FF FF (clear all DTCs) skip per-request confirmation.\n'
+            'Standard mode grants no bench authority. Disconnect expires this selection.')
         header = QHBoxLayout()
         header.addWidget(self.title, 1)
-        header.addWidget(self.btn_trusted_bench)
+        header.addWidget(self.cmb_bench_policy)
         layout.addLayout(header)
         grid = QGridLayout()
         grid.setHorizontalSpacing(8)
@@ -64,7 +70,6 @@ class CanConnectionPanel(QWidget):
 
     def fn_refresh_theme(self):
         self.title.fn_refresh_theme()
-        self.btn_trusted_bench.fn_refresh_theme()
         for name in self.CONTROLS:
             widget = getattr(self, name)
             if hasattr(widget, "fn_refresh_theme"):

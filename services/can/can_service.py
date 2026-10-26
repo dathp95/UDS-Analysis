@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from numbers import Integral
 from threading import Lock, RLock, get_ident
-from core.diagnostic_request import validate_send_policy, DiagnosticValidationError, TrustedBenchAuthorization
+from core.diagnostic_request import validate_send_policy, DiagnosticValidationError, TrustedBenchAuthorization, DiagnosticCancelled
 from dataclasses import replace
 from uuid import uuid4
 import logging
 
 from services.can.can_config import CANConfig
+from core.bench_authorization import BenchAuthorizationContext
 from services.can.can_connection import CANConnectionError, CANConnectionSnapshot, CANConnectionState as State
 from services.can.can_device import CANChannelInfo, CANDeviceInfo, CANDiscoveryError
 from services.can.vector_backend import VectorBackend
@@ -33,10 +34,15 @@ class CANService:
         self._backend = backend if backend is not None else VectorBackend()
         self._operation_lock = Lock()
         self._state_lock = RLock()
+        # Separate from snapshot/state reads: only bench TX and revocation
+        # serialize here. Never hold the GUI-visible state lock across I/O.
+        self._bench_tx_lock = RLock()
         self._snapshot = CANConnectionSnapshot()
         self._diagnostic_request = None
         self._diagnostic_owner = None
         self._trusted_bench = None
+        self._bench_context = None
+        self._bench_revision = 0
 
     @property
     def snapshot(self) -> CANConnectionSnapshot:
@@ -58,6 +64,7 @@ class CANService:
             self._snapshot = CANConnectionSnapshot(state, config, error, rediscovery_required)
             if state != State.CONNECTED:
                 self._trusted_bench = None
+                self._bench_context = None
 
     def fn_connect(self, config: CANConfig):
         self._validate_config(config)
@@ -68,7 +75,10 @@ class CANService:
                 raise CANConnectionError("Disconnect cleanly before opening another CAN connection.")
             if self.snapshot.rediscovery_required:
                 raise CANConnectionError("Refresh Vector devices before connecting again.", rediscovery_required=True)
-            self._transition(State.CONNECTING, config=config)
+            with self._state_lock:
+                self._transition(State.CONNECTING, config=config)
+                self._bench_context = config.bench_context
+                bench_revision = self._bench_revision
             try:
                 self._backend.fn_open(config)
             except Exception as error:
@@ -82,7 +92,13 @@ class CANService:
                 if failure is error:
                     raise
                 raise failure from error
-            self._transition(State.CONNECTED, config=config)
+            with self._state_lock:
+                self._transition(State.CONNECTED, config=config)
+                context = self._bench_context
+                if bench_revision == self._bench_revision and context is not None and context.authorized:
+                    connection_id = self.capture_session_id
+                    if isinstance(connection_id,str) and connection_id:
+                        self._trusted_bench = TrustedBenchAuthorization(uuid4().hex, connection_id, context.context_id)
         finally:
             self._operation_lock.release()
 
@@ -116,25 +132,38 @@ class CANService:
 
     @property
     def capture_session_id(self):
-        return self._backend.capture_session_id if self.fn_is_connected() else ''
+        return getattr(self._backend,'capture_session_id','') if self.fn_is_connected() else ''
 
     @property
     def trusted_bench(self):
         with self._state_lock:
             grant = self._trusted_bench
-            return grant if grant and self.fn_is_connected() and grant.connection_id == self.capture_session_id else None
+            context = self._bench_context
+            return grant if (grant and context and context.authorized and grant.context_id == context.context_id
+                and self.fn_is_connected() and grant.connection_id == self.capture_session_id) else None
 
-    def fn_authorize_trusted_bench(self, vehicle_name, connection_id, *, approved=False):
-        """Called only after explicit bench approval; never persisted or inferred from a request."""
-        with self._state_lock:
-            if (approved is not True or not isinstance(vehicle_name,str) or not vehicle_name.strip()
-                    or not connection_id or not self.fn_is_connected() or connection_id != self.capture_session_id):
-                raise DiagnosticValidationError('Explicit approval for the current connected Vehicle bench session is required.')
-            self._trusted_bench = TrustedBenchAuthorization(uuid4().hex, connection_id, vehicle_name)
-            return self._trusted_bench
+    def fn_configure_bench_context(self, context):
+        """A changed context revokes immediately; only an explicitly configured Connect issues a grant."""
+        if context is not None and not isinstance(context,BenchAuthorizationContext):
+            raise DiagnosticValidationError('Invalid bench authorization context.')
+        with self._bench_tx_lock, self._state_lock:
+            if context != self._bench_context:
+                self._bench_revision += 1
+                self._trusted_bench = None
+                self._bench_context = context
 
     def fn_revoke_trusted_bench(self):
-        with self._state_lock: self._trusted_bench = None
+        with self._bench_tx_lock, self._state_lock:
+            self._bench_revision += 1
+            self._trusted_bench = None
+
+    def _validate_bench_authorization(self, request):
+        if not request.bench_authorization_id: return
+        with self._state_lock:
+            grant = self.trusted_bench
+            if (grant is None or grant.authorization_id != request.bench_authorization_id
+                    or not grant.permits(request,self.capture_session_id)):
+                raise DiagnosticValidationError('Connection bench authorization expired or does not cover this request.')
 
     def fn_confirm_trusted_request(self, request):
         with self._state_lock:
@@ -150,11 +179,7 @@ class CANService:
             with self._state_lock:
                 if self.snapshot.state != State.CONNECTED:
                     raise CANConnectionError('Connect the selected Vector channel before sending.')
-                if request.bench_authorization_id:
-                    grant = self.trusted_bench
-                    if (grant is None or grant.authorization_id != request.bench_authorization_id
-                            or not grant.permits(request,self.capture_session_id)):
-                        raise DiagnosticValidationError('Trusted Bench authorization expired or does not cover this request.')
+                self._validate_bench_authorization(request)
                 self._diagnostic_request=request
                 self._diagnostic_owner=get_ident()
         except Exception:
@@ -169,7 +194,15 @@ class CANService:
         self._guard_diagnostic_owner()
         if can_id != self._diagnostic_request.tx_id or not isinstance(data,bytes) or not 1 <= len(data) <= 8:
             raise CANConnectionError('Invalid diagnostic transport frame/target.')
-        return self._backend.fn_send_frame(can_id,data)
+        if not self._diagnostic_request.bench_authorization_id:
+            return self._backend.fn_send_frame(can_id,data)
+        with self._bench_tx_lock:
+            try:
+                self._validate_bench_authorization(self._diagnostic_request)
+            except DiagnosticValidationError as error:
+                # Use cooperative cancellation, not a native capture/BLF fault.
+                raise DiagnosticCancelled(str(error)) from error
+            return self._backend.fn_send_frame(can_id,data)
 
     def fn_receive_diagnostic_frame(self):
         self._guard_diagnostic_owner()
@@ -251,6 +284,8 @@ class CANService:
     def _validate_config(config: CANConfig):
         if not isinstance(config, CANConfig):
             raise CANValidationError("Invalid CAN configuration.")
+        if config.bench_context is not None and not isinstance(config.bench_context,BenchAuthorizationContext):
+            raise CANValidationError('Invalid connection bench authorization context.')
 
         if not isinstance(config.interface, str) or config.interface != "vector":
             raise CANValidationError("Only Vector CAN interface is supported.")

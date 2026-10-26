@@ -7,11 +7,7 @@ from threading import Event
 
 import isotp
 
-from core.diagnostic_request import validate_send_policy,response_belongs_to_request
-
-
-class DiagnosticCancelled(RuntimeError):
-    pass
+from core.diagnostic_request import validate_send_policy,response_belongs_to_request,DiagnosticCancelled
 
 
 class IsoTpTransport:
