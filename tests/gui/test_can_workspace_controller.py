@@ -85,6 +85,38 @@ class CanWorkspaceControllerTests(unittest.TestCase):
             self.assertEqual(controller.source,first.resolve())
             self.assertEqual(panel.fn_current_sequence().steps[0].comment,'unsaved')
 
+    def test_sidebar_cancel_keeps_unsaved_document_active_without_selected_signal(self):
+        fixtures = Path(__file__).parents[1] / 'fixtures' / 'can_interface'
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            repo = CanSequenceRepository(directory)
+            store = CanInterfaceUiStore(Path(directory) / 'prefs')
+            sidebar = CanSequenceSidebar(repo, store)
+            panel = CanDiagnosticTablePanel(vehicle_service=SimpleNamespace(list_vehicles=lambda: []))
+            controller = CanWorkspaceController(sidebar, panel, repo, store)
+            for obj in (controller, panel, sidebar): self.addCleanup(obj.deleteLater)
+            first = (fixtures / '0001.READ&CDS(1).diag').resolve()
+            second = (fixtures / '0002.READ VIN(1).diag').resolve()
+            repo.register_source(second)
+            self.assertTrue(controller.open_source(first))
+            panel.table.item(0, panel.COL_COMMENT).setText('keep this unsaved edit')
+            previous_document = panel.fn_current_sequence()
+            previous_ids = tuple(panel.step_ids)
+            selected = []
+            sidebar.sequence_selected.connect(selected.append)
+            index = sidebar.source_ids().index(str(second))
+            sidebar.list_sequences.setCurrentRow(index)
+            with patch.object(QMessageBox, 'question', return_value=QMessageBox.Cancel) as prompt:
+                sidebar._activate_item(sidebar.list_sequences.item(index))
+            prompt.assert_called_once()
+            self.assertEqual(selected, [])
+            self.assertEqual(controller.source, first)
+            self.assertEqual(sidebar._active_source, str(first))
+            self.assertEqual(sidebar.list_sequences.currentItem().data(sidebar.ITEM_PATH_ROLE), str(first))
+            self.assertEqual(store.load().selected_id, str(first))
+            self.assertEqual(panel.fn_current_sequence(), previous_document)
+            self.assertEqual(tuple(panel.step_ids), previous_ids)
+            self.assertTrue(panel.fn_is_dirty())
+
     def test_external_inventory_and_active_source_restore_without_saving_order(self):
         fixtures=Path(__file__).parents[1]/'fixtures'/'can_interface'
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:

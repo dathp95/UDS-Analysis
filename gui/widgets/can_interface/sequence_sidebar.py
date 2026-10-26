@@ -158,8 +158,13 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self._activate_item(item)
 
     def _activate_item(self, item):
-        self.sequence_open_requested.emit(item.data(self.ITEM_PATH_ROLE))
-        self.sequence_selected.emit(item.data(self.ITEM_MODEL_ROLE))
+        source_id = item.data(self.ITEM_PATH_ROLE)
+        test_case = item.data(self.ITEM_MODEL_ROLE)
+        # Opening can synchronously rebuild the list and delete this item.
+        self.sequence_open_requested.emit(source_id)
+        # The controller owns activation; Cancel must not notify a stale selection.
+        if self._active_source == source_id:
+            self.sequence_selected.emit(test_case)
 
     def _visible_items(self):
         return [self.list_sequences.item(i) for i in range(self.list_sequences.count())

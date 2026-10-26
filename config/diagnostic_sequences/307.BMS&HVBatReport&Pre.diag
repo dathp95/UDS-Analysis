@@ -1,0 +1,722 @@
+{
+  "Header": {
+    "IDVehicle": 8,
+    "Description": null
+  },
+  "TestCaseItem": [
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 10 03",
+      "ExpectMess": " 50 03",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Start Diagnostic Session"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 70",
+      "ExpectMess": " 62 10 70",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "HV Battery QR code"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 03",
+      "ExpectMess": " 62 F1 03",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "ECU Purchase Part number and Revision Level-7bytes "
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 90",
+      "ExpectMess": " 62 F1 90",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Vehicle Identification Number (VIN)-17byte"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 21",
+      "ExpectMess": " 62 F1 21",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Odometer Reading"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 26",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Pack SOC"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 27",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Pack SOH"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 39",
+      "ExpectMess": " 62 10 26",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Positive contactor condition (aging)"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 3A",
+      "ExpectMess": " 62 10 27",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Negative contactor conidition (aging)"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 3B",
+      "ExpectMess": " 62 10 44",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Precharge contactor condition (aging)"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 3C",
+      "ExpectMess": " 62 10 19",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Isolation resistance - < 250 Kohm"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 1B",
+      "ExpectMess": " 62 10 05",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Maximum cell voltage of battery"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 2E",
+      "ExpectMess": " 62 10 06",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Miniimum cell voltage of battery"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 66",
+      "ExpectMess": " 62 10 07",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Maximum temperature measured by sensors in battery modules > 60 oC"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 10 67",
+      "ExpectMess": " 62 10 08",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Minimum temperature measured by sensors in battery modules < -30 oC"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 19 02 FF",
+      "ExpectMess": " 59 02",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Record all DTC's from BMS"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BMS",
+        "IDReq": 1683,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BMS\\BMS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1555,
+        "DTCListID": "DTC_VF5NP_BMS_BMS_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 10 01",
+      "ExpectMess": " 50 01",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "End Diagnostic Session"
+    }
+  ]
+}

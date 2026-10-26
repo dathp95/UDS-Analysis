@@ -1,0 +1,596 @@
+{
+  "Header": {
+    "IDVehicle": 8,
+    "Description": "No Description"
+  },
+  "TestCaseItem": [
+    {
+      "ECUObj": {
+        "ECUName": "ACU",
+        "IDReq": 1672,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\ACU\\ACM.dll",
+        "_DTCListPath": null,
+        "IDResp": 1544,
+        "DTCListID": "DTC_VF5NP_ACU_ACM_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 21",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "ODO"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM_BPM",
+        "IDReq": 1787,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM_BPM\\BCM_BPM.dll",
+        "_DTCListPath": null,
+        "IDResp": 1659,
+        "DTCListID": "DTC_VF5NP_BCM_BPM_BPM_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "EPS",
+        "IDReq": 1704,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\EPS\\EPS.dll",
+        "_DTCListPath": null,
+        "IDResp": 1576,
+        "DTCListID": "DTC_VF5NP_EPS_EPS_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "ESC",
+        "IDReq": 1705,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\ESC\\ESC.dll",
+        "_DTCListPath": null,
+        "IDResp": 1577,
+        "DTCListID": "DTC_VF5NP_ESC_ESC_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_SGC",
+        "IDReq": 1666,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_SGC\\IVC_SGC.dll",
+        "_DTCListPath": null,
+        "IDResp": 1538,
+        "DTCListID": "DTC_VF5NP_IVC_SGC_SGC_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_SGC",
+        "IDReq": 1666,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_SGC\\IVC_SGC.dll",
+        "_DTCListPath": null,
+        "IDResp": 1538,
+        "DTCListID": "DTC_VF5NP_IVC_SGC_SGC_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 12",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_MHU",
+        "IDReq": 1668,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_MHU\\IVC_MHU.dll",
+        "_DTCListPath": null,
+        "IDResp": 1540,
+        "DTCListID": "DTC_VF5NP_IVC_MHU_MHU_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_MHU",
+        "IDReq": 1668,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_MHU\\IVC_MHU.dll",
+        "_DTCListPath": null,
+        "IDResp": 1540,
+        "DTCListID": "DTC_VF5NP_IVC_MHU_MHU_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 11",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_MHU",
+        "IDReq": 1668,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_MHU\\IVC_MHU.dll",
+        "_DTCListPath": null,
+        "IDResp": 1540,
+        "DTCListID": "DTC_VF5NP_IVC_MHU_MHU_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 12",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 1000,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_MHU",
+        "IDReq": 1668,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_MHU\\IVC_MHU.dll",
+        "_DTCListPath": null,
+        "IDResp": 1540,
+        "DTCListID": "DTC_VF5NP_IVC_MHU_MHU_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 21",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "ODO"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "IVC_MHU",
+        "IDReq": 1668,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\IVC_MHU\\IVC_MHU.dll",
+        "_DTCListPath": null,
+        "IDResp": 1540,
+        "DTCListID": "DTC_VF5NP_IVC_MHU_MHU_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 15",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 1000,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "USS_R",
+        "IDReq": 1713,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\USS_R\\USS_RR.dll",
+        "_DTCListPath": null,
+        "IDResp": 1585,
+        "DTCListID": "DTC_VF5NP_USS_R_USS_xlsx",
+        "IsChecked": false,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 F1 08",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    }
+  ]
+}

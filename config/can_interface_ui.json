@@ -5,19 +5,30 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag"
     ],
-    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN VF5NP.json",
+    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\307.BMS&HVBatReport&Pre.diag",
     "vehicles": {
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json": "LIMO",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag": "VF5NP",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN.json": "LIMO",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0002.READ VIN.diag": "VF5NP",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN VF5NP.json": "VF5NP"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN VF5NP.json": "VF5NP",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0001.READ&CDS.json": "VF5NP"
     },
     "sources": [
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0002.READ VIN.diag",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN VF5NP.json"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN VF5NP.json",
+        "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\203.BCM&BasicDID.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0003.DVT&V1.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\600.AVAS&S.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0001.READ&CDS.json",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\204.BCM&CDS&INDIA.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\303.BMS&BasicDID.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\306.BMS&HVBatReport.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\307.BMS&HVBatReport&Pre.diag"
     ]
 }

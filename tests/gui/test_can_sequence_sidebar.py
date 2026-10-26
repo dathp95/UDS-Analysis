@@ -16,6 +16,35 @@ class CanSequenceSidebarTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_activation_survives_synchronous_list_refresh(self):
+        from shiboken6 import isValid
+        from gui.widgets.can_interface.sequence_sidebar import CanSequenceSidebar
+        from repositories.can_interface_ui_store import CanInterfaceUiStore
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            root = Path(directory)
+            repository = DiagnosticSequenceRepository(root / 'sequences')
+            path = repository.root / 'vin.json'
+            repository.fn_save_sequence(DiagnosticTestCase(1, 'VIN', '', True, []), path)
+            sidebar = CanSequenceSidebar(repository, CanInterfaceUiStore(root / 'prefs'))
+            self.addCleanup(sidebar.deleteLater)
+            item = sidebar.list_sequences.item(0)
+            source_id = item.data(sidebar.ITEM_PATH_ROLE)
+            test_case = item.data(sidebar.ITEM_MODEL_ROLE)
+            opened, selected = [], []
+
+            def refresh_during_open(source):
+                opened.append(source)
+                sidebar.fn_refresh_sequences()
+                sidebar.mark_opened(source, persist=False)
+
+            sidebar.sequence_open_requested.connect(refresh_during_open)
+            sidebar.sequence_selected.connect(selected.append)
+            sidebar._activate_item(item)
+            self.assertFalse(isValid(item))
+            self.assertEqual(opened, [source_id])
+            self.assertEqual(selected, [test_case])
+            self.assertEqual(sidebar._active_source, source_id)
+
     def test_search_checks_order_and_explicit_persistence(self):
         from repositories.can_interface_ui_store import CanInterfaceUiStore
         from gui.widgets.can_interface.sequence_sidebar import CanSequenceSidebar
@@ -38,6 +67,16 @@ class CanSequenceSidebarTests(unittest.TestCase):
             sidebar.edit_search.clear()
             self.assertTrue(sidebar.reorder(tuple(reversed(original))))
             self.assertTrue(sidebar.btn_save_order.isEnabled())
+            from gui.themes.theme_manager import ThemeManager
+            from gui.themes.theme import ThemeType
+            self.addCleanup(ThemeManager.fn_set_theme, ThemeManager.fn_theme())
+            for theme in (ThemeType.DARK, ThemeType.LIGHT):
+                ThemeManager.fn_set_theme(theme)
+                sidebar.fn_refresh_theme()
+                self.assertEqual(sidebar.source_ids(), tuple(reversed(original)))
+                self.assertEqual(set(sidebar.checked_ids()), {original[1], original[3]})
+                self.assertTrue(sidebar.btn_save_order.isEnabled())
+                self.assertTrue(sidebar.list_sequences.showDropIndicator())
             store.save_selection(original[1])
             self.assertEqual(store.load().order, ())
             sidebar.btn_save_order.click()
