@@ -75,7 +75,7 @@ class VehicleDllIntegrationTests(unittest.TestCase):
         self.assertNotIn('dll', original.resources)
         restarted = self.fresh_service()
         value = restarted.load_vehicle('BENCH').ecus[0]
-        self.assertEqual(value.resources['dll'], str(self.dll))
+        self.assertEqual(value.resources['dll'], 'resources/dll/BCM/fixture.dll')
         self.assertEqual((value.request_id, value.response_id), ('681', '601'))
         self.assertEqual(value.resources['dbc'], 'keep.dbc')
         self.assertEqual(value.resources['custom'], 'keep')
@@ -84,10 +84,10 @@ class VehicleDllIntegrationTests(unittest.TestCase):
         other = restarted.load_vehicle('OTHER').ecus[0]
         restarted.save_ecu('OTHER', replace(other, resources={'dll': str(self.other_dll)}))
         self.assertEqual(restarted.resolve_ecu_dll_resource('OTHER', 'BCM').status, DllResourceStatus.ARCH_UNSUPPORTED)
-        self.assertEqual(restarted.resolve_ecu_dll_resource('BENCH', 'BCM').path, str(self.dll))
+        self.assertEqual(restarted.resolve_ecu_dll_resource('BENCH', 'BCM').path, str(self.root/'vehicles/BENCH/resources/dll/BCM/fixture.dll'))
         controller = VehicleController()
         controller._service = restarted
-        self.assertEqual(controller.load_vehicle('BENCH').ecus[0].resources['dll'], str(self.dll))
+        self.assertEqual(controller.load_vehicle('BENCH').ecus[0].resources['dll'], 'resources/dll/BCM/fixture.dll')
 
     def test_saved_metadata_refresh_preserves_runtime_and_transport_change_invalidates(self):
         key = self.panel.step_ids[0]
@@ -96,7 +96,9 @@ class VehicleDllIntegrationTests(unittest.TestCase):
         self.panel.vehicle_configuration_changed.connect(lambda: changes.append('transport'))
         self.save(self.dll)
         self.assertEqual(changes, [])
-        self.assertEqual(self.metadata.metadata.path, str(self.dll))
+        self.assertEqual(self.metadata.metadata.path, str(self.root/'vehicles/BENCH/resources/dll/BCM/fixture.dll'))
+        self.assertEqual(self.manager.ecu_resource.txt_dll.text(), 'resources/dll/BCM/fixture.dll')
+        self.assertIn('configured', self.manager.ecu_resource.lbl_dll_status.text())
         self.assertIn('configured', self.view.dll_status.text())
         self.assertEqual(self.panel._runtime[key][:2], ('62 F1 90 01', 'Passed'))
         self.assertNotIn(str(self.root), self.view.dll_status.text() + self.view.dll_status.toolTip())
@@ -166,7 +168,71 @@ class VehicleDllIntegrationTests(unittest.TestCase):
         panel.set_step_result(key, '62 F1 90 01', 'Passed')
         generation = tab.diagnostic_controller.generation
         self.save(self.dll)
-        self.assertEqual(tab.dll_resource_controller.metadata.path, str(self.dll))
+        self.assertEqual(tab.dll_resource_controller.metadata.path, str(self.root/'vehicles/BENCH/resources/dll/BCM/fixture.dll'))
         self.assertEqual(panel._runtime[key][:2], ('62 F1 90 01', 'Passed'))
         self.assertEqual(tab.diagnostic_controller.generation, generation)
         window.hide()
+
+    def test_unchanged_legacy_is_not_imported_until_explicit_browse_even_same_path(self):
+        ecu=self.service.load_vehicle('BENCH').ecus[0]
+        self.service._repository.save_ecu('BENCH',replace(ecu,resources={'dll':str(self.dll)}))
+        self.manager._reload_current_vehicle(selected_ecu_name='BCM')
+        with patch.object(self.manager,'_show_auto_close_info'):
+            self.manager._on_save_clicked()
+        self.assertEqual(self.service.load_vehicle('BENCH').ecus[0].resources['dll'],str(self.dll))
+        self.assertFalse((self.root/'vehicles/BENCH/resources').exists())
+        with patch.object(QFileDialog,'getOpenFileName',return_value=(str(self.dll),'')):
+            self.manager.ecu_resource.btn_dll.click()
+        self.assertFalse((self.root/'vehicles/BENCH/resources').exists())
+        with patch.object(self.manager,'_show_auto_close_info'):
+            self.manager._on_save_clicked()
+        self.assertEqual(self.service.load_vehicle('BENCH').ecus[0].resources['dll'],'resources/dll/BCM/fixture.dll')
+
+    def test_gui_rename_and_delete_move_owned_reference_without_orphans(self):
+        from PySide6.QtWidgets import QMessageBox
+        self.save(self.dll)
+        old=Path(self.metadata.metadata.path)
+        self.manager.ecu_info.txt_name.setText('BCM_NEW')
+        with patch.object(self.manager,'_show_auto_close_info'):
+            self.manager._on_save_clicked()
+        value=self.service.resolve_ecu_dll_resource('BENCH','BCM_NEW')
+        self.assertTrue(value.configurable)
+        self.assertFalse(old.exists())
+        self.assertIn('resources/dll/BCM_NEW/',self.manager.ecu_resource.txt_dll.text())
+        self.assertNotIn('BCM',[ecu.name for ecu in self.service.load_vehicle('BENCH').ecus])
+        with patch.object(QMessageBox,'question',return_value=QMessageBox.Yes):
+            self.manager._on_delete_ecu_clicked()
+        self.assertFalse(Path(value.path).exists())
+
+    def test_failed_gui_import_preserves_saved_state_results_and_signal(self):
+        from PySide6.QtWidgets import QMessageBox
+        self.save(self.dll)
+        before=self.service.load_vehicle('BENCH')
+        key=self.panel.step_ids[0];self.panel.set_step_result(key,'62 F1 90','Passed')
+        self.dll.write_bytes(pe_dll(export=b'Changed'))
+        with patch.object(QFileDialog,'getOpenFileName',return_value=(str(self.dll),'')):
+            self.manager.ecu_resource.btn_dll.click()
+        signals=[];self.manager.vehicle_data_changed.connect(signals.append)
+        with patch('repositories.vehicle_dll_storage.copy_stream',side_effect=OSError('full')), \
+             patch.object(QMessageBox,'warning') as warning:
+            self.manager._on_save_clicked()
+        warning.assert_called_once()
+        self.assertEqual(signals,[])
+        self.assertEqual(self.service.load_vehicle('BENCH'),before)
+        self.assertEqual(self.panel._runtime[key][1],'Passed')
+
+    def test_vf5np_and_vf6_browse_save_use_separate_copies(self):
+        source=self.root/'BCM.dll';source.write_bytes(pe_dll(0x14C))
+        for name in ('VF5NP','VF6'):
+            self.service.create_vehicle(Vehicle(name))
+            self.service.add_ecu(name,ECU('BCM','681','601'))
+            self.manager._on_vehicle_changed(name)
+            self.save(source)
+            self.assertEqual(self.service.load_vehicle(name).ecus[0].resources['dll'],'resources/dll/BCM/BCM.dll')
+        first=Path(self.service.resolve_ecu_dll_resource('VF5NP','BCM').path)
+        second=Path(self.service.resolve_ecu_dll_resource('VF6','BCM').path)
+        self.assertNotEqual(first,second)
+        self.assertEqual(first.read_bytes(),second.read_bytes())
+        self.manager._on_vehicle_changed('VF5NP')
+        source.write_bytes(pe_dll(export=b'Changed'));self.save(source)
+        self.assertEqual(second.read_bytes(),pe_dll(0x14C))

@@ -137,8 +137,12 @@ class ECUResourceWidget(QWidget):
     def fn_set_ecu(
         self,
         ecu: ECU,
+        *,
+        dll_metadata=None,
     ):
         resources = ecu.resources or {}
+        self._saved_dll_metadata = dll_metadata
+        self._browsed_dll = None
         self._saved_dll_value = resources.get('dll','') or ''
         self.txt_dll.setText(
             resources.get(
@@ -191,15 +195,25 @@ class ECUResourceWidget(QWidget):
                          dtc=self.txt_dtc.text(),request_library=self.txt_request.text())
         return replace(ecu,resources=resources)
 
+    def fn_dll_import_source(self):
+        value = self.txt_dll.text()
+        if value.strip() and (value != self._saved_dll_value or self._browsed_dll == value):
+            return value
+        return None
+
     def _browse_dll(self):
         value,_ = QFileDialog.getOpenFileName(self,'Select ECU DLL','','DLL files (*.dll)')
         if not value: return
         metadata = inspect_dll_resource(value)
         self._show_dll_metadata(metadata)
-        if metadata.configurable: self.txt_dll.setText(metadata.path)
+        if metadata.configurable:
+            self.txt_dll.setText(metadata.path)
+            self._browsed_dll = metadata.path
 
     def _refresh_dll_metadata(self):
-        metadata = inspect_dll_resource(self.txt_dll.text())
+        value = self.txt_dll.text()
+        metadata = (self._saved_dll_metadata if value == self._saved_dll_value
+                    and self._saved_dll_metadata is not None else inspect_dll_resource(value))
         self._show_dll_metadata(metadata)
         return metadata
 
@@ -210,6 +224,8 @@ class ECUResourceWidget(QWidget):
 
     def fn_clear(self):
         self._saved_dll_value = ''
+        self._saved_dll_metadata = None
+        self._browsed_dll = None
         self.txt_dll.clear()
 
         self.txt_odx.clear()

@@ -19,6 +19,7 @@ from gui.dialogs.export_vehicle_dialog import ExportVehicleDialog
 from gui.dialogs.import_display_names_dialog import ImportDisplayNamesDialog
 from gui.dialogs.shortcuts_dialog import ShortcutsDialog
 from gui.controllers.vehicle_controller import VehicleController
+from repositories.vehicle_dll_storage import ResourceCleanupError
 from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.containers.groupbox_style import fn_groupbox_style
 from gui.themes.styles.controls.scrollbar_style import (
@@ -684,7 +685,7 @@ class VehicleManagerTab(QWidget):
                 vehicle_name
             )
 
-        except FileNotFoundError as error:
+        except (OSError, ValueError) as error:
 
             QMessageBox.warning(
                 self,
@@ -750,7 +751,8 @@ class VehicleManagerTab(QWidget):
                 )
 
                 self.ecu_resource.fn_set_ecu(
-                    ecu
+                    ecu,
+                    dll_metadata=self._controller.resolve_ecu_dll_resource(self._current_vehicle_name, ecu.name),
                 )
 
                 self.btn_save.setEnabled(True)
@@ -837,10 +839,14 @@ class VehicleManagerTab(QWidget):
 
             return
 
-        self._controller.delete_ecu(
-            self._current_vehicle_name,
-            ecu_name,
-        )
+        try:
+            self._controller.delete_ecu(self._current_vehicle_name, ecu_name)
+        except (ValueError, OSError) as error:
+            if isinstance(error, ResourceCleanupError):
+                self._reload_current_vehicle(selected_ecu_name='')
+                self._notify_vehicle_data_changed()
+            QMessageBox.warning(self, 'Delete ECU', str(error))
+            return
 
         next_ecu_name = ""
 
@@ -1160,27 +1166,27 @@ class VehicleManagerTab(QWidget):
 
         try:
 
-            self._controller.save_ecu(
+            source = self.ecu_resource.fn_dll_import_source()
+            options = {'dll_source': source} if source is not None else {}
+            renamed_atomically = self._controller.save_ecu(
                 self._current_vehicle_name,
                 draft_ecu,
                 existing_ecu_name=old_ecu_name,
+                **options,
             )
 
-            if draft_ecu.name != old_ecu_name:
+            if draft_ecu.name != old_ecu_name and renamed_atomically is not True:
 
                 self._controller.delete_ecu(
                     self._current_vehicle_name,
                     old_ecu_name,
                 )
 
-        except ValueError as error:
-
-            QMessageBox.warning(
-                self,
-                "Save ECU",
-                str(error),
-            )
-
+        except (OSError, ValueError) as error:
+            if isinstance(error, ResourceCleanupError):
+                self._reload_current_vehicle(selected_ecu_name=draft_ecu.name)
+                self._notify_vehicle_data_changed()
+            QMessageBox.warning(self, "Save ECU", str(error))
             return
 
         self._reload_current_vehicle(

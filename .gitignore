@@ -47,3 +47,11 @@ config/database_qcurrent/
 
 # Local third-party drivers
 driver/
+
+# Imported per-Vehicle OEM binaries are local assets, not redistributable source.
+config/vehicles/*/resources/dll/**/*.[dD][lL][lL]
+config/vehicles/*/resources/dll/**/.import-*
+config/vehicles/*/.dll-import.lock
+config/vehicles/.vehicle-resources.lock
+config/vehicles/*/ecus/*.json.recovery
+config/vehicles/*/vehicle.json.recovery

@@ -65,13 +65,20 @@ class VehicleController:
         vehicle_name: str,
         ecu: ECU,
         existing_ecu_name: str = "",
-    ) -> None:
+        *,
+        dll_source: str | None = None,
+    ) -> bool:
 
-        self._service.save_ecu(
+        options = {'dll_source': dll_source} if dll_source is not None else {}
+        return self._service.save_ecu(
             vehicle_name,
             ecu,
             existing_ecu_name=existing_ecu_name,
+            **options,
         )
+
+    def resolve_ecu_dll_resource(self, vehicle_name, ecu_name):
+        return self._service.resolve_ecu_dll_resource(vehicle_name, ecu_name)
 
     def add_ecu(
         self,

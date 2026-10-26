@@ -5,7 +5,7 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag"
     ],
-    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0003.DVT&V1.diag",
+    "selected_id": "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0002.READ VIN.diag",
     "vehicles": {
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json": "LIMO",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag": "VF5NP",
@@ -31,6 +31,9 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\306.BMS&HVBatReport.diag",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\307.BMS&HVBatReport&Pre.diag",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0001.READ&CDS.diag",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0004. RESET ALL.diag"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0004. RESET ALL.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\924.SGC&CDS&1.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9302.MHU&WriteVIN&0.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\903.EPS&BasicDID.diag"
     ]
 }

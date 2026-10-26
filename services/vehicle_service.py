@@ -100,7 +100,10 @@ class VehicleService:
         vehicle_name: str,
         ecu: ECU,
         existing_ecu_name: str = "",
-    ) -> None:
+        *,
+        dll_source: str | None = None,
+    ) -> bool:
+        """Save ECU; True means an imported-resource rename removed the old definition."""
 
         vehicle = self._repository.load(vehicle_name)
 
@@ -113,15 +116,31 @@ class VehicleService:
         previous = next((item for item in vehicle.ecus if item.name == (existing_ecu_name or ecu.name)),None)
         old_dll = (previous.resources or {}).get('dll','') if previous else ''
         new_dll = (ecu.resources or {}).get('dll','')
-        if new_dll != old_dll and new_dll:
+        if previous and previous.name != ecu.name and previous.name.casefold() == ecu.name.casefold():
+            raise ValueError('Case-only ECU rename is unsupported; use a distinct ECU name.')
+        if dll_source is None and previous and previous.name != ecu.name:
+            from core.vehicle_dll_paths import is_managed_dll, resolve_dll_path
+            if is_managed_dll(previous.resources) and new_dll == old_dll:
+                dll_source = str(resolve_dll_path(self._repository.root, vehicle_name, previous.name, old_dll, path_base='vehicle'))
+        if dll_source is not None:
+            try:
+                return self._repository.import_ecu_dll(vehicle_name, ecu, dll_source,
+                                                       existing_ecu_name=existing_ecu_name)
+            except OSError:
+                raise ValueError('DLL import or configuration Save failed. Previous configuration was retained unless recovery was explicitly reported.') from None
+        new_base = (ecu.resources or {}).get('dll_path_base','project')
+        old_base = (previous.resources or {}).get('dll_path_base','project') if previous else 'project'
+        if (new_dll != old_dll or new_base != old_base) and new_dll:
             from core.dll_resource import inspect_dll_resource
-            metadata = inspect_dll_resource(new_dll)
+            from core.vehicle_dll_paths import resolve_dll_path
+            metadata = inspect_dll_resource(str(resolve_dll_path(self._repository.root, vehicle_name, ecu.name, new_dll, path_base=new_base)))
             if not metadata.configurable: raise ValueError(metadata.message)
 
-        self._repository.save_ecu(
-            vehicle_name,
-            ecu,
-        )
+        try:
+            self._repository.save_ecu(vehicle_name, ecu)
+        except OSError:
+            raise ValueError('ECU Save failed; previous configuration retained unless recovery was explicitly reported.') from None
+        return False
 
     def add_ecu(
         self,
