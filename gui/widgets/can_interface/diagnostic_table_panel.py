@@ -1,3 +1,5 @@
+import re
+
 from dataclasses import replace
 from uuid import uuid4
 from html import escape
@@ -175,13 +177,29 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             item.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
 
     def _updated_step_from_item(self, step, column, text):
-        if column == self.COL_SEQUENCE_NAME and not text.strip():
-            self.show_notice('Test sequence name cannot be empty.')
-            return None
-        updated = replace(step, comment=text) if column == self.COL_COMMENT else super()._updated_step_from_item(step, column, text)
-        if updated is None:
-            self.show_notice("Invalid value; the previous value was retained.")
-        return updated
+
+        if column == self.COL_SEQUENCE_NAME:
+            if not text.strip():
+                self.show_notice(
+                    "Test sequence name cannot be empty."
+                )
+                return None
+
+            return replace(step, sequence_name=text.strip())
+
+        if column == self.COL_COMMENT:
+            return replace(step, comment=text)
+
+        # Allow incomplete HEX drafts.
+        if column == self.COL_REQUEST:
+            return replace(step, request=text)
+
+        if column == self.COL_EXPECTED:
+            return replace(step, expected_response=text)
+
+        return super()._updated_step_from_item(
+            step, column, text
+        )
 
     def _on_item_changed(self, item):
         if self._is_populating:
@@ -234,16 +252,49 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._send_available=bool(available)
         for row in range(self.table.rowCount()): self._set_button_state(row)
 
-    def _set_button_state(self,row):
-        button=self.table.cellWidget(row,self.COL_SEND)
-        security=self._test_case.steps[row].request.strip().upper().startswith('27')
-        target_valid = self._resolved_ecu(self._test_case.steps[row].ecu)
-        button.setEnabled(self._send_available and not self._request_busy and not security and target_valid)
-        button.setToolTip('Security Access is not enabled.' if security else
-                          'A diagnostic request is running.' if self._request_busy else
-                          'Select Vehicle and a configured ECU first.' if not target_valid else
-                          'Connect the selected Vector channel first.' if not self._send_available else
-                          'Send one manual UDS request; Delay and Repeat do not run automatically.')
+    def _set_button_state(self, row):
+        button = self.table.cellWidget(row, self.COL_SEND)
+
+        if button is None:
+            return
+
+        step = self._test_case.steps[row]
+
+        payload_valid = self._is_valid_request_hex(
+            step.request
+        )
+
+        security = (
+            payload_valid
+            and step.request.strip().upper().startswith("27")
+        )
+
+        target_valid = self._resolved_ecu(step.ecu)
+
+        enabled = (
+            self._send_available
+            and not self._request_busy
+            and not security
+            and target_valid
+            and payload_valid
+        )
+
+        button.setEnabled(enabled)
+
+        if not payload_valid:
+            tooltip = "Invalid or empty HEX payload."
+        elif security:
+            tooltip = "Security Access is not enabled."
+        elif not target_valid:
+            tooltip = "Select a configured ECU."
+        elif self._request_busy:
+            tooltip = "A diagnostic request is running."
+        elif not self._send_available:
+            tooltip = "Connect Vector first."
+        else:
+            tooltip = "Send one manual UDS request."
+
+        button.setToolTip(tooltip)
 
     def show_notice(self, text):
         self.notice.setText(text)
@@ -416,6 +467,19 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             steps[row] = replace(step, ecu=name)
             self._replace_steps(steps)
             self._mark_dirty()
+    @staticmethod
+    def _is_valid_request_hex(value):
+        text = str(value or "").strip()
+
+        if not text:
+            return False
+
+        tokens = text.split()
+
+        return all(
+            re.fullmatch(r"[0-9A-Fa-f]{2}", token)
+            for token in tokens
+        )
 
     def fn_refresh_theme(self):
         apply_panel_theme(self, "canDiagnosticTablePanel")

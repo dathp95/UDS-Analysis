@@ -6,7 +6,7 @@ import tempfile
 
 from core.diagnostic_sequence_import import import_diag
 from repositories.diagnostic_sequence_repository import DiagnosticSequenceRepository, DiagnosticSequenceValidationError
-
+from core.diagnostic_sequence import DiagnosticStep
 
 class CanSequenceRepository(DiagnosticSequenceRepository):
     """Read native JSON/external .diag; write native JSON only."""
@@ -66,6 +66,39 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
         return path
 
     def _to_step(self, payload, index):
-        step = super()._to_step(payload, index)
-        comment = payload.get('comment', '')
-        return replace(step, comment=comment) if isinstance(comment, str) else step
+        if not isinstance(payload, dict):
+            raise DiagnosticSequenceValidationError(
+                f"Step {index} must be an object."
+            )
+
+        # Only relax HEX validation in CAN Sequence Editor.
+        # Keep structural fields and numeric settings validated.
+        draft = dict(payload)
+
+        request = draft.get("request", "")
+        expected = draft.get("expected_response", "")
+
+        if not isinstance(request, str):
+            raise DiagnosticSequenceValidationError(
+                f"Step {index}: request must be text."
+            )
+
+        if not isinstance(expected, str):
+            raise DiagnosticSequenceValidationError(
+                f"Step {index}: expected_response must be text."
+            )
+
+        # Use valid placeholder bytes for the base validator.
+        draft["request"] = "00"
+        draft["expected_response"] = ""
+
+        step = super()._to_step(draft, index)
+
+        return replace(
+            step,
+            request=request,
+            expected_response=expected,
+            comment=payload.get("comment", "")
+            if isinstance(payload.get("comment", ""), str)
+            else step.comment,
+        )
