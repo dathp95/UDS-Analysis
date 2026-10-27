@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "name": "test2",
+    "name": "test 1",
     "description": "",
     "enabled": true,
     "execution": {
@@ -10,9 +10,9 @@
     "steps": [
         {
             "step": 1,
-            "sequence_name": "test2",
-            "ecu": "BCM",
-            "request": "22 F1 90",
+            "sequence_name": "",
+            "ecu": "ACM",
+            "request": "",
             "delay_ms": 100,
             "repeat": 1,
             "expected_response": "",
@@ -21,9 +21,9 @@
         },
         {
             "step": 2,
-            "sequence_name": "test2",
-            "ecu": "BCM",
-            "request": "45 67 87",
+            "sequence_name": "",
+            "ecu": "",
+            "request": "",
             "delay_ms": 100,
             "repeat": 1,
             "expected_response": "",
@@ -32,8 +32,8 @@
         },
         {
             "step": 3,
-            "sequence_name": "test2",
-            "ecu": "BCM",
+            "sequence_name": "",
+            "ecu": "",
             "request": "",
             "delay_ms": 100,
             "repeat": 1,
@@ -43,9 +43,20 @@
         },
         {
             "step": 4,
-            "sequence_name": "trtrtrtrt",
-            "ecu": "BCM",
-            "request": "1235454",
+            "sequence_name": "",
+            "ecu": "",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "",
+            "ecu": "",
+            "request": "",
             "delay_ms": 100,
             "repeat": 1,
             "expected_response": "",

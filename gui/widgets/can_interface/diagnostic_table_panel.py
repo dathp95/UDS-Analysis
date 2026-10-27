@@ -136,9 +136,8 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         super().fn_add_step_after_selected()
 
     def _replace_steps(self, steps):
-        # Newly inserted rows inherit the document title until explicitly edited.
-        named = [replace(step, sequence_name=self._test_case.name) if not step.sequence_name else step for step in steps]
-        super()._replace_steps(named)
+        # Preserve user-entered values, including empty names.
+        super()._replace_steps(steps)
 
     def fn_remove_selected_step(self):
         removed = set(self._selected_rows())
@@ -179,13 +178,10 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     def _updated_step_from_item(self, step, column, text):
 
         if column == self.COL_SEQUENCE_NAME:
-            if not text.strip():
-                self.show_notice(
-                    "Test sequence name cannot be empty."
-                )
-                return None
-
-            return replace(step, sequence_name=text.strip())
+            return replace(
+                step,
+                sequence_name=text
+            )
 
         if column == self.COL_COMMENT:
             return replace(step, comment=text)

@@ -103,10 +103,22 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
         draft["request"] = "00"
         draft["expected_response"] = ""
 
+        # The CAN editor supports incomplete sequence-name drafts.
+        sequence_name = draft.get("sequence_name", "")
+
+        if not isinstance(sequence_name, str):
+            raise DiagnosticSequenceValidationError(
+                f"Step {index}: sequence_name must be text."
+            )
+
+        # Use a temporary valid name for the strict base validator.
+        draft["sequence_name"] = "_DRAFT_"
+
         step = super()._to_step(draft, index)
 
         return replace(
             step,
+            sequence_name=sequence_name,
             request=request,
             expected_response=expected,
             comment=payload.get("comment", "")
