@@ -157,15 +157,65 @@ class CanWorkspaceController(QObject):
             self.panel.show_notice("No diagnostic sequence to save.")
             return None
         if path is None:
-            if self.source is not None and self.source.suffix.lower() == '.json':
-                path = self.source
+
+            if self.source is not None:
+                suffix = self.source.suffix.lower()
+
+                if suffix == ".json":
+                    # Update existing JSON directly.
+                    path = self.source
+
+                elif suffix == ".diag":
+                    # Convert external DIAG to native JSON.
+                    # Never overwrite the original .diag.
+                    target = (
+                        self.repository.root
+                        / f"{self.source.stem}.json"
+                    )
+
+                    # Avoid overwriting an unrelated JSON.
+                    if target.exists():
+                        index = 1
+
+                        while True:
+                            candidate = (
+                                self.repository.root
+                                / f"{self.source.stem}_{index}.json"
+                            )
+
+                            if not candidate.exists():
+                                target = candidate
+                                break
+
+                            index += 1
+
+                    path = target
+
+                else:
+                    self.panel.show_notice(
+                        "Unsupported sequence format."
+                    )
+                    return None
+
             else:
-                name = re.sub(r'[<>:"/\\|?*]', '_', case.name) or "sequence"
-                path, _ = QFileDialog.getSaveFileName(self.panel, "Save As V-CODE Sequence (.json)",
-                           str(self.repository.root / f"{name}.json"), "V-CODE Sequence (*.json)")
+                # First Save for a new sequence.
+                name = re.sub(
+                    r'[<>:"/\\|?*]',
+                    '_',
+                    case.name
+                ) or "sequence"
+
+                path, _ = QFileDialog.getSaveFileName(
+                    self.panel,
+                    "Save New Sequence",
+                    str(self.repository.root / f"{name}.json"),
+                    "V-CODE Sequence (*.json)"
+                )
+
                 if not path:
                     return None
-                overwrite = True  # Native file dialog confirms existing destinations.
+
+                overwrite = True
         destination = Path(path).resolve()
         try:
             case = self.panel.sequence_for_save()
