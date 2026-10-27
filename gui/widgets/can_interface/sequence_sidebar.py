@@ -98,16 +98,25 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.btn_import_folder = SecondaryButton("Import Folder", width=100, height=30,)
         self.btn_export = SecondaryButton('Export SEQ', width=84, height=30)
         self.btn_save = PrimaryButton('Save', width=70, height=30)
-        self.footer_buttons = (self.btn_add, self.btn_import, self.btn_export, self.btn_save, self.btn_save_order)
-        for buttons in (self.footer_buttons[:3], self.footer_buttons[3:]):
-            row = QHBoxLayout()
-            row.setSpacing(6)
-            for button in buttons:
-                button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                row.addWidget(button, 1)
-            footer_layout.addLayout(row)
-        
-        footer_layout.addWidget(self.btn_import_folder)
+
+        # Only Save and Save Order remain visible.
+        self.footer_buttons = (
+            self.btn_save,
+            self.btn_save_order,
+        )
+
+        row = QHBoxLayout()
+        row.setSpacing(6)
+
+        for button in self.footer_buttons:
+            button.setSizePolicy(
+                QSizePolicy.Expanding,
+                QSizePolicy.Fixed,
+            )
+            row.addWidget(button, 1)
+
+        footer_layout.addLayout(row)
+
         self.layout().addWidget(self.footer)
         self.btn_save.setEnabled(False)
         self.btn_export.setEnabled(False)
@@ -127,7 +136,6 @@ class CanSequenceSidebar(DiagnosticSequenceList):
 
         # Hide the old action buttons without disconnecting
         # the existing logic.
-        self.footer.hide()
 
         self.btn_save_order.clicked.connect(self._save_order)
         self.btn_import_folder.clicked.connect(
@@ -142,6 +150,57 @@ class CanSequenceSidebar(DiagnosticSequenceList):
 
     def checked_ids(self):
         return tuple(self._selected_paths())
+
+    def _refresh_sequence_labels(self):
+        """
+        Prefix '**' for sequences whose position changed.
+
+        Suffix '*' for unsaved sequence content.
+        """
+        current = self.source_ids()
+
+        saved = tuple(
+            source_id
+            for source_id in self._saved_order
+            if source_id in current
+        )
+
+        # Include sequences not present in the saved order.
+        baseline = saved + tuple(
+            source_id
+            for source_id in current
+            if source_id not in saved
+        )
+
+        updating = self._is_updating
+        self._is_updating = True
+
+        try:
+            for index, source_id in enumerate(current):
+                item = self.list_sequences.item(index)
+
+                base_name = item.data(
+                    Qt.UserRole + 2
+                )
+
+                order_changed = (
+                    index < len(baseline)
+                    and baseline[index] != source_id
+                )
+
+                content_changed = (
+                    source_id in self._dirty_ids
+                )
+
+                prefix = "** " if order_changed else ""
+                suffix = " *" if content_changed else ""
+
+                item.setText(
+                    f"{prefix}{base_name}{suffix}"
+                )
+
+        finally:
+            self._is_updating = updating
 
     def fn_refresh_sequences(self):
         current = self.source_ids()
@@ -166,11 +225,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.list_sequences.verticalScrollBar().setValue(scroll)
 
         # Restore dirty markers for every unsaved sequence.
-        for source_id in self.source_ids():
-            self.set_document_dirty(
-                source_id,
-                source_id in self._dirty_ids,
-            )       
+        self._refresh_sequence_labels()     
         self._emit_selection_changed()
 
     def _create_sequence_item(self, path, test_case):
@@ -231,15 +286,8 @@ class CanSequenceSidebar(DiagnosticSequenceList):
             self._dirty_ids.add(source_id)
         else:
             self._dirty_ids.discard(source_id)
-        updating = self._is_updating
-        self._is_updating = True
-        try:
-            for index, value in enumerate(self.source_ids()):
-                item = self.list_sequences.item(index)
-                item.setText(item.data(Qt.UserRole + 2) + (' *' if value in self._dirty_ids else ''))
-                item.setToolTip('Unsaved native sequence; Save creates a JSON file.' if value in self._drafts else escape(value))
-        finally:
-            self._is_updating = updating
+
+        self._refresh_sequence_labels()
 
     def update_document_model(self, source_id, case):
         if source_id in self._drafts:
@@ -450,6 +498,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
             dirty = self.order_is_dirty()
             self.btn_save_order.setEnabled(dirty)
             self.btn_save_order.setText("Save Order *" if dirty else "Save Order")
+            self._refresh_sequence_labels()
 
     def _save_order(self):
         if self._draft_order_dirty:
@@ -466,6 +515,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
             return
         self._saved_order = ids
         self._order_changed()
+        self._refresh_sequence_labels()
         self.feedback.setText("Order saved.")
         self._feedback_timer.start(1800)
 
@@ -508,7 +558,10 @@ class CanSequenceSidebar(DiagnosticSequenceList):
     def _filter(self, text):
         for index in range(self.list_sequences.count()):
             item = self.list_sequences.item(index)
-            item.setHidden(text.casefold() not in item.text().casefold())
+            base_name = item.data(Qt.UserRole + 2) or ""
+            item.setHidden(
+                text.casefold() not in base_name.casefold()
+            )
         self.list_sequences.setDragEnabled(not bool(text))
         self.list_sequences.setAcceptDrops(not bool(text))
         self._sync_select_all_state()
