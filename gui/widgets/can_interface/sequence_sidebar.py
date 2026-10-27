@@ -78,7 +78,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         old.deleteLater()
         self.layout().setStretchFactor(self.list_sequences, 1)
         self.lbl_selected = PrimaryLabel("0 selected")
-        self.btn_save_order = SecondaryButton("Save Order", height=30, width=90)
+        self.btn_save_order = PrimaryButton("Save Order", height=30, width=90)
         self.layout().addWidget(self.lbl_selected)
         self.feedback = PrimaryLabel("")
         self.lbl_error.setTextFormat(Qt.PlainText)

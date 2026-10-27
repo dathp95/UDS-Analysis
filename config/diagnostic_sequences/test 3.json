@@ -1,0 +1,89 @@
+{
+    "schema_version": 1,
+    "name": "test 3",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 2,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 6,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 7,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        }
+    ]
+}
