@@ -1,0 +1,67 @@
+{
+    "schema_version": 1,
+    "name": "Test 2",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "123",
+            "ecu": "ACM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 2,
+            "sequence_name": "12",
+            "ecu": "ACM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "",
+            "ecu": "ACM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "",
+            "ecu": "ACM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "456",
+            "ecu": "ACM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        }
+    ]
+}

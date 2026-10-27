@@ -38,8 +38,35 @@ def import_diag(path):
         # Reuse the native repository's byte-token HEX policy; no divergent parser.
         request = DiagnosticSequenceRepository._normalize_hex(request, f"step {index} TransMess")
         expected = DiagnosticSequenceRepository._normalize_hex(expected, f"step {index} ExpectMess", allow_empty=True)
-        steps.append(DiagnosticStep(index, source.stem, ecu, request,
-                     _integer(item.get("DelayTime", 100), f"step {index} DelayTime", 0),
-                     _integer(item.get("RepeatTimes", 1), f"step {index} RepeatTimes", 1), expected, "prefix",
-                     _text(item.get("Remark"), f"step {index} Remark", optional=True)))
+        # Read step name from the original .diag file.
+        sequence_name = _text(
+            item.get("SeqName"),
+            f"step {index} SeqName",
+            optional=True,
+        )
+        steps.append(
+            DiagnosticStep(
+                step=index,
+                sequence_name=sequence_name,
+                ecu=ecu,
+                request=request,
+                delay_ms=_integer(
+                    item.get("DelayTime", 100),
+                    f"step {index} DelayTime",
+                    0,
+                ),
+                repeat=_integer(
+                    item.get("RepeatTimes", 1),
+                    f"step {index} RepeatTimes",
+                    1,
+                ),
+                expected_response=expected,
+                match="prefix",
+                comment=_text(
+                    item.get("Remark"),
+                    f"step {index} Remark",
+                    optional=True,
+                ),
+            )
+        )
     return DiagnosticTestCase(1, source.stem, _text(payload["Header"].get("Description"), "Description", optional=True), True, steps)
