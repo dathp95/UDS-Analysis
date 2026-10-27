@@ -139,7 +139,13 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self._order_changed()
         self.mark_opened(self._active_source, persist=False)
         self.list_sequences.verticalScrollBar().setValue(scroll)
-        self.set_document_dirty(self._active_source, self._active_source in self._dirty_ids)
+
+        # Restore dirty markers for every unsaved sequence.
+        for source_id in self.source_ids():
+            self.set_document_dirty(
+                source_id,
+                source_id in self._dirty_ids,
+            )       
         self._emit_selection_changed()
 
     def _create_sequence_item(self, path, test_case):

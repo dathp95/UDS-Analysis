@@ -17,6 +17,14 @@ class CanWorkspaceController(QObject):
         self.sidebar, self.panel, self.repository, self.store = sidebar, panel, repository, store
         self.source = None
         self.document_id = None
+        # Unsaved sequence content, held only in RAM.
+        # Key: absolute JSON/DIAG source path.
+        # Value: DiagnosticTestCase.
+        self._session_drafts = {}
+
+        # Paths that have unsaved modifications.
+        self._session_dirty = set()
+
         sidebar.sequence_open_requested.connect(self.open_source)
         panel.load_requested.connect(self.browse_source)
         panel.save_requested.connect(self.save_sequence)
@@ -31,12 +39,44 @@ class CanWorkspaceController(QObject):
 
     def _modified(self, case):
         if self.document_id is None:
-            self.document_id = 'draft:' + uuid4().hex
-            self.sidebar.add_draft(self.document_id, case)
-        self.panel.title.setText(case.name + " *")
-        self.sidebar.update_document_model(self.document_id, case)
-        self.sidebar.set_document_dirty(self.document_id, True)
+            return
+
+        # Save the edited model in memory only.
+        self._session_drafts[self.document_id] = case
+        self._session_dirty.add(self.document_id)
+
+        # Update the document title.
+        self.panel.title.setText(f"{case.name} *")
+
+        # Update the corresponding sidebar item.
+        self.sidebar.update_document_model(
+            self.document_id,
+            case,
+        )
+
+        self.sidebar.set_document_dirty(
+            self.document_id,
+            True,
+        )
+
         self._sync_actions()
+
+    def _remember_current_sequence(self):
+        """Keep the active edited sequence in RAM."""
+
+        if self.document_id is None:
+            return
+
+        if not self.panel.fn_is_dirty():
+            return
+
+        case = self.panel.fn_current_sequence()
+
+        if case is None:
+            return
+
+        self._session_drafts[self.document_id] = case
+        self._session_dirty.add(self.document_id)
 
     def _sync_actions(self):
         case = self.panel.fn_current_sequence()
@@ -50,34 +90,80 @@ class CanWorkspaceController(QObject):
             self.sidebar.set_document_dirty(self.document_id, False)
 
     def add_sequence(self, name=None):
+
         if name is None:
-            name, ok = QInputDialog.getText(self.panel, 'New sequence', 'Distinct sequence name:')
+            name, ok = QInputDialog.getText(
+                self.panel,
+                "New Sequence",
+                "Sequence name:",
+            )
+
             if not ok:
                 return False
+
         name = name.strip()
+
         try:
             safe_component(name)
-            names = [case.name.casefold() for case in self.sidebar._drafts.values()]
-            for path in self.repository.fn_list_sequences():
+
+            # Reject duplicate display names.
+            existing_names = set()
+
+            for source_path in self.repository.fn_list_sequences():
                 try:
-                    names.append(self.repository.fn_load_sequence(path).name.casefold())
-                except ValueError:
+                    existing = self.repository.fn_load_sequence(
+                        source_path
+                    )
+                    existing_names.add(existing.name.casefold())
+                except (OSError, ValueError):
                     continue
-            if name.casefold() in names or (self.repository.root / f'{name}.json').exists():
-                raise ValueError('A sequence with this name already exists. Choose a distinct name.')
+
+            if name.casefold() in existing_names:
+                raise ValueError(
+                    f"Sequence '{name}' already exists."
+                )
+
+            destination = (
+                self.repository.root / f"{name}.json"
+            ).resolve()
+
+            if destination.exists():
+                raise FileExistsError(
+                    f"File already exists: {destination.name}"
+                )
+
+            # Create an empty valid sequence.
+            case = DiagnosticTestCase(
+                schema_version=1,
+                name=name,
+                description="",
+                enabled=True,
+                steps=[],
+            )
+
+            # Create the JSON file immediately.
+            self.repository.fn_save_sequence(
+                case,
+                destination,
+            )
+
         except (OSError, ValueError) as error:
-            self.panel.show_notice(str(error))
+            self.panel.show_notice(
+                f"Cannot create sequence: {error}"
+            )
             return False
-        if not self._allow_replace():
-            return False
-        self._release_current()
+
+        # Remember any unsaved edits in the previous sequence.
+        self._remember_current_sequence()
+
+        # Switch to the newly created file.
         self.source = None
-        self.document_id = 'draft:' + uuid4().hex
-        case = DiagnosticTestCase(1, name, '', True, [])
-        self.sidebar.add_draft(self.document_id, case)
-        self.panel.fn_load_sequence(case)
-        self.panel._mark_dirty()
-        return True
+        self.document_id = None
+
+        return self.open_source(
+            str(destination),
+            force=True,
+        )
 
     def import_sequence(self):
         names = {ecu.name for ecu in self.panel._available_ecus if self.panel._resolved_ecu(ecu.name)} if self.panel._current_vehicle is not None else None
@@ -98,52 +184,117 @@ class CanWorkspaceController(QObject):
     def _allow_replace(self):
         if not self.panel.fn_is_dirty():
             return True
-        answer = QMessageBox.question(self.panel, "Unsaved sequence", "Save changes before opening another sequence?",
-                                      QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
+
+        answer = QMessageBox.question(
+            self.panel,
+            "Unsaved sequence",
+            "Save changes before opening another sequence?",
+            QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+            QMessageBox.Cancel,
+        )
+
         if answer == QMessageBox.Cancel:
             return False
-        return bool(self.save_sequence()) if answer == QMessageBox.Save else True
 
+        if answer == QMessageBox.Discard:
+            return True
+
+        if answer == QMessageBox.Save:
+            result = self.save_sequence()
+
+            if result is None:
+                QMessageBox.warning(
+                    self.panel,
+                    "Save Failed",
+                    "The sequence could not be saved. "
+                    "Your changes have been kept."
+                )
+                return False
+
+            return True
+
+        return False
     def browse_source(self):
         path, _ = QFileDialog.getOpenFileName(self.panel, "Load Diagnostic Sequence", "", "Sequences (*.diag *.json)")
         if path:
             self.open_source(path, force=True)
 
-    def open_source(self, source_id, *, persist=True, force=False):
-        if source_id == self.document_id and not force:
-            return True
+    def open_source(
+            self,
+            source_id,
+            *,
+            persist=True,
+            force=False,
+        ):
         try:
             path = Path(source_id).resolve()
+            target_id = str(path)
+
             if self.source == path and not force:
                 return True
-            case = self.repository.fn_load_sequence(path)
+
+            # Prefer the unsaved in-memory version.
+            if target_id in self._session_drafts:
+                case = self._session_drafts[target_id]
+            else:
+                case = self.repository.fn_load_sequence(path)
+
         except (OSError, ValueError) as error:
-            self.panel.show_notice(f"{source_id}: {error}")
-            self.sidebar.mark_opened(self.document_id or "", persist=False)
+            self.panel.show_notice(
+                f"Cannot open sequence: {error}"
+            )
+            self.sidebar.mark_opened(
+                self.document_id or "",
+                persist=False,
+            )
             return False
-        if not self._allow_replace():
-            self.sidebar.mark_opened(self.document_id or "", persist=False)
-            return False
-        # Save in _allow_replace may have updated this very same source.
-        try:
-            case = self.repository.fn_load_sequence(path)
-        except (OSError, ValueError) as error:
-            self.panel.show_notice(str(error))
-            return False
-        self._release_current()
+
+        # Preserve the active unsaved document.
+        self._remember_current_sequence()
+
+        # Switching is unconditional, with no Save dialog.
         self.source = path
-        self.document_id = str(path)
+        self.document_id = target_id
+
         self.panel.fn_load_sequence(case)
-        chosen = self.store.load().vehicles.get(str(path), "")
+
+        # fn_load_sequence() resets the dirty flag.
+        dirty = target_id in self._session_dirty
+
+        self.panel._is_dirty = dirty
+
+        self.panel.title.setText(
+            case.name + (" *" if dirty else "")
+        )
+
+        chosen = self.store.load().vehicles.get(
+            target_id,
+            "",
+        )
+
         self.panel.fn_refresh_vehicles(chosen)
-        if hasattr(self.repository, 'register_source'):
+
+        if hasattr(self.repository, "register_source"):
             self.repository.register_source(path)
+
         self.sidebar.fn_refresh_sequences()
-        self.sidebar.mark_opened(str(path), persist=persist)
-        if path.suffix.lower() == ".diag":
-            self.panel.show_notice("Imported .diag is read-only. Save As JSON excludes external IDs, DLL paths and execution rules.")
+
+        self.sidebar.mark_opened(
+            target_id,
+            persist=persist,
+        )
+
+        # Restore the dirty indicator.
+        self.sidebar.set_document_dirty(
+            target_id,
+            dirty,
+        )
+
         if case.steps:
             self.panel._select_row(0)
+
+        self._sync_actions()
+
         return True
 
     def restore(self):
@@ -166,14 +317,14 @@ class CanWorkspaceController(QObject):
                     path = self.source
 
                 elif suffix == ".diag":
-                    # Convert external DIAG to native JSON.
-                    # Never overwrite the original .diag.
+
                     target = (
                         self.repository.root
                         / f"{self.source.stem}.json"
                     )
 
-                    # Avoid overwriting an unrelated JSON.
+                    # This source is read-only.
+                    # Create a new native JSON only if necessary.
                     if target.exists():
                         index = 1
 
@@ -190,6 +341,10 @@ class CanWorkspaceController(QObject):
                             index += 1
 
                     path = target
+
+                    # The selected target was checked as unused.
+                    # Repository saving still validates the destination.
+                    overwrite = False
 
                 else:
                     self.panel.show_notice(
@@ -225,13 +380,31 @@ class CanWorkspaceController(QObject):
             if destination.exists() and destination != self.source and not overwrite:
                 raise FileExistsError("Destination already exists. Choose a different file or confirm overwrite in Save As.")
             result = self.repository.fn_save_sequence(case, destination)
+           
+            if not destination.is_file():
+                raise OSError(
+                    f"Sequence file was not created: {destination}"
+                )
         except (OSError, ValueError) as error:
             self.panel.show_notice(f"Cannot save sequence: {error}")
             return None
+        
         self.source = destination
+
         old_id = self.document_id
         self.document_id = str(destination)
+
+        # The file write has succeeded.
+        # Remove the corresponding unsaved RAM draft.
+        self._session_drafts.pop(old_id, None)
+        self._session_dirty.discard(old_id)
+
+        # Also clear any entry using the destination identity.
+        self._session_drafts.pop(self.document_id, None)
+        self._session_dirty.discard(self.document_id)
+
         self.sidebar.replace_draft_id(old_id, self.document_id)
+        
         if unresolved:
             self.panel.import_diagnostics += tuple(f'Save normalized row {row}: original ECU {name!r}' for row, name in unresolved)
         self.panel._test_case = case
