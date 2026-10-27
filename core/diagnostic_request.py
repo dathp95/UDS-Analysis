@@ -24,6 +24,8 @@ class DiagnosticOutcome(Enum):
 SAFE_SERVICES = frozenset((0x19, 0x22, 0x3E))
 CONFIRM_SERVICES = frozenset((0x10, 0x11, 0x14, 0x2E, 0x31, 0x85))
 TRUSTED_BENCH_PAYLOADS = frozenset((b'\x10\x01', b'\x10\x03', b'\x14\xff\xff\xff'))
+# Seed retrieval only, admitted independently of the general service allowlists.
+SECURITY_SEED_REQUESTS = frozenset((b'\x27\x01',))
 
 
 @dataclass(frozen=True)
@@ -83,8 +85,9 @@ class DiagnosticRequest:
             raise DiagnosticValidationError('Invalid UDS payload length.')
         sid = self.uds_payload[0]
         if sid == 0x27:
-            raise DiagnosticValidationError('Security Access is not enabled.')
-        if sid not in SAFE_SERVICES | CONFIRM_SERVICES or (sid == 0x10 and len(self.uds_payload)>1 and self.uds_payload[1]&0x7F == 2):
+            if self.uds_payload not in SECURITY_SEED_REQUESTS:
+                raise DiagnosticValidationError('Security Access permits only exact 27 01 requestSeed; key submission is not enabled.')
+        elif sid not in SAFE_SERVICES | CONFIRM_SERVICES or (sid == 0x10 and len(self.uds_payload)>1 and self.uds_payload[1]&0x7F == 2):
             raise DiagnosticValidationError('This service/programming operation is not enabled in M04.')
         if self.match not in ('prefix','exact'):
             raise DiagnosticValidationError('Wildcard matching is undefined and not enabled; choose prefix or exact.')
@@ -98,7 +101,7 @@ class DiagnosticRequest:
 
     @property
     def requires_confirmation(self):
-        return self.uds_payload[0] in CONFIRM_SERVICES
+        return self.uds_payload[0] in CONFIRM_SERVICES or self.uds_payload in SECURITY_SEED_REQUESTS
 
 
 def validate_send_policy(request):
@@ -131,7 +134,9 @@ def response_belongs_to_request(request, payload):
     if payload[0] == 0x7F:
         return len(payload)>=2 and payload[1] == sent[0]
     if payload[0] != sent[0]+0x40: return False
-    echo_length={0x10:1,0x11:1,0x19:1,0x22:2,0x2E:2,0x31:3,0x3E:1,0x85:1}.get(sent[0],0)
+    if sent[0] == 0x27 and (sent not in SECURITY_SEED_REQUESTS or len(payload) < 3):
+        return False  # 67 01 alone is not a successful seed response.
+    echo_length={0x10:1,0x11:1,0x19:1,0x22:2,0x27:1,0x2E:2,0x31:3,0x3E:1,0x85:1}.get(sent[0],0)
     if len(sent)<1+echo_length or len(payload)<1+echo_length: return False
     echo=bytearray(sent[1:1+echo_length])
     if sent[0] in (0x10,0x11,0x19,0x31,0x3E,0x85) and echo: echo[0]&=0x7F

@@ -27,7 +27,7 @@ class EcuDiagnosticResolverTests(unittest.TestCase):
 
     def test_security_invalid_payload_and_undefined_wildcard_rejected(self):
         from core.diagnostic_request import DiagnosticValidationError
-        for payload in ('27 01','27 03','','zz','34 00','10 02','10 82'):
+        for payload in ('27 02','27 03','27 01 00','','zz','34 00','10 02','10 82'):
             with self.assertRaises(DiagnosticValidationError): self.resolve(step=DiagnosticStep(1,'TEST','BCM',payload))
         with self.assertRaises(DiagnosticValidationError):
             self.resolve(step=DiagnosticStep(1,'TEST','BCM','22 F1 90',match='wildcard'))

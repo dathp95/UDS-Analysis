@@ -112,9 +112,9 @@ class CanDiagnosticExecutionTests(unittest.TestCase):
         self.assertTrue(self.tab.monitor_panel.btn_blf.isEnabled())
         self.assertTrue(self.tab.monitor_panel.btn_export.isEnabled())
 
-    def test_security_and_unconfirmed_write_never_send(self):
+    def test_unsupported_security_and_unconfirmed_write_never_send(self):
         panel=self.tab.sequence_table
-        for payload in ('27 01','27 03'):
+        for payload in ('27 02','27 03','27 01 00'):
             panel.table.item(0,panel.COL_REQUEST).setText(payload)
             panel.row_send_requested.emit(panel.step_ids[0])
             self.assertIn('Security Access',panel.notice.text())

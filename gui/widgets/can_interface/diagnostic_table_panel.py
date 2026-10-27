@@ -2,6 +2,7 @@ import re
 
 from dataclasses import replace
 from uuid import uuid4
+from core.diagnostic_request import SECURITY_SEED_REQUESTS
 from html import escape
 
 from PySide6.QtCore import Qt, QSignalBlocker, Signal
@@ -235,8 +236,11 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         if key in self.step_ids:
             row=self.step_ids.index(key)
             step=self._test_case.steps[row]
-            if (self._normalize_hex(step.request,allow_empty=True) or '').startswith('27'):
-                self.show_notice('Security Access is not enabled.');return
+            payload = self._request_payload(step.request)
+            if payload is None:
+                self.show_notice('Invalid or empty HEX payload.');return
+            if payload[0] == 0x27 and payload not in SECURITY_SEED_REQUESTS:
+                self.show_notice('Security Access permits only exact 27 01 requestSeed; key submission is not enabled.');return
             if not self._resolved_ecu(step.ecu):
                 self.show_notice('Select Vehicle and a configured ECU before sending.');return
             if not self._request_busy and self._send_available: self.row_send_requested.emit(key)
@@ -257,13 +261,12 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
         step = self._test_case.steps[row]
 
-        payload_valid = self._is_valid_request_hex(
-            step.request
-        )
+        payload = self._request_payload(step.request)
+        payload_valid = payload is not None
 
         security = (
             payload_valid
-            and step.request.strip().upper().startswith("27")
+            and payload[0] == 0x27 and payload not in SECURITY_SEED_REQUESTS
         )
 
         target_valid = self._resolved_ecu(step.ecu)
@@ -281,13 +284,15 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         if not payload_valid:
             tooltip = "Invalid or empty HEX payload."
         elif security:
-            tooltip = "Security Access is not enabled."
+            tooltip = "Only exact 27 01 requestSeed is enabled; key submission is disabled."
         elif not target_valid:
             tooltip = "Select a configured ECU."
         elif self._request_busy:
             tooltip = "A diagnostic request is running."
         elif not self._send_available:
             tooltip = "Connect Vector first."
+        elif payload in SECURITY_SEED_REQUESTS:
+            tooltip = "Request seed manually with 27 01; no key submission or ECU unlock."
         else:
             tooltip = "Send one manual UDS request."
 
@@ -600,6 +605,12 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             re.fullmatch(r"[0-9A-Fa-f]{2}", token)
             for token in tokens
         )
+
+    @classmethod
+    def _request_payload(cls, value):
+        if not cls._is_valid_request_hex(value):
+            return None
+        return bytes.fromhex(' '.join(str(value).split()))
 
     def fn_refresh_theme(self):
         apply_panel_theme(self, "canDiagnosticTablePanel")

@@ -43,11 +43,11 @@ class BenchConnectionPolicyTests(unittest.TestCase):
         self.assertIsNone(self.service.trusted_bench)
         self.service.fn_disconnect()
         self.service.fn_connect(CANConfig('vector',0,500000,bench_context=self.context()))
-        for text in ('11 01','2E F1 90 01','31 01 12 34','85 02','10 81','10 03 00','14 00 00 00'):
+        for text in ('11 01','2E F1 90 01','31 01 12 34','85 02','10 81','10 03 00','14 00 00 00','27 01'):
             req=request(uds_payload=bytes.fromhex(text))
             self.assertIsNone(self.service.fn_confirm_trusted_request(req))
             with self.assertRaises(DiagnosticValidationError): self.service.fn_begin_diagnostic(req)
-        with self.assertRaises(DiagnosticValidationError): request(uds_payload=b'\x27\x01')
+        with self.assertRaises(DiagnosticValidationError): request(uds_payload=b'\x27\x02')
 
     def test_expiry_generation_forgery_and_process_restart(self):
         self.service.fn_connect(CANConfig('vector',0,500000,bench_context=self.context()))

@@ -38,11 +38,11 @@ class TrustedBenchTests(unittest.TestCase):
 
     def test_restricted_services_and_payload_variants_require_manual_confirmation(self):
         self.enable()
-        for text in ('11 01','2E F1 90 01','31 01 12 34','85 02','10 04','10 81','10 03 00','14 00 00 00'):
+        for text in ('11 01','2E F1 90 01','31 01 12 34','85 02','10 04','10 81','10 03 00','14 00 00 00','27 01'):
             req=request(uds_payload=bytes.fromhex(text))
             self.assertIsNone(self.service.fn_confirm_trusted_request(req),text)
             with self.assertRaises(DiagnosticValidationError): validate_send_policy(req)
-        with self.assertRaises(DiagnosticValidationError): request(uds_payload=bytes.fromhex('27 01'))
+        with self.assertRaises(DiagnosticValidationError): request(uds_payload=bytes.fromhex('27 02'))
         other=request(vehicle_name='OTHER',uds_payload=bytes.fromhex('10 03'))
         self.assertIsNotNone(self.service.fn_confirm_trusted_request(other))
 

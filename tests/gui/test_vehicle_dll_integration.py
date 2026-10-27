@@ -128,7 +128,7 @@ class VehicleDllIntegrationTests(unittest.TestCase):
         for vehicle, ecu in (('../outside', 'BCM'), ('BENCH', 'unknown')):
             self.assertEqual(self.service.resolve_ecu_dll_resource(vehicle, ecu).status, DllResourceStatus.CONFIGURATION_ERROR)
 
-    def test_theme_refresh_is_read_only_and_0x27_remains_disabled(self):
+    def test_theme_refresh_is_read_only_and_key_submission_remains_disabled(self):
         self.save(self.dll)
         before = self.service.load_vehicle('BENCH')
         theme = ThemeManager.fn_theme()
@@ -139,7 +139,7 @@ class VehicleDllIntegrationTests(unittest.TestCase):
             self.panel.fn_refresh_theme()
             self.view.fn_refresh_theme()
         self.assertEqual(self.service.load_vehicle('BENCH'), before)
-        self.panel.table.item(0, self.panel.COL_REQUEST).setText('27 01')
+        self.panel.table.item(0, self.panel.COL_REQUEST).setText('27 02')
         self.assertFalse(self.panel.table.cellWidget(0, self.panel.COL_SEND).isEnabled())
         self.assertEqual(self.service.load_vehicle('BENCH'), before)
 
