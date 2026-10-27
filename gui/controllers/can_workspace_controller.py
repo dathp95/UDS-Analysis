@@ -1,5 +1,7 @@
 from pathlib import Path
 import re
+import os
+from dataclasses import replace
 from uuid import uuid4
 from dataclasses import replace
 
@@ -26,6 +28,7 @@ class CanWorkspaceController(QObject):
 
         # Paths that have unsaved modifications.
         self._session_dirty = set()
+        sidebar.load_diag_requested.connect(self.browse_source)
 
         sidebar.sequence_open_requested.connect(self.open_source)
         panel.load_requested.connect(self.browse_source)
@@ -39,8 +42,379 @@ class CanWorkspaceController(QObject):
             self.import_diag_folder
         )
         sidebar.export_requested.connect(self.export_sequence)
+        sidebar.rename_requested.connect(
+            self.rename_sequence
+        )
+
+        sidebar.delete_requested.connect(
+            self.delete_sequence
+        )
+
+        sidebar.clone_requested.connect(
+            self.clone_sequence
+        )
         sidebar.save_requested.connect(lambda: self.save_sequence())
         self._sync_actions()
+
+    
+    def _case_for_source(self, source_id):
+        """
+        Return the newest model:
+        unsaved RAM draft takes priority over disk.
+        """
+        path = Path(source_id).resolve()
+        key = str(path)
+
+        if key == self.document_id:
+            self._remember_current_sequence()
+
+        case = self._session_drafts.get(key)
+
+        if case is None:
+            case = self.repository.fn_load_sequence(path)
+
+        return case
+
+
+    def _validate_new_sequence_path(self, name, old_path=None):
+        name = name.strip()
+        safe_component(name)
+
+        root = self.repository.root.resolve()
+        target = root / f"{name}.json"
+
+        for path in root.glob("*.json"):
+            if (
+                path.name.casefold() == target.name.casefold()
+                and (
+                    old_path is None
+                    or path.resolve() != old_path.resolve()
+                )
+            ):
+                raise FileExistsError(
+                    "A sequence with this filename already exists."
+                )
+
+        return target.resolve()
+
+
+    def _update_saved_path_references(self, old_id, new_id):
+        """
+        Move UI preferences after a rename.
+        The JSON source itself is handled separately.
+        """
+        state = self.store.load()
+
+        order = tuple(
+            new_id if value == old_id else value
+            for value in state.order
+        )
+
+        sources = tuple(
+            new_id if value == old_id else value
+            for value in state.sources
+        )
+
+        vehicles = dict(state.vehicles)
+
+        if old_id in vehicles:
+            vehicles[new_id] = vehicles.pop(old_id)
+
+        selected = (
+            new_id
+            if state.selected_id == old_id
+            else state.selected_id
+        )
+
+        updated = replace(
+            state,
+            order=tuple(dict.fromkeys(order)),
+            sources=tuple(dict.fromkeys(sources)),
+            vehicles=vehicles,
+            selected_id=selected,
+        )
+
+        self.store._save(updated)
+
+    
+    def rename_sequence(self, source_id):
+        if not source_id:
+            return False
+
+        source = Path(source_id).resolve()
+
+        if source.suffix.lower() != ".json":
+            self.panel.show_notice(
+                "Only native JSON sequences can be renamed."
+            )
+            return False
+
+        if not source.is_file():
+            self.panel.show_notice(
+                "Sequence file does not exist."
+            )
+            return False
+
+        try:
+            case = self._case_for_source(str(source))
+        except (OSError, ValueError) as error:
+            self.panel.show_notice(str(error))
+            return False
+
+        new_name, ok = QInputDialog.getText(
+            self.panel,
+            "Rename Sequence",
+            "New sequence name:",
+            text=case.name,
+        )
+
+        if not ok:
+            return False
+
+        new_name = new_name.strip()
+
+        try:
+            destination = self._validate_new_sequence_path(
+                new_name,
+                old_path=source,
+            )
+
+            if destination == source and new_name == case.name:
+                return True
+
+            updated_case = replace(case, name=new_name)
+
+            # Handle a display-name-only change without moving.
+            if destination == source:
+                self.repository.fn_save_sequence(
+                    updated_case, source
+                )
+            else:
+                # Reserve a new filename; do not overwrite
+                # an existing document.
+                with destination.open("x", encoding="utf-8"):
+                    pass
+
+                try:
+                    self.repository.fn_save_sequence(
+                        updated_case, destination
+                    )
+                except Exception:
+                    destination.unlink(missing_ok=True)
+                    raise
+
+                # Remove the old path only after the new JSON
+                # has been successfully written.
+                try:
+                    source.unlink()
+                except OSError:
+                    destination.unlink(missing_ok=True)
+                    raise
+
+            old_id = str(source)
+            new_id = str(destination)
+
+            self._update_saved_path_references(
+                old_id, new_id
+            )
+
+            was_dirty = old_id in self._session_dirty
+
+            self._session_drafts.pop(old_id, None)
+            self._session_dirty.discard(old_id)
+            self.sidebar._dirty_ids.discard(old_id)
+
+            if self.document_id == old_id:
+                self.source = destination
+                self.document_id = new_id
+
+                self.panel._test_case = updated_case
+                self.panel.mark_saved()
+
+            self.sidebar.fn_refresh_sequences()
+            self.sidebar.mark_opened(
+                self.document_id or "",
+                persist=False,
+            )
+
+            self._sync_actions()
+            self.panel.show_notice(
+                f"Renamed to {new_name}."
+            )
+
+            return True
+
+        except (OSError, ValueError) as error:
+            self.panel.show_notice(
+                f"Cannot rename sequence: {error}"
+            )
+            return False
+
+
+
+    
+    def delete_sequence(self, source_id):
+        if not source_id:
+            return False
+
+        source = Path(source_id).resolve()
+
+        if source.suffix.lower() != ".json":
+            self.panel.show_notice(
+                "Only JSON sequences can be deleted."
+            )
+            return False
+
+        answer = QMessageBox.question(
+            self.panel,
+            "Delete Sequence",
+            f"Permanently delete '{source.stem}'?\n"
+            "This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if answer != QMessageBox.Yes:
+            return False
+
+        try:
+            source.unlink()
+        except OSError as error:
+            self.panel.show_notice(
+                f"Cannot delete sequence: {error}"
+            )
+            return False
+
+        old_id = str(source)
+
+        self._session_drafts.pop(old_id, None)
+        self._session_dirty.discard(old_id)
+        self.sidebar._dirty_ids.discard(old_id)
+
+        state = self.store.load()
+
+        vehicles = dict(state.vehicles)
+        vehicles.pop(old_id, None)
+
+        updated = replace(
+            state,
+            order=tuple(
+                x for x in state.order if x != old_id
+            ),
+            sources=tuple(
+                x for x in state.sources if x != old_id
+            ),
+            vehicles=vehicles,
+            selected_id=(
+                ""
+                if state.selected_id == old_id
+                else state.selected_id
+            ),
+        )
+
+        try:
+            self.store._save(updated)
+        except OSError as error:
+            self.panel.show_notice(
+                f"Sequence deleted, but UI preferences "
+                f"could not be updated: {error}"
+            )
+
+        if self.document_id == old_id:
+            self.source = None
+            self.document_id = None
+            self.panel.fn_load_sequence(None)
+
+        self.sidebar.fn_refresh_sequences()
+        self.sidebar.mark_opened(
+            self.document_id or "",
+            persist=False,
+        )
+
+        self._sync_actions()
+        self.panel.show_notice("Sequence deleted.")
+
+        return True
+
+    
+    def clone_sequence(self, source_id):
+        if not source_id:
+            return False
+
+        source = Path(source_id).resolve()
+
+        if source.suffix.lower() != ".json":
+            self.panel.show_notice(
+                "Only JSON sequences can be cloned."
+            )
+            return False
+
+        try:
+            case = self._case_for_source(str(source))
+
+            root = self.repository.root.resolve()
+            base_name = f"{source.stem}_copy"
+
+            index = 1
+
+            while True:
+                name = (
+                    base_name
+                    if index == 1
+                    else f"{base_name}_{index}"
+                )
+
+                destination = root / f"{name}.json"
+
+                if not any(
+                    path.name.casefold()
+                    == destination.name.casefold()
+                    for path in root.glob("*.json")
+                ):
+                    break
+
+                index += 1
+
+            cloned_case = replace(
+                case,
+                name=name,
+            )
+
+            # Create exclusively to avoid replacing
+            # a file already existing on disk.
+            with destination.open("x", encoding="utf-8"):
+                pass
+
+            try:
+                self.repository.fn_save_sequence(
+                    cloned_case,
+                    destination,
+                )
+            except Exception:
+                destination.unlink(missing_ok=True)
+                raise
+
+            # Refresh without changing the current document.
+            self.sidebar.fn_refresh_sequences()
+
+            self.sidebar.mark_opened(
+                self.document_id or "",
+                persist=False,
+            )
+
+            self.panel.show_notice(
+                f"Cloned: {destination.name}"
+            )
+
+            return True
+
+        except (OSError, ValueError) as error:
+            self.panel.show_notice(
+                f"Cannot clone sequence: {error}"
+            )
+            return False
+
+
 
     def _modified(self, case):
         if self.document_id is None:

@@ -24,7 +24,7 @@
         {
             "step": 2,
             "sequence_name": "",
-            "ecu": "BCM",
+            "ecu": "EPS",
             "request": " 22 F1 08",
             "delay_ms": 100,
             "repeat": 1,

@@ -14,6 +14,7 @@ from gui.themes.theme_manager import ThemeManager
 from repositories.can_interface_ui_store import CanInterfaceUiStore
 from gui.widgets.can_interface.panel_theme import apply_panel_theme
 
+from PySide6.QtWidgets import QMenu
 
 class _SequenceList(QListWidget):
     checkbox_click = False
@@ -40,6 +41,11 @@ class CanSequenceSidebar(DiagnosticSequenceList):
     import_folder_requested = Signal()
     export_requested = Signal()
     save_requested = Signal()
+
+    rename_requested = Signal(str)
+    delete_requested = Signal(str)
+    clone_requested = Signal(str)
+    load_diag_requested = Signal()
 
     def __init__(self, repository=None, store=None):
         self.store = store if store is not None else CanInterfaceUiStore()
@@ -111,6 +117,18 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.edit_search.textChanged.connect(self._filter)
         self.list_sequences.model().rowsMoved.connect(self._order_changed)
         self.list_sequences.itemActivated.connect(self._activate_item)
+        self.list_sequences.setContextMenuPolicy(
+            Qt.CustomContextMenu
+        )
+
+        self.list_sequences.customContextMenuRequested.connect(
+            self._show_sequence_context_menu
+        )
+
+        # Hide the old action buttons without disconnecting
+        # the existing logic.
+        self.footer.hide()
+
         self.btn_save_order.clicked.connect(self._save_order)
         self.btn_import_folder.clicked.connect(
             self.import_folder_requested.emit
@@ -245,6 +263,156 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.lbl_error.setText(f'{len(errors)} sequence error(s); hover for details.' if errors else '')
         self.lbl_error.setToolTip(escape('\n'.join(errors)))
         self.lbl_error.setVisible(bool(errors))
+
+    
+    def _show_sequence_context_menu(self, position):
+        item = self.list_sequences.itemAt(position)
+
+        # Snapshot the source ID before running any action.
+        # Refreshing the sidebar can destroy QListWidgetItem.
+        source_id = (
+            item.data(self.ITEM_PATH_ROLE)
+            if item is not None
+            else ""
+        )
+
+        is_sequence = bool(source_id)
+
+        menu = QMenu(self.list_sequences)
+        menu.setObjectName("testSequenceContextMenu")
+
+        colors = ThemeManager.fn_colors()
+
+        menu.setStyleSheet(f"""
+            QMenu#testSequenceContextMenu {{
+                background-color: {colors.PANEL};
+                color: {colors.TEXT};
+                border: 1px solid {colors.BORDER};
+                padding: 5px;
+            }}
+
+            QMenu#testSequenceContextMenu::item {{
+                padding: 7px 34px 7px 14px;
+                margin: 2px 3px;
+                border-radius: 5px;
+            }}
+
+            QMenu#testSequenceContextMenu::item:selected {{
+                background-color: {colors.QUICK_ACCESS_HOVER};
+                color: {colors.QUICK_ACCESS_TEXT};
+            }}
+
+            QMenu#testSequenceContextMenu::item:pressed {{
+                background-color: {colors.QUICK_ACCESS_PRESSED};
+            }}
+
+            QMenu#testSequenceContextMenu::item:disabled {{
+                color: {colors.BUTTON_DISABLED_TEXT};
+            }}
+
+            QMenu#testSequenceContextMenu::separator {{
+                height: 1px;
+                background: {colors.BORDER};
+                margin: 6px 8px;
+            }}
+        """)
+
+        def add_action(text, callback, enabled=True):
+            action = menu.addAction(text)
+            action.setEnabled(enabled)
+            action.triggered.connect(
+                lambda checked=False: callback()
+            )
+            return action
+
+        add_action(
+            "+ Add sequence",
+            self.add_requested.emit,
+        )
+
+        add_action(
+            "Rename",
+            lambda: self.rename_requested.emit(source_id),
+            is_sequence,
+        )
+
+        add_action(
+            "Delete",
+            lambda: self.delete_requested.emit(source_id),
+            is_sequence,
+        )
+
+        add_action(
+            "Clone",
+            lambda: self.clone_requested.emit(source_id),
+            is_sequence,
+        )
+
+        menu.addSeparator()
+
+        add_action(
+            "Import sequence",
+            self.import_requested.emit,
+        )
+
+        add_action(
+            "Export sequence",
+            lambda: self._export_context_sequence(source_id),
+            is_sequence,
+        )
+
+        add_action(
+            "Import DIAG Folder",
+            self.import_folder_requested.emit,
+        )
+
+        add_action(
+            "Load .diag file",
+            self.load_diag_requested.emit,
+        )
+
+        menu.addSeparator()
+
+        add_action(
+            "Save",
+            lambda: self._save_context_sequence(source_id),
+            is_sequence and source_id == self._active_source
+            and source_id in self._dirty_ids,
+        )
+
+        add_action(
+            "Save Order",
+            self._save_order,
+            self.order_is_dirty(),
+        )
+
+        menu.exec(
+            self.list_sequences.viewport().mapToGlobal(
+                position
+            )
+        )
+
+
+    def _export_context_sequence(self, source_id):
+        if not source_id:
+            return
+
+        # Existing export operates on the currently opened sequence.
+        if source_id != self._active_source:
+            self.sequence_open_requested.emit(source_id)
+
+        if self._active_source == source_id:
+            self.export_requested.emit()
+
+
+    def _save_context_sequence(self, source_id):
+        if (
+            source_id
+            and source_id == self._active_source
+            and source_id in self._dirty_ids
+        ):
+            self.save_requested.emit()
+
 
     @staticmethod
     def _display_name(path, test_case):

@@ -73,6 +73,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.notice.hide()
         self.btn_delete = ActionButton("Delete", width=62, height=30)
         self.btn_load = ActionButton("Load .diag", width=85, height=30)
+        self.btn_load.hide()
         self.btn_settings = ActionButton("Settings", width=72, height=30)
         self.btn_settings.setCheckable(True)
         self.btn_settings.toggled.connect(self.execution_settings.setVisible)
