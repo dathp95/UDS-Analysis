@@ -18,6 +18,94 @@
             "expected_response": "",
             "match": "prefix",
             "comment": ""
+        },
+        {
+            "step": 2,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "",
+            "ecu": "EPS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "",
+            "ecu": "EPS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 6,
+            "sequence_name": "",
+            "ecu": "EPS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 7,
+            "sequence_name": "",
+            "ecu": "SS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 8,
+            "sequence_name": "",
+            "ecu": "SS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 9,
+            "sequence_name": "",
+            "ecu": "SS",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
         }
     ]
 }

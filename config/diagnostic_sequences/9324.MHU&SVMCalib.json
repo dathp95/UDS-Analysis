@@ -1,0 +1,142 @@
+{
+    "schema_version": 1,
+    "name": "9324.MHU&SVMCalib",
+    "description": "No Description",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "IVC_MHU",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "IVC_MHU",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "IVC_MHU",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 4,
+            "sequence_name": "Start CheckCalibrationPreConditions",
+            "ecu": "IVC_MHU",
+            "request": " 31 01 F0 30",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 01 F0 30",
+            "match": "prefix",
+            "comment": "1. Only returning  byte 00 (response = 71, 01, F0, 30, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00) means that calibation precondition is met| 2. Return a status byte not 00,  means that calibration precondition is not met. Please display the following notification(s) to the user if preconidtions are not met:| 01: SVM System Inactive. Ensure ignition is on.| 02: Selected gear is not in park or neutral. Please ensure the selected gear is park or neutral.| 03: LV Battery voltage is outside of the normal range. Please ensure battery voltage is between 9V and 16V.| 04: SVM System Fault detected. Please read DTCs to check for faults.| 05: Vehicle ignition is not on. Please ensure ignition is on.| 06: Gear position is not valid. Please read DTCs to check for faults.| 07: Vehicle speed is greater than 0km. Please ensure vehicle is stationary.| 08: Steering Angle fault detected. Please read DTCs to check for faults.| 09: A vehicle door(s) is open. Please close all doors.| 0A: Vehicle hood is open. Please close the hood.| 0B: Side mirrors are folded. Please unfold the side mirrors.| 0C: One or more lamps are on. Please ensure daytime running lamps, position lamps and turn signal lamp are all off.| 0D: Tire pressures are abnormal. Please ensure all tire pressures are within a normal range.| 3. If Negative Response is 7F 31 25 - It mean that Timeout occurs. Please retry maximum 3 times this step. If NRC still 7F 31 25, Please execute ECUReset (Sheet ECUReset) and delay 2 minutes for MHU ready before performing step 1 to calibration SVM again|",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 5,
+            "sequence_name": "Start Check camera preview",
+            "ecu": "IVC_MHU",
+            "request": " 31 01 03 0A 00",
+            "delay_ms": 5000,
+            "repeat": 1,
+            "expected_response": "71 01 03 0A 00",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 6,
+            "sequence_name": "Stop check camera preview",
+            "ecu": "IVC_MHU",
+            "request": " 31 02 03 0A 00",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 02 03 0A 00",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 7,
+            "sequence_name": "Start AutoCalibration",
+            "ecu": "IVC_MHU",
+            "request": " 31 01 02 0A",
+            "delay_ms": 5000,
+            "repeat": 1,
+            "expected_response": "71 01 02 0A",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 8,
+            "sequence_name": "Check AutoCalibration Result",
+            "ecu": "IVC_MHU",
+            "request": " 31 03 02 0A",
+            "delay_ms": 5000,
+            "repeat": 1,
+            "expected_response": "71 03 02 0A 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 9,
+            "sequence_name": "Stop AutoCalibration",
+            "ecu": "IVC_MHU",
+            "request": " 31 02 02 0A",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 02 02 0A",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 10,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "IVC_MHU",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        }
+    ]
+}

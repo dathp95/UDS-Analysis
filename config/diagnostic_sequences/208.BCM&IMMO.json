@@ -1,0 +1,142 @@
+{
+    "schema_version": 1,
+    "name": "208.BCM&IMMO",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "BCM",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "BCM",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "BCM",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 4,
+            "sequence_name": "Read BCM Immobilizer Lock Status-first time resp: 00 | BCM NOT 1st resp: 40",
+            "ecu": "BCM",
+            "request": " 22 5C 02",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 5C 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 5,
+            "sequence_name": "",
+            "ecu": "BCM",
+            "request": " 22 5C 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 5C 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 6,
+            "sequence_name": "Write BCM Immobilizer Secret Key-2E 5C 00 02 xx xx ... xx (16 bytes)",
+            "ecu": "BCM",
+            "request": " 2E 5C 00 02",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "6E 5C 00",
+            "match": "prefix",
+            "comment": "Write new ISK into BCM.",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 7,
+            "sequence_name": "Confirm BCM ISK Write-62 5C 03 xx xx … xx (16 bytes)",
+            "ecu": "BCM",
+            "request": " 22 5C 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 5C 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 8,
+            "sequence_name": "Set BCM Immo Lock Status to Locked-2E 5C 00 21 xx xx ... xx (16 bytes)",
+            "ecu": "BCM",
+            "request": " 2E 5C 00 21",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "6E 5C 00",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 9,
+            "sequence_name": "Read BCM Immobilizer Lock Status",
+            "ecu": "BCM",
+            "request": " 22 5C 02",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 5C 02 40",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        },
+        {
+            "step": 10,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "BCM",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1665,
+            "source_response_id": 1537
+        }
+    ]
+}

@@ -437,7 +437,6 @@ class CanWorkspaceController(QObject):
         destination = Path(path).resolve()
         try:
             case = self.panel.sequence_for_save()
-            unresolved = self.panel.unresolved_ecus()
             if destination.suffix.lower() != '.json':
                 raise ValueError("Save As must use .json; .diag sources are never overwritten.")
             if destination.exists() and destination != self.source and not overwrite:
@@ -468,8 +467,7 @@ class CanWorkspaceController(QObject):
 
         self.sidebar.replace_draft_id(old_id, self.document_id)
         
-        if unresolved:
-            self.panel.import_diagnostics += tuple(f'Save normalized row {row}: original ECU {name!r}' for row, name in unresolved)
+        
         self.panel._test_case = case
         self.panel._step_signatures = self.panel._runtime_signatures()
         self.panel._refresh_ecu_combos()
@@ -482,7 +480,9 @@ class CanWorkspaceController(QObject):
         self.sidebar.set_document_dirty(self.document_id, False)
         self._sync_actions()
         self._vehicle_changed(self.panel.fn_current_vehicle())
-        self.panel.show_notice('Sequence saved.' + ('\n' + '\n'.join(self.panel.import_diagnostics) if self.panel.import_diagnostics else ''))
+        self.panel.show_notice(
+            "Sequence saved successfully."
+        )
         return result
 
     def _vehicle_changed(self, name):

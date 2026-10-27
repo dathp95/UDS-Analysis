@@ -393,28 +393,62 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._apply_diag_ecu_mapping()
         self.vehicle_configuration_changed.emit()
 
+    
     def _set_ecu_combo(self, row, ecu):
         combo = PrimaryComboBox(minimum_height=28)
-        candidates = [value for value in self._available_ecus if value.name == ecu]
-        valid = len(candidates) == 1
-        combo.addItem('', None)
-        if self._current_vehicle is None and ecu:
-            combo.addItem(ecu, None)  # Preserve text until a Vehicle can actually resolve it.
-        for value in self._available_ecus:
-            if self._resolved_ecu(value.name):
-                combo.addItem(value.name, value)
-        combo.setCurrentIndex(combo.findText(ecu) if valid or (self._current_vehicle is None and ecu) else 0)
-        if not self._current_vehicle:
-            combo.setToolTip(f"Select Vehicle to resolve ECU '{ecu}'.")
-        elif not valid:
-            combo.setToolTip(f"ECU '{ecu}' is missing or ambiguous in the selected Vehicle.")
+
+        # Populate only valid, uniquely named ECU definitions.
+        valid_ecus = [
+            item
+            for item in self._available_ecus
+            if self._resolved_ecu(item.name)
+        ]
+
+        for item in valid_ecus:
+            combo.addItem(item.name, item)
+
+        # No empty item at index 0.
+        # -1 means no ECU has been selected.
+        selected_index = combo.findText(ecu) if ecu else -1
+
+        if selected_index >= 0:
+            combo.setCurrentIndex(selected_index)
         else:
-            combo.setToolTip(ecu)
-        combo.setToolTip(escape(combo.toolTip()))
+            combo.setCurrentIndex(-1)
+
+        # Show empty editor text when no ECU is selected,
+        # without creating a selectable blank option.
+        combo.setPlaceholderText("")
+
+        if self._current_vehicle is None:
+            tooltip = "Select a Vehicle first."
+        elif not ecu:
+            tooltip = "Select an ECU."
+        elif selected_index < 0:
+            tooltip = (
+                f"ECU '{ecu}' is not configured "
+                "in the selected Vehicle."
+            )
+        else:
+            tooltip = ecu
+
+        combo.setToolTip(escape(tooltip))
+
         key = self.step_ids[row]
-        combo.currentIndexChanged.connect(lambda index, target=key, control=combo: self._ecu_changed(target, control))
+
+        combo.currentIndexChanged.connect(
+            lambda index, target=key, control=combo:
+                self._ecu_changed(target, control)
+        )
+
         fn_apply_scrollbar_style(combo.view())
-        self.table.setCellWidget(row, self.COL_ECU, combo)
+
+        self.table.setCellWidget(
+            row,
+            self.COL_ECU,
+            combo,
+        )
+
 
     def _resolved_ecu(self, name):
         return bool(name and name.strip() and self._current_vehicle is not None
@@ -428,52 +462,45 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
     def _refresh_ecu_combos(self):
         super()._refresh_ecu_combos()
+
         for row in range(self.table.rowCount()):
             self._set_button_state(row)
-        unknown = self.unresolved_ecus()
-        if unknown:
-            self.show_notice('Unresolved ECU selectors are empty. Save normalizes these targets to blank.\n' +
-                             '\n'.join(f'Row {row}: {name!r}' for row, name in unknown))
 
-    def sequence_for_save(self):
-        if self._test_case is None:
-            return None
-
-        steps = []
-
-        for step in self._test_case.steps:
-
-            # Imported .diag steps use CAN ID mapping.
-            if (
-                step.source_request_id is not None
-                and step.source_response_id is not None
-            ):
-                mapped = find_ecu_by_can_ids(
-                    self._current_vehicle,
-                    step.source_request_id,
-                    step.source_response_id,
-                )
-
-                steps.append(
-                    replace(step, ecu=mapped)
-                )
-
-            else:
-                # Preserve existing native-editor safety behavior.
-                if self._current_vehicle is None:
-                    steps.append(step)
-                elif self._resolved_ecu(step.ecu):
-                    steps.append(step)
-                else:
-                    steps.append(
-                        replace(step, ecu="")
-                    )
-
-        return replace(
-            self._test_case,
-            steps=steps,
+        # Empty ECU is a valid draft state.
+        # Only show a warning for nonempty unresolved ECU names.
+        unknown = tuple(
+            (row, name)
+            for row, name in self.unresolved_ecus()
+            if str(name or "").strip()
         )
 
+        if unknown:
+            details = "\n".join(
+                f"Row {row}: {name}"
+                for row, name in unknown
+            )
+
+            self.show_notice(
+                f"{len(unknown)} unresolved ECU(s)."
+            )
+            self.notice.setToolTip(details)
+        else:
+            # Clear only an ECU warning previously set by this method.
+            if self.notice.text().endswith("unresolved ECU(s)."):
+                self.show_notice("")
+
+    def sequence_for_save(self):
+        """
+        Save editor content as-is.
+
+        Empty ECU, incomplete HEX and empty sequence names
+        are allowed in saved drafts.
+
+        ECU resolution and HEX validation are required
+        before sending diagnostic requests.
+        """
+        return self._test_case
+    
     def exchange_text(self):
         from core.sequence_exchange import export_sequence_text
         case = self.sequence_for_save()

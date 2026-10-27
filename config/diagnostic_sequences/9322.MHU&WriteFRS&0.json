@@ -1,0 +1,116 @@
+{
+    "schema_version": 1,
+    "name": "9322.MHU&WriteFRS&0",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "IVC_MHU",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "IVC_MHU",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "IVC_MHU",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 4,
+            "sequence_name": "READ FRS - BEFORE",
+            "ecu": "IVC_MHU",
+            "request": " 22 F1 5C",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 5C",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 5,
+            "sequence_name": "NOK-WRITE FRS",
+            "ecu": "IVC_MHU",
+            "request": " 2E F1 5C 47 52 53 5A 2E 34 2E 34 2E 30 00 00 00 00 00 00 00 00 00 00",
+            "delay_ms": 1000,
+            "repeat": 1,
+            "expected_response": "6E F1 5C",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 6,
+            "sequence_name": "",
+            "ecu": "IVC_MHU",
+            "request": " 22 F1 5C",
+            "delay_ms": 1000,
+            "repeat": 1,
+            "expected_response": "62 F1 5C",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 7,
+            "sequence_name": "READ FRS- AFTER",
+            "ecu": "IVC_MHU",
+            "request": " 2E F1 5C 46 52 53 5A 2E 34 2E 34 2E 30 00 00 00 00 00 00 00 00 00 00",
+            "delay_ms": 1000,
+            "repeat": 1,
+            "expected_response": "6E F1 5C",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        },
+        {
+            "step": 8,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "IVC_MHU",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1668,
+            "source_response_id": 1540
+        }
+    ]
+}

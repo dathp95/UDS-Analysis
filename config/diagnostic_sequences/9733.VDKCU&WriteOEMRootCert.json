@@ -1,0 +1,90 @@
+{
+    "schema_version": 1,
+    "name": "9733.VDKCU&WriteOEMRootCert",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "VDKCU",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "VDKCU",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "VDKCU",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        },
+        {
+            "step": 4,
+            "sequence_name": "Write  OEM Root  Certificate file-31 01 02 3F xx xx …(850 Bytes)",
+            "ecu": "VDKCU",
+            "request": " 31 01 02 3F 30 82 01 a4 30 82 01 49 a0 03 02 01 02 02 14 31 d3 c1 f4 3d 98 78 7a ac da 2f 1a c6 23 ad d1 15 c2 aa 0f 30 0a 06 08 2a 86 48 ce 3d 04 03 02 30 1e 31 1c 30 1a 06 03 55 04 03 0c 13 56 46 20 56 65 68 69 63 6c 65 20 4f 45 4d 20 43 41 2d 50 30 20 17 0d 32 36 30 39 30 35 30 33 34 35 32 30 5a 18 0f 32 30 35 36 30 38 32 38 30 33 34 35 32 30 5a 30 1e 31 1c 30 1a 06 03 55 04 03 0c 13 56 46 20 56 65 68 69 63 6c 65 20 4f 45 4d 20 43 41 2d 50 30 59 30 13 06 07 2a 86 48 ce 3d 02 01 06 08 2a 86 48 ce 3d 03 01 07 03 42 00 04 41 dd a0 c4 60 c2 0d 2e 10 af a0 b4 d1 ef cc ab 2e 4c ee 8b 39 5b e3 1f 5f 5b 11 79 fa 58 f0 ab ed 30 90 80 d3 a5 45 7b 79 ae 08 73 91 91 24 5b be 7e 3a 25 78 4c 39 b6 23 ae d9 06 2f fb cc 15 a3 63 30 61 30 1d 06 03 55 1d 0e 04 16 04 14 21 26 b3 7b 9f 70 8b e6 d4 a3 09 c9 19 bf 47 0b 18 c9 15 4d 30 1f 06 03 55 1d 23 04 18 30 16 80 14 21 26 b3 7b 9f 70 8b e6 d4 a3 09 c9 19 bf 47 0b 18 c9 15 4d 30 0f 06 03 55 1d 13 01 01 ff 04 05 30 03 01 01 ff 30 0e 06 03 55 1d 0f 01 01 ff 04 04 03 02 01 86 30 0a 06 08 2a 86 48 ce 3d 04 03 02 03 49 00 30 46 02 21 00 ff 28 7d e8 43 f3 77 62 a7 80 f8 96 22 f3 14 0f bd 85 1d 82 30 46 62 8a ef 31 b9 54 2d eb c6 29 02 21 00 a2 c4 f4 d9 37 f5 d5 14 b5 48 cc bf 72 4b d2 cf 46 51 4d 0e 18 3d 91 e6 44 d5 62 b8 72 db 5f cd 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 01 02 3F",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        },
+        {
+            "step": 5,
+            "sequence_name": "Query OEM KTS  Certificate file write  status-\"0x00=correctResult|0x01=incorrectResult\"",
+            "ecu": "VDKCU",
+            "request": " 31 03 02 3F",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 03 02 3F",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        },
+        {
+            "step": 6,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "VDKCU",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1740,
+            "source_response_id": 1612
+        }
+    ]
+}

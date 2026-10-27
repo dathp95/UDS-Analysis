@@ -45,10 +45,31 @@ def import_diag(path):
             f"step {index} IDResp",
         )
         
-        request = _text(item.get("TransMess"), f"step {index} TransMess")
-        expected = _text(item.get("ExpectMess"), f"step {index} ExpectMess", optional=True)
-        # Reuse the native repository's byte-token HEX policy; no divergent parser.
-        request = DiagnosticSequenceRepository._normalize_hex(request, f"step {index} TransMess")
+        # Preserve incomplete payloads during import.
+        # HEX validation belongs to the UDS send operation.
+
+        request = item.get("TransMess", "")
+        expected = item.get("ExpectMess", "")
+
+        if request is None:
+            request = ""
+
+        if expected is None:
+            expected = ""
+
+        if not isinstance(request, str):
+            raise Invalid(
+                f"Step {index}: TransMess must be text."
+            )
+
+        if not isinstance(expected, str):
+            raise Invalid(
+                f"Step {index}: ExpectMess must be text."
+            )
+
+        # Preserve the original input.
+        # Do not reject empty or incomplete HEX.
+        
         expected = DiagnosticSequenceRepository._normalize_hex(expected, f"step {index} ExpectMess", allow_empty=True)
         # Read step name from the original .diag file.
         sequence_name = _text(
