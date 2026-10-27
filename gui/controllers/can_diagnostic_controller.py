@@ -5,7 +5,11 @@ from PySide6.QtWidgets import QMessageBox
 from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError
 from services.can import CANConnectionState
 from services.can.ecu_diagnostic_resolver import resolve_request
-
+from core.diagnostic_request import DiagnosticOutcome
+from services.can.security_seed_parser import (
+    parse_security_seed,
+    SecuritySeedError,
+)
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
@@ -87,20 +91,89 @@ class CanDiagnosticController(QObject):
             self.task.cancel_diagnostic()
             self.panel.invalidate_step_result(self._active.step_id)
 
-    def _result(self,result):
-        if self._active is None or result.request.transaction_id != self._active.transaction_id:
+    
+    def _result(self, result):
+        # 1. Ignore responses that do not belong
+        # to the currently active transaction.
+        if (
+            self._active is None
+            or result.request.transaction_id
+            != self._active.transaction_id
+        ):
             return
-        self._active=None
+
+        self._active = None
         self.panel.set_request_busy(False)
         self._state()
-        if self._closed: return
-        request=result.request
-        if request.generation != self.generation or self.panel.step_for_id(request.step_id) is None:
+
+        if self._closed:
             return
-        payload=result.response_payload.hex(' ').upper() if result.response_payload is not None else ''
-        detail=f'{result.detail} RT: {result.elapsed_s:.3f} s; NRC 0x78 count: {result.pending_count}.'
-        self.panel.set_step_result(request.step_id,payload,result.outcome.value,detail)
-        self.panel.show_notice(detail)
+
+        request = result.request
+
+        # 2. Prevent stale results after switching
+        # Vehicle, sequence, or editing steps.
+        if (
+            request.generation != self.generation
+            or self.panel.step_for_id(request.step_id) is None
+        ):
+            return
+
+        # 3. Preserve existing UDS result display.
+        payload = (
+            result.response_payload.hex(" ").upper()
+            if result.response_payload is not None
+            else ""
+        )
+
+        detail = (
+            f"{result.detail} "
+            f"RT: {result.elapsed_s:.3f} s; "
+            f"NRC 0x78 count: {result.pending_count}."
+        )
+
+        self.panel.set_step_result(
+            request.step_id,
+            payload,
+            result.outcome.value,
+            detail,
+        )
+
+        # 4. Default notice for all diagnostic services.
+        notice = detail
+
+        # 5. Handle SecurityAccess Request Seed (27 01).
+        if (
+            request.uds_payload == b"\x27\x01"
+            and result.outcome in (
+                DiagnosticOutcome.PASSED,
+                DiagnosticOutcome.NOT_EVALUATED,
+            )
+            and result.response_payload is not None
+        ):
+            try:
+                parsed = parse_security_seed(
+                    request_payload=request.uds_payload,
+                    response_payload=result.response_payload,
+                )
+
+                # Seed exists in memory for this completed result.
+                # Do not persist it or print its value.
+                notice = (
+                    "SecurityAccess 27 01 successful. "
+                    f"Seed length: {len(parsed.seed)} bytes. "
+                    "Key calculation is not enabled yet."
+                )
+
+            except SecuritySeedError as error:
+                notice = (
+                    f"SecurityAccess seed validation failed: "
+                    f"{error}"
+                )
+
+        # 6. Display one final notice.
+        self.panel.show_notice(notice)
+
 
     def _frames(self,frames,dropped):
         if self._closed: return
