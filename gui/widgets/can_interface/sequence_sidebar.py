@@ -37,6 +37,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
     order_save_requested = Signal(tuple)
     add_requested = Signal()
     import_requested = Signal()
+    import_folder_requested = Signal()
     export_requested = Signal()
     save_requested = Signal()
 
@@ -88,6 +89,7 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.footer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btn_add = SecondaryButton('+ Add', width=52, height=30)
         self.btn_import = SecondaryButton('Import SEQ', width=84, height=30)
+        self.btn_import_folder = SecondaryButton("Import Folder", width=100, height=30,)
         self.btn_export = SecondaryButton('Export SEQ', width=84, height=30)
         self.btn_save = PrimaryButton('Save', width=70, height=30)
         self.footer_buttons = (self.btn_add, self.btn_import, self.btn_export, self.btn_save, self.btn_save_order)
@@ -98,6 +100,8 @@ class CanSequenceSidebar(DiagnosticSequenceList):
                 button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 row.addWidget(button, 1)
             footer_layout.addLayout(row)
+        
+        footer_layout.addWidget(self.btn_import_folder)
         self.layout().addWidget(self.footer)
         self.btn_save.setEnabled(False)
         self.btn_export.setEnabled(False)
@@ -108,6 +112,9 @@ class CanSequenceSidebar(DiagnosticSequenceList):
         self.list_sequences.model().rowsMoved.connect(self._order_changed)
         self.list_sequences.itemActivated.connect(self._activate_item)
         self.btn_save_order.clicked.connect(self._save_order)
+        self.btn_import_folder.clicked.connect(
+            self.import_folder_requested.emit
+        )
         self._feedback_timer = QTimer(self)
         self._feedback_timer.setSingleShot(True)
         self._feedback_timer.timeout.connect(self.feedback.clear)

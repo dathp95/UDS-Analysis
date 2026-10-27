@@ -8,7 +8,9 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox, QInputDialog, QDialog
 from core.diagnostic_sequence import DiagnosticTestCase
 from core.vehicle_dll_paths import safe_component
 from gui.dialogs.sequence_exchange_dialog import SequenceExchangeDialog
-
+from services.can.diag_batch_converter import (
+    convert_diag_folder,
+)
 
 class CanWorkspaceController(QObject):
     """Sequence document actions and view preferences; no ECU or transport store."""
@@ -33,6 +35,9 @@ class CanWorkspaceController(QObject):
         panel.document_changed.connect(self._sync_actions)
         sidebar.add_requested.connect(self.add_sequence)
         sidebar.import_requested.connect(self.import_sequence)
+        sidebar.import_folder_requested.connect(
+            self.import_diag_folder
+        )
         sidebar.export_requested.connect(self.export_sequence)
         sidebar.save_requested.connect(lambda: self.save_sequence())
         self._sync_actions()
@@ -164,6 +169,64 @@ class CanWorkspaceController(QObject):
             str(destination),
             force=True,
         )
+    
+    def import_diag_folder(self):
+        """Import a folder of .diag files into V-CODE JSON library."""
+
+        folder = QFileDialog.getExistingDirectory(
+            self.panel,
+            "Select folder containing DIAG files",
+            "",
+            QFileDialog.ShowDirsOnly,
+        )
+
+        if not folder:
+            return
+
+        try:
+            result = convert_diag_folder(
+                folder,
+                self.repository,
+            )
+
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(
+                self.panel,
+                "Import Folder Failed",
+                str(error),
+            )
+            return
+
+        # Refresh only the sidebar.
+        # Do not reload the current document:
+        # it may contain unsaved in-memory edits.
+        self.sidebar.fn_refresh_sequences()
+
+        summary = (
+            f"Imported: {len(result.imported)}\n"
+            f"Skipped: {len(result.skipped)}\n"
+            f"Failed: {len(result.failed)}"
+        )
+
+        dialog = QMessageBox(self.panel)
+        dialog.setWindowTitle("DIAG Folder Import")
+        dialog.setIcon(
+            QMessageBox.Warning
+            if result.failed
+            else QMessageBox.Information
+        )
+        dialog.setText(summary)
+
+        if result.failed:
+            details = "\n".join(
+                f"{name}: {message}"
+                for name, message in result.failed
+            )
+            dialog.setDetailedText(details)
+
+        dialog.setStandardButtons(QMessageBox.Ok)
+        dialog.exec()
+
 
     def import_sequence(self):
         names = {ecu.name for ecu in self.panel._available_ecus if self.panel._resolved_ecu(ecu.name)} if self.panel._current_vehicle is not None else None

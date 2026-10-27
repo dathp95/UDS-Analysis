@@ -29,10 +29,11 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
 
     def fn_list_sequences(self):
         """
-        List local JSON and DIAG sequences.
-        Do not load external historical paths.
-        """
+        List native V-CODE JSON sequences only.
 
+        .diag files are accepted as import sources,
+        not as editable library documents.
+        """
         if not self.root.exists():
             return []
 
@@ -40,7 +41,7 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
             path.resolve()
             for path in self.root.iterdir()
             if path.is_file()
-            and path.suffix.lower() in (".json", ".diag")
+            and path.suffix.lower() == ".json"
         )
 
     def fn_load_sequence(self, path):
