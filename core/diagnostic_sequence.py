@@ -21,6 +21,11 @@ class DiagnosticStep:
     match: str = "prefix"
     comment: str = ""
 
+    # Original addressing metadata from imported .diag.
+    # These values are not used directly for UDS transmission.
+    source_request_id: int | None = None
+    source_response_id: int | None = None
+
 
 @dataclass(frozen=True)
 class DiagnosticTestCase:

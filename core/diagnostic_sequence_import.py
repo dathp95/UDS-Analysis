@@ -33,6 +33,18 @@ def import_diag(path):
         if not isinstance(item, dict) or not isinstance(item.get("ECUObj"), dict):
             raise Invalid(f"Step {index}: expected an object with ECUObj.")
         ecu = _text(item["ECUObj"].get("ECUName"), f"step {index} ECUName")
+        ecu_obj = item["ECUObj"]
+
+        source_request_id = _can_id(
+            ecu_obj.get("IDReq"),
+            f"step {index} IDReq",
+        )
+
+        source_response_id = _can_id(
+            ecu_obj.get("IDResp"),
+            f"step {index} IDResp",
+        )
+        
         request = _text(item.get("TransMess"), f"step {index} TransMess")
         expected = _text(item.get("ExpectMess"), f"step {index} ExpectMess", optional=True)
         # Reuse the native repository's byte-token HEX policy; no divergent parser.
@@ -48,6 +60,8 @@ def import_diag(path):
             DiagnosticStep(
                 step=index,
                 sequence_name=sequence_name,
+                source_request_id=source_request_id,
+                source_response_id=source_response_id,
                 ecu=ecu,
                 request=request,
                 delay_ms=_integer(
@@ -70,3 +84,20 @@ def import_diag(path):
             )
         )
     return DiagnosticTestCase(1, source.stem, _text(payload["Header"].get("Description"), "Description", optional=True), True, steps)
+
+def _can_id(value, field):
+    # Some older DIAG files may not include CAN addressing.
+    if value is None:
+        return None
+
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise Invalid(
+            f"{field} must be a decimal integer."
+        )
+
+    if not 0 <= value <= 0x7FF:
+        raise Invalid(
+            f"{field} must be an 11-bit CAN ID."
+        )
+
+    return value

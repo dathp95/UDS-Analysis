@@ -240,6 +240,14 @@ class DiagnosticSequenceRepository:
             comment=self._to_text(
                 payload.get("comment", ""),
             ),
+            source_request_id=self._optional_source_can_id(
+                payload.get("source_request_id"),
+                f"step {index} source_request_id",
+            ),
+            source_response_id=self._optional_source_can_id(
+                payload.get("source_response_id"),
+                f"step {index} source_response_id",
+            ),
         )
 
     def _normalize_test_case(
@@ -276,7 +284,7 @@ class DiagnosticSequenceRepository:
 
     @staticmethod
     def _step_to_json(step: DiagnosticStep) -> dict[str, Any]:
-        return {
+        data = {
             "step": step.step,
             "sequence_name": step.sequence_name,
             "ecu": step.ecu,
@@ -287,6 +295,14 @@ class DiagnosticSequenceRepository:
             "match": step.match,
             "comment": step.comment,
         }
+
+        if step.source_request_id is not None:
+            data["source_request_id"] = step.source_request_id
+
+        if step.source_response_id is not None:
+            data["source_response_id"] = step.source_response_id
+
+        return data
 
     @staticmethod
     def _require_key(
@@ -372,3 +388,19 @@ class DiagnosticSequenceRepository:
             token.upper()
             for token in tokens
         )
+
+    @staticmethod
+    def _optional_source_can_id(value, field_name):
+        if value is None:
+            return None
+
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 0 <= value <= 0x7FF
+        ):
+            raise DiagnosticSequenceValidationError(
+                f"{field_name} must be an 11-bit CAN ID."
+            )
+
+        return value

@@ -15,7 +15,7 @@ from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_label import PrimaryLabel
 from gui.widgets.diagnostic.diagnostic_sequence_table import DiagnosticSequenceTable
 from gui.widgets.can_interface.panel_theme import apply_panel_theme
-
+from services.can.diag_ecu_mapper import find_ecu_by_can_ids
 
 class _RowButton(ActionButton):
     def __init__(self):
@@ -362,6 +362,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             self.show_notice(f"Cannot load vehicles: {error}")
         self.vehicle_selector.fn_set_vehicles(names, chosen if chosen in names else "", allow_empty_selection=True)
         self._load_vehicle_by_name(self.vehicle_selector.fn_vehicle())
+        self._apply_diag_ecu_mapping()
         self._refresh_ecu_combos()
         if preserve_unchanged and previous is not None and previous == self._transport_configuration():
             self.vehicle_resources_changed.emit()
@@ -371,15 +372,25 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
     def _on_vehicle_changed(self, vehicle_name):
         self.reset_runtime_results()
+
+        # Load newly selected Vehicle and its ECU definitions.
         super()._on_vehicle_changed(vehicle_name)
+
+        # Map imported .diag addressing to V-CODE ECU names.
+        self._apply_diag_ecu_mapping()
+
         if vehicle_name and self._current_vehicle is None:
-            self.show_notice(f"Cannot load Vehicle '{vehicle_name}'.")
+            self.show_notice(
+                f"Cannot load Vehicle '{vehicle_name}'."
+            )
+
         self.vehicle_changed.emit(vehicle_name)
         self.vehicle_configuration_changed.emit()
 
     def fn_set_vehicle(self, vehicle):
         self.reset_runtime_results()
         super().fn_set_vehicle(vehicle)
+        self._apply_diag_ecu_mapping()
         self.vehicle_configuration_changed.emit()
 
     def _set_ecu_combo(self, row, ecu):
@@ -425,10 +436,43 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
                              '\n'.join(f'Row {row}: {name!r}' for row, name in unknown))
 
     def sequence_for_save(self):
-        if self._test_case is None or self._current_vehicle is None:
-            return self._test_case
-        return replace(self._test_case, steps=[step if self._resolved_ecu(step.ecu) else replace(step, ecu='')
-                                              for step in self._test_case.steps])
+        if self._test_case is None:
+            return None
+
+        steps = []
+
+        for step in self._test_case.steps:
+
+            # Imported .diag steps use CAN ID mapping.
+            if (
+                step.source_request_id is not None
+                and step.source_response_id is not None
+            ):
+                mapped = find_ecu_by_can_ids(
+                    self._current_vehicle,
+                    step.source_request_id,
+                    step.source_response_id,
+                )
+
+                steps.append(
+                    replace(step, ecu=mapped)
+                )
+
+            else:
+                # Preserve existing native-editor safety behavior.
+                if self._current_vehicle is None:
+                    steps.append(step)
+                elif self._resolved_ecu(step.ecu):
+                    steps.append(step)
+                else:
+                    steps.append(
+                        replace(step, ecu="")
+                    )
+
+        return replace(
+            self._test_case,
+            steps=steps,
+        )
 
     def exchange_text(self):
         from core.sequence_exchange import export_sequence_text
@@ -463,6 +507,58 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             steps[row] = replace(step, ecu=name)
             self._replace_steps(steps)
             self._mark_dirty()
+   
+    def _apply_diag_ecu_mapping(self):
+        """
+        Remap steps imported from .diag using the
+        currently selected Vehicle.
+
+        Do not alter steps without original CAN IDs.
+        """
+        if self._test_case is None:
+            return False
+
+        changed = False
+        steps = list(self._test_case.steps)
+
+        for index, step in enumerate(steps):
+
+            # Native manually created steps remain untouched.
+            if (
+                step.source_request_id is None
+                or step.source_response_id is None
+            ):
+                continue
+
+            mapped_name = find_ecu_by_can_ids(
+                self._current_vehicle,
+                step.source_request_id,
+                step.source_response_id,
+            )
+
+            # No match or ambiguous match -> empty ECU.
+            if step.ecu != mapped_name:
+                steps[index] = replace(
+                    step,
+                    ecu=mapped_name,
+                )
+                changed = True
+
+        if not changed:
+            return False
+
+        # Update the document model.
+        self._replace_steps(steps)
+
+        # Update ECU comboboxes without triggering user edits.
+        self._refresh_ecu_combos()
+
+        # Update unsaved RAM draft and the "*" indicator.
+        self._mark_dirty()
+
+        return True
+   
+   
     @staticmethod
     def _is_valid_request_hex(value):
         text = str(value or "").strip()

@@ -1,0 +1,470 @@
+{
+  "Header": {
+    "IDVehicle": 8,
+    "Description": null
+  },
+  "TestCaseItem": [
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 10 03",
+      "ExpectMess": " 50 03",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Start Diagnostic Session"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 27 01",
+      "ExpectMess": " 67 02",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Perform Security Access -Requese seed -L1"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 27 03",
+      "ExpectMess": " 67 04",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Perform Security Access -Requese seed -L2"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 31 01 02 07",
+      "ExpectMess": " 71 01 02 07",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Erase Previous Key Fobs"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 FD 02",
+      "ExpectMess": " 62 FD 02 00",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Confirm Previous Key Fobs were Erased"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 31 01 02 06",
+      "ExpectMess": " 71 01 02 06",
+      "Remark": null,
+      "DelayTime": 4000,
+      "SeqName": "Learn the New Key Fobs- press and hold both the Unlock and Lock buttons at the same time, holding for at least 4 seconds."
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 22 FD 02",
+      "ExpectMess": " 62 FD 02 01",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Confirm First New Key Fob learn is successful"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 31 02 02 06",
+      "ExpectMess": " 71 02 02 06",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "End the Learn Process"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 10 01",
+      "ExpectMess": " 50 01",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "End Diagnostic Session"
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 10 03",
+      "ExpectMess": null,
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": null
+    },
+    {
+      "ECUObj": {
+        "ECUName": "BCM",
+        "IDReq": 1665,
+        "isDTCCloner": false,
+        "isDllCloner": false,
+        "DLLFile": "VF5NP\\BCM\\VF5_SeednKey_BCM_NP.dll",
+        "_DTCListPath": null,
+        "IDResp": 1537,
+        "DTCListID": "DTC_VF5NP_BCM_BCM_xlsx",
+        "IsChecked": true,
+        "SimilarName": null
+      },
+      "TransmitRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "ReceiveRule": {
+        "ruleRecord": null,
+        "ActiveRule": false,
+        "ActiveShow": false,
+        "StartIdByteOutput": 0,
+        "EndIdByteOutput": 0,
+        "RowIsGotData": 0,
+        "CRCData": null,
+        "PreVal": null
+      },
+      "RepeatTimes": 1,
+      "‬​‍‪‫‪⁬‪‬⁯‬‌‏‌⁮‪⁮⁫‍‫⁮‬‫⁯‭⁭‮‬⁯‍‎⁭⁭‍‏⁬‭‭‪⁭‮": false,
+      "‫‎⁮‮‍⁮⁭‍⁪⁫⁫⁬⁯⁬⁭⁪‏‍‌‍‮⁭‎‪‭⁯‌‭‏⁪‭⁬​​⁬⁪‍⁫​⁯‮": false,
+      "TransMess": " 11 01",
+      "ExpectMess": " 51 01",
+      "Remark": null,
+      "DelayTime": 100,
+      "SeqName": "Hard reset"
+    }
+  ]
+}

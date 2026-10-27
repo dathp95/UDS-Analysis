@@ -6,7 +6,7 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\Test 2.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\test 1.json"
     ],
-    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\Test 2.json",
+    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.diag",
     "vehicles": {
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json": "LIMO",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag": "VF5NP",
@@ -21,7 +21,8 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN.json": "VF5NP",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\test 1.json": "LIMO",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\Test 2.json": "LIMO",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.json": "VF5NP"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.json": "VF5NP",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.diag": "VF5NP"
     },
     "sources": [
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN.json",
@@ -51,6 +52,18 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002.READ VIN.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\test 1.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\Test 2.json",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.json"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.json",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\200.BCM&S.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\204.BCM&CDS&ORVM.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\206.BCM&IO&R.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\207.BCM&KeyFobLearn.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\208.BCM&IMMO.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\209.BCM&WriteTPMS.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\210.BCM&FactoryReset.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\211.BCM&DVT.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\206.BCM&IO.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\204.BCM&CDS&1.diag",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&1.diag"
     ]
 }
