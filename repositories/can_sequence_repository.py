@@ -28,11 +28,22 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
         self._external_sources.add(path)
 
     def fn_list_sequences(self):
-        paths = set(self._external_sources)
-        if self.root.exists():
-            paths.update(path.resolve() for path in self.root.iterdir()
-                         if path.is_file() and path.suffix.lower() in (".json", ".diag"))
-        return sorted(paths)
+        """
+        List native JSON sequences from the configured folder only.
+
+        External .diag files can still be imported explicitly,
+        but are not automatically listed in the sidebar.
+        """
+
+        if not self.root.exists():
+            return []
+
+        return sorted(
+            path.resolve()
+            for path in self.root.iterdir()
+            if path.is_file()
+            and path.suffix.lower() == ".json"
+        )
 
     def fn_load_sequence(self, path):
         suffix = Path(path).suffix.lower()

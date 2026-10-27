@@ -29,6 +29,28 @@
             "expected_response": "",
             "match": "prefix",
             "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "test2",
+            "ecu": "BCM",
+            "request": "",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "trtrtrtrt",
+            "ecu": "BCM",
+            "request": "1235454",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": ""
         }
     ]
 }

@@ -24,8 +24,11 @@ class CANInterfaceTab(QWidget):
         self._service = service if service is not None else CANService()
         self.ui_store = ui_store if ui_store is not None else CanInterfaceUiStore()
         preferences = self.ui_store.load()
-        repository = sequence_repository if sequence_repository is not None else CanSequenceRepository(
-            sources=(*preferences.sources, *preferences.order, preferences.selected_id))
+        repository = (
+            sequence_repository
+            if sequence_repository is not None
+            else CanSequenceRepository()
+        )
         self.sequence_list = CanSequenceSidebar(repository=repository, store=self.ui_store)
         self.sequence_table = CanDiagnosticTablePanel(vehicle_service=vehicle_service)
         self.session_panel = CanSessionPanel()
