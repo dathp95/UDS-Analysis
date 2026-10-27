@@ -29,10 +29,8 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
 
     def fn_list_sequences(self):
         """
-        List native JSON sequences from the configured folder only.
-
-        External .diag files can still be imported explicitly,
-        but are not automatically listed in the sidebar.
+        List local JSON and DIAG sequences.
+        Do not load external historical paths.
         """
 
         if not self.root.exists():
@@ -42,7 +40,7 @@ class CanSequenceRepository(DiagnosticSequenceRepository):
             path.resolve()
             for path in self.root.iterdir()
             if path.is_file()
-            and path.suffix.lower() == ".json"
+            and path.suffix.lower() in (".json", ".diag")
         )
 
     def fn_load_sequence(self, path):
