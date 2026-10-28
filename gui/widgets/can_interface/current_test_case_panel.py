@@ -39,6 +39,11 @@ class CurrentTestCasePanel(QWidget):
         self.dll_status.setWordWrap(True)
         self.dll_status.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(self.dll_status)
+        self.security_status = PrimaryLabel('Idle; 27 02 disabled: DLL ABI/offline verification pending.')
+        self.security_status.setTextFormat(Qt.PlainText)
+        self.security_status.setWordWrap(True)
+        self.security_status.setAccessibleName('SecurityAccess session status')
+        layout.addWidget(self.security_status)
         layout.addStretch(1)
         self.display_step()
 
@@ -58,5 +63,6 @@ class CurrentTestCasePanel(QWidget):
         self.title.fn_refresh_theme()
         self.empty.fn_refresh_theme()
         self.dll_status.fn_refresh_theme()
+        self.security_status.fn_refresh_theme()
         for widget in (*self.labels.values(), *self.values.values()):
             widget.fn_refresh_theme()

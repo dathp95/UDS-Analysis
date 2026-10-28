@@ -1,5 +1,19 @@
 # M05B checkpoints
 
+## Commit 81 checkpoints
+
+- [x] A: audit baseline and independent manual 27xx gates; CAN baseline 9 failures/2 errors recorded.
+- [x] B: 18 L1 + 18 L2 chronological reference exchanges, 6 parser tests, private ignored fixture.
+- [x] C foundation: canonical DLL SHA-256/eligibility, actual x86 mock build, 9 IPC/process-tree tests.
+- [x] D foundation: expiring seed lifecycle, cancellation/selection/connection UI integration; live gate closed.
+- [x] E foundation: 30 new tests; broader regression/baseline comparison, review fixes, hashes and report.
+- [ ] C release gate: trustworthy GenerateKeyEx ABI, real worker adapter and all offline key comparisons.
+- [ ] D/E release gate: capability-bound live submission, exact 67 02 integration and authorized bench acceptance.
+
+Evidence: docs/can_interface/COMMIT81_SECURITY_ACCESS_REPORT.md. Broad regression:
+382 run, 363 pass, 17 failures + 2 errors identical to existing baseline problem
+sets. No real DLL invocation or CAN key submission. Live gates remain blockers.
+
 ## Commit 64 checkpoints
 
 - [x] Bounded TSV/CSV codec, quoted cells and validation atomicity.

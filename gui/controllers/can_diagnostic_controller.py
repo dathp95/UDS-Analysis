@@ -1,18 +1,16 @@
 from dataclasses import replace
 
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QMessageBox
 from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError
 from services.can import CANConnectionState
 from services.can.ecu_diagnostic_resolver import resolve_request
-from core.diagnostic_request import DiagnosticOutcome
-from services.can.security_seed_parser import (
-    parse_security_seed,
-    SecuritySeedError,
-)
+from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
+    security_status_changed = Signal(str)
+
     def __init__(self,panel,monitor,service,task,parent=None):
         super().__init__(parent)
         self.panel,self.monitor,self.service,self.task=panel,monitor,service,task
@@ -21,10 +19,20 @@ class CanDiagnosticController(QObject):
         self._active=None
         self._preparing=False
         self._closed=False
+        self.security_session=SecurityAccessSession()
+        self._security_connection_id=''
+        self._session_epoch=0
+        self._security_status=''
+        self._security_timer=QTimer(self)
+        self._security_timer.setInterval(250)
+        self._security_timer.timeout.connect(self._refresh_security_status)
+        self._security_timer.start()
         panel.row_send_requested.connect(self.send_row)
         panel.document_changed.connect(self.invalidate)
         panel.sequence_modified.connect(self.invalidate)
         panel.vehicle_configuration_changed.connect(self._vehicle_configuration_changed)
+        panel.row_selected.connect(self._security_selection_changed)
+        panel.vehicle_resources_changed.connect(self._invalidate_security)
         task.diagnostic_finished.connect(self._result)
         task.frame_batch.connect(self._frames)
         task.monitoring_changed.connect(lambda active:monitor.set_monitoring_state('Monitoring' if active else 'Stopped'))
@@ -36,10 +44,40 @@ class CanDiagnosticController(QObject):
         self._state()
 
     def _state(self,*_):
+        connection_id=self._connection_identity()
+        if connection_id != self._security_connection_id:
+            self._invalidate_security()
+            self._session_epoch+=1
+            self._security_connection_id=connection_id
         self.panel.set_send_available(not self._closed and self.service.snapshot.state == CANConnectionState.CONNECTED
                                       and self.task.alive and not self.task.running)
 
+    def _connection_identity(self):
+        # Discovery-only service adapters can present the tab without capture.
+        # An absent identity disables SecurityAccess; never invent a generation.
+        value=getattr(self.service,'capture_session_id',None)
+        return value if isinstance(value,str) else ''
+
+    def _refresh_security_status(self):
+        status=self.security_session.status_text
+        if status != self._security_status:
+            self._security_status=status
+            self.security_status_changed.emit(status)
+
+    def _invalidate_security(self,*_):
+        self.security_session.invalidate()
+        self._refresh_security_status()
+
+    def _security_selection_changed(self,*_):
+        identity=self.security_session.identity
+        step=self.panel.step_for_id(self.panel.selected_step_id())
+        if identity is not None and (step is None or step.ecu != identity.ecu
+                                     or self.panel.fn_current_vehicle() != identity.vehicle):
+            self._invalidate_security()
+
     def _connection_started(self,*_):
+        self._invalidate_security()
+        self._session_epoch+=1
         self.service.fn_revoke_trusted_bench()
         self._state()
 
@@ -72,6 +110,16 @@ class CanDiagnosticController(QObject):
                 request=replace(request,confirmed=True)
             if generation != self.generation or self.panel.step_for_id(key) != step or self.panel.fn_current_vehicle() != vehicle:
                 raise DiagnosticValidationError('Document/Vehicle changed; request was not sent.')
+            identity=self.security_session.identity
+            if identity is not None and (request.vehicle_name,request.ecu_name,request.tx_id,request.rx_id) != (
+                    identity.vehicle,identity.ecu,identity.tx_id,identity.rx_id):
+                self._invalidate_security()
+            if request.uds_payload[:1] == b'\x10':
+                self._session_epoch+=1
+                self._invalidate_security()
+            if request.uds_payload == b'\x27\x01':
+                self.security_session.start(request,self._connection_identity(),self._session_epoch)
+                self._refresh_security_status()
             if not self.task.submit_diagnostic(request):
                 raise DiagnosticValidationError('The CAN owner is busy or disconnected; request was not sent.')
             self._active=request
@@ -79,6 +127,7 @@ class CanDiagnosticController(QObject):
             self.panel.set_step_running(key)
             self.panel.show_notice('One manual UDS request running. TX indicates driver acceptance, not ECU acknowledgement.')
         except (ValueError,RuntimeError) as error:
+            self._invalidate_security()
             self.panel.show_notice(str(error))
             self.panel.set_step_result(key,'','Error',str(error))
         finally:
@@ -87,11 +136,12 @@ class CanDiagnosticController(QObject):
 
     def invalidate(self,*_):
         self.generation+=1
+        self._invalidate_security()
         if self._active is not None:
             self.task.cancel_diagnostic()
             self.panel.invalidate_step_result(self._active.step_id)
 
-    
+
     def _result(self, result):
         # 1. Ignore responses that do not belong
         # to the currently active transaction.
@@ -142,34 +192,14 @@ class CanDiagnosticController(QObject):
         # 4. Default notice for all diagnostic services.
         notice = detail
 
-        # 5. Handle SecurityAccess Request Seed (27 01).
-        if (
-            request.uds_payload == b"\x27\x01"
-            and result.outcome in (
-                DiagnosticOutcome.PASSED,
-                DiagnosticOutcome.NOT_EVALUATED,
-            )
-            and result.response_payload is not None
-        ):
+        # A seed belongs to this exact connection/document/session generation.
+        if request.uds_payload == b"\x27\x01":
             try:
-                parsed = parse_security_seed(
-                    request_payload=request.uds_payload,
-                    response_payload=result.response_payload,
-                )
-
-                # Seed exists in memory for this completed result.
-                # Do not persist it or print its value.
-                notice = (
-                    "SecurityAccess 27 01 successful. "
-                    f"Seed length: {len(parsed.seed)} bytes. "
-                    "Key calculation is not enabled yet."
-                )
-
-            except SecuritySeedError as error:
-                notice = (
-                    f"SecurityAccess seed validation failed: "
-                    f"{error}"
-                )
+                self.security_session.receive(result,self._connection_identity(),self._session_epoch)
+            except SecurityAccessBlocked:
+                self._invalidate_security()
+            self._refresh_security_status()
+            notice = self.security_session.status_text+' '+detail
 
         # 6. Display one final notice.
         self.panel.show_notice(notice)
@@ -181,5 +211,7 @@ class CanDiagnosticController(QObject):
 
     def close(self):
         self._closed=True
+        self._security_timer.stop()
+        self._invalidate_security()
         self.service.fn_revoke_trusted_bench()
         self.task.cancel_diagnostic()

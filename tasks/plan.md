@@ -1,5 +1,37 @@
 # M05B implementation plan (commit 62 baseline)
 
+## Commit 81 plan (baseline 58ff2ed8)
+
+Specification: `.codex/skills/vcode-security-access-commit81/SKILL.md` (the requested
+`.agents` path is absent). Existing milestones A-E are the acceptance contract.
+No commit/push, vendor execution with guessed ABI, or live CAN testing is authorized.
+
+1. A/B: audit current gates and baseline tests; extract chronological same-ECU
+   reference exchanges with openpyxl into ignored local fixtures. Report only
+   counts/lengths/hashes. Preserve user JSON and HandleDLL.cs hashes.
+2. C: reuse VehicleService DLL metadata, pin SHA-256, report distinct eligibility
+   blockers. Build an x86 .NET mock-only worker and bounded pipe adapter; test
+   cancellation, timeout, crash, malformed IPC, process reaping and redaction.
+3. D: add in-memory expiring SecurityAccess session identity/state and integrate
+   seed lifecycle/status with manual diagnostics. Invalidate on context/session/
+   connection changes. Keep core and GUI manual 27 02 denied while ABI/reference
+   validation is unavailable. Never promote mock keys to live authorization.
+4. E: focused unittest suites after each slice, CAN/UDS/BLF and Log Analyzer
+   regressions, independent security review, compile/diff/config preservation
+   checks and `docs/can_interface/COMMIT81_SECURITY_ACCESS_REPORT.md`.
+
+Trust boundaries: workbook/config/IPC/DLL metadata are untrusted; no native
+GenerateKeyEx call until trustworthy ABI evidence and all offline vectors pass.
+Worker uses no CAN and no secret temp files. Real provider and live submission
+remain release blockers rather than guessed implementations.
+
+Commands: `.venv\Scripts\python.exe -m unittest tests.services.test_security_reference
+tests.services.test_seed_key_worker tests.services.test_security_access_session
+tests.gui.test_security_access_session -v`; build with
+`powershell -File tools/security_worker/build.ps1`; use isolated local QA runner
+for baseline/final wider suites. Source follows existing dataclasses/Enums and
+unittest fixtures; no new dependencies or configuration schemas.
+
 ## Commit 64 implementation (baseline 37e0f1b)
 
 Authoritative specification: `.codex/skills/can-sequence-editor-commit64/SKILL.md`.

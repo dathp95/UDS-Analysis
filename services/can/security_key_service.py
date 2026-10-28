@@ -5,6 +5,8 @@ from services.seed_key_provider import (
     SeedKeyRequest,
     SeedKeyProvider,
     MockSeedKeyProvider,
+    encode_request,
+    SeedKeyResponse,
 )
 
 from services.can.security_seed_parser import (
@@ -47,6 +49,7 @@ class SecurityKeyService:
         request_payload: bytes,
         response_payload: bytes,
         output_size: int,
+        cancel=None,
     ) -> SecurityKeyResult:
 
         parsed = parse_security_seed(
@@ -64,16 +67,18 @@ class SecurityKeyService:
             timeout_s=1.0,
         )
 
+        encode_request(request)  # Validate the contract even for injected providers.
         result = self.provider.calculate(
-            request
+            request, cancel=cancel
         )
 
-        if result.request_id != request.request_id:
+        if (not isinstance(result, SeedKeyResponse) or result.request_id != request.request_id or not isinstance(result.key, bytes)
+                or len(result.key) != request.output_size):
             raise ValueError(
                 "Seed-Key provider response mismatch."
             )
 
-        if not result.mock_only:
+        if result.mock_only is not True:
             raise ValueError(
                 "Real provider requires a separately "
                 "validated DLL integration."
