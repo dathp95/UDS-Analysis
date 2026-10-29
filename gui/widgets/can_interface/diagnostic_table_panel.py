@@ -49,6 +49,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.step_ids = []
         self._checked = set()
         self._runtime = {}
+        self._auto_comments = {}
         self._step_signatures = {}
         self._request_busy=False
         self._send_available=True  # Standalone view can still emit typed action intent.
@@ -115,6 +116,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.table.setMinimumHeight(120)
 
     def fn_load_sequence(self, test_case):
+        self._auto_comments.clear()
         self.step_ids = [uuid4().hex for _ in test_case.steps] if test_case else []
         self._checked.clear()
         self._runtime.clear()
@@ -146,6 +148,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         ids = [key for index, key in enumerate(self.step_ids) if index not in removed]
         self._checked.intersection_update(ids)
         self._runtime = {key: value for key, value in self._runtime.items() if key in ids}
+        self._auto_comments = {key: value for key, value in self._auto_comments.items() if key in ids}
         self.step_ids = ids
         super().fn_remove_selected_step()
         self.selected_rows_changed.emit(self.checked_step_ids())
@@ -225,6 +228,7 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
                 for key, step in zip(self.step_ids, self._test_case.steps if self._test_case else ())}
 
     def invalidate_step_result(self, key):
+        self._auto_comments.pop(key, None)
         self._runtime.pop(key, None)
         if key in self.step_ids:
             row = self.step_ids.index(key)
@@ -292,7 +296,9 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         elif not self._send_available:
             tooltip = "Connect Vector first."
         elif payload in SECURITY_SEED_REQUESTS:
-            tooltip = "Request seed manually with 27 01; no key submission or ECU unlock."
+            tooltip = ("Auto SecurityAccess L1: two UDS transactions; final ECU 67 02 required."
+                       if self._request_payload(step.expected_response) == b'\x67\x02' else
+                       "Request seed manually with 27 01; no key submission or ECU unlock.")
         else:
             tooltip = "Send one manual UDS request."
 
@@ -321,6 +327,11 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
     def set_step_running(self, key):
         self.set_step_result(key, "", "Running")
 
+    def set_auto_step_result(self, key, received_payload, outcome, detail):
+        """Runtime-only annotation; never mutate the editable sequence model."""
+        self._auto_comments[key] = detail
+        return self.set_step_result(key, received_payload, outcome, detail)
+
     def set_step_result(self, key, received_payload, outcome, detail=""):
         if key not in self.step_ids:
             return False
@@ -337,11 +348,19 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._set_item(row, self.COL_RECEIVE, payload, editable=False)
         self._set_item(row, self.COL_RESULT, outcome, editable=False)
         self.table.item(row, self.COL_RESULT).setToolTip(detail or outcome)
+        step = self._test_case.steps[row]
+        annotation = self._auto_comments.get(self.step_ids[row])
+        if annotation is not None:
+            comment = ' | '.join(value for value in (step.comment, annotation) if value)
+            self._set_item(row, self.COL_COMMENT, comment, editable=False)
+        else:
+            self._set_item(row, self.COL_COMMENT, step.comment, editable=True)
         colors = ThemeManager.fn_colors()
         color = colors.SUCCESS if outcome == "Passed" else colors.DANGER if outcome in ("Failed", "Error", "Timeout") else colors.WARNING if outcome in ("Pending", "Running") else colors.TEXT
         self.table.item(row, self.COL_RESULT).setForeground(QColor(color))
 
     def reset_runtime_results(self):
+        self._auto_comments.clear()
         self._runtime.clear()
         with QSignalBlocker(self.table):
             for row in range(self.table.rowCount()):

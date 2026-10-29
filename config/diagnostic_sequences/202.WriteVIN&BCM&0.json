@@ -38,7 +38,7 @@
             "step": 3,
             "sequence_name": "Perform Security Access -Request seed",
             "ecu": "BCM",
-            "request": " 27 03",
+            "request": " 27 02",
             "delay_ms": 100,
             "repeat": 1,
             "expected_response": "67 04",

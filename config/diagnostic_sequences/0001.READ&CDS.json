@@ -11,7 +11,7 @@
         {
             "step": 1,
             "sequence_name": "",
-            "ecu": "ACU",
+            "ecu": "ACM,ACU",
             "request": " 22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -50,7 +50,7 @@
         {
             "step": 4,
             "sequence_name": "",
-            "ecu": "BCM_BPM",
+            "ecu": "BPM",
             "request": " 22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -89,7 +89,7 @@
         {
             "step": 7,
             "sequence_name": "",
-            "ecu": "IVC_SGC",
+            "ecu": "SGC",
             "request": " 22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -102,7 +102,7 @@
         {
             "step": 8,
             "sequence_name": "",
-            "ecu": "IVC_SGC",
+            "ecu": "SGC",
             "request": " 22 F1 12",
             "delay_ms": 100,
             "repeat": 1,
@@ -115,7 +115,7 @@
         {
             "step": 9,
             "sequence_name": "",
-            "ecu": "IVC_MHU",
+            "ecu": "MHU",
             "request": " 22 F1 08",
             "delay_ms": 100,
             "repeat": 1,
@@ -128,7 +128,7 @@
         {
             "step": 10,
             "sequence_name": "",
-            "ecu": "IVC_MHU",
+            "ecu": "MHU",
             "request": " 22 F1 11",
             "delay_ms": 100,
             "repeat": 1,
@@ -141,7 +141,7 @@
         {
             "step": 11,
             "sequence_name": "",
-            "ecu": "IVC_MHU",
+            "ecu": "MHU",
             "request": " 22 F1 12",
             "delay_ms": 1000,
             "repeat": 1,
@@ -154,7 +154,7 @@
         {
             "step": 12,
             "sequence_name": "ODO",
-            "ecu": "IVC_MHU",
+            "ecu": "MHU",
             "request": " 22 F1 21",
             "delay_ms": 100,
             "repeat": 1,
@@ -167,7 +167,7 @@
         {
             "step": 13,
             "sequence_name": "",
-            "ecu": "IVC_MHU",
+            "ecu": "MHU",
             "request": " 22 F1 15",
             "delay_ms": 1000,
             "repeat": 1,

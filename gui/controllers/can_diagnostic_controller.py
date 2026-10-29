@@ -8,6 +8,8 @@ from services.can.ecu_diagnostic_resolver import resolve_request
 from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked, SecurityAccessState
 from core.security_submission import is_key_submission
 from gui.workers.security_key_job import SecurityKeyJob
+from gui.controllers.auto_security_controller import AutoSecurityController
+from services.can.auto_security_access import AutoSecurityAccessL1
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
@@ -26,6 +28,7 @@ class CanDiagnosticController(QObject):
         self._key_job = None
         self._unlock_button = None
         self.security_session=SecurityAccessSession()
+        self.auto_security = AutoSecurityController(self)
         self._security_connection_id=''
         self._session_epoch=0
         self._security_status=''
@@ -66,6 +69,7 @@ class CanDiagnosticController(QObject):
         return value if isinstance(value,str) else ''
 
     def _refresh_security_status(self):
+        self.auto_security.check_timeout()
         status=self.security_session.status_text
         ready, reason = self._unlock_readiness()
         if self.security_session.state == SecurityAccessState.SEED_RECEIVED:
@@ -97,7 +101,7 @@ class CanDiagnosticController(QObject):
                     and identity.session_epoch == self._session_epoch)
 
     def _unlock_readiness(self):
-        if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy:
+        if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy or self.auto_security.busy:
             return False, 'A diagnostic operation is running or the workspace is closed.'
         if (self.service.snapshot.state != CANConnectionState.CONNECTED
                 or not self.task.alive or self.task.running):
@@ -129,7 +133,9 @@ class CanDiagnosticController(QObject):
         self._refresh_security_status()
 
     def _key_calculated(self):
-        job = self._key_job
+        job = self.sender()
+        if job is not self._key_job:
+            return
         self._key_job = None
         try:
             if self._closed:
@@ -178,6 +184,7 @@ class CanDiagnosticController(QObject):
             raise SecurityAccessBlocked('ECU configuration changed; request a new seed.')
 
     def _invalidate_security(self,*_):
+        self.auto_security.cancel()
         self._seed_request = None
         self.security_key_result_changed.emit('27 02: —')
         self.security_session.invalidate()
@@ -201,7 +208,7 @@ class CanDiagnosticController(QObject):
         self._state()
 
     def send_row(self,key):
-        if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy:
+        if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy or self.auto_security.busy:
             return
         step=self.panel.step_for_id(key)
         if step is None: return
@@ -212,6 +219,9 @@ class CanDiagnosticController(QObject):
             if self.service.snapshot.state != CANConnectionState.CONNECTED or self.task.running:
                 raise DiagnosticValidationError('Connect the selected Vector channel before sending.')
             request=resolve_request(self.panel._vehicle_service,vehicle,step,key,generation,self.settings)
+            if AutoSecurityAccessL1.matches(request):
+                self.auto_security.start(request)
+                return
             if request.requires_confirmation:
                 authorized=self.service.fn_confirm_trusted_request(request)
                 if authorized is not None: request=authorized
@@ -260,6 +270,8 @@ class CanDiagnosticController(QObject):
 
 
     def _result(self, result):
+        if self.auto_security.consume_result(result):
+            return
         # 1. Ignore responses that do not belong
         # to the currently active transaction.
         if (

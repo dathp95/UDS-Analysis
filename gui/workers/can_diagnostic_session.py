@@ -29,6 +29,7 @@ class CanDiagnosticSession(QObject):
         self._frames=[]
         self._private_tx = deque(maxlen=4096)
         self._private_fingerprints = deque(maxlen=4096)
+        self._private_seed_streams = {}
         self._capture_salt = secrets.token_bytes(16)
         self._leased=False
         self.monitoring=False
@@ -51,6 +52,17 @@ class CanDiagnosticSession(QObject):
         self.monitoring_changed.emit(False)
 
     def _capture(self,frame):
+        stream = (frame.session_id, frame.can_id)
+        if frame.direction == 'RX' and stream in self._private_seed_streams and frame.data:
+            kind = frame.data[0] >> 4
+            if kind == 0 and frame.data[1:3] == b'\x67\x01':
+                return
+            if kind == 1:
+                # A recognized non-seed FF opens its own public CF stream;
+                # orphan/seed CFs remain private even after workflow cancellation.
+                self._private_seed_streams[stream] = frame.data[2:4] == b'\x67\x01'
+            if kind in (1, 2) and self._private_seed_streams[stream]:
+                return
         # Key bytes may reach the physical bus, but never generic Monitor/CSV/BLF.
         # Retain only frame identity to suppress a later driver echo as well.
         if (is_key_submission(self.request) and frame.direction == 'TX'
@@ -77,6 +89,13 @@ class CanDiagnosticSession(QObject):
             self.finished.emit(DiagnosticResult(request,Outcome.ERROR,detail='A diagnostic request is already running.'))
             return
         self.request=request
+        if (request.uds_payload == b'\x27\x01'
+                and getattr(self.service, 'is_auto_request', lambda _: False)(request)):
+            session_id = self.service.capture_session_id
+            # Bound metadata to the active connection; no seed bytes are retained.
+            self._private_seed_streams = {key: value for key, value in self._private_seed_streams.items()
+                                          if key[0] == session_id}
+            self._private_seed_streams[(session_id, request.rx_id)] = True
         self.cancelled=cancelled
         self.started=time.monotonic()
         try:

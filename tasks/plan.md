@@ -1,5 +1,23 @@
 # M05B implementation plan (commit 62 baseline)
 
+## Commit 83 — one-action Auto SecurityAccess
+
+Contract: `.codex/skills/vcode-auto-security-access/SKILL.md`; baseline HEAD
+`4aaa19be4bdf3071a36afead34775e6e7965654a`. Preserve the three pre-existing JSON edits.
+1. Audit/baseline existing Commit82 gates, worker handoff and public asset names.
+2. TDD a pure coordinator: distinct seed/key transactions, redacted metadata trace,
+   exact final 67 02, zero-seed Not Evaluated, duplicate/negative/timeout handling.
+3. Add service-owned simulator-only workflow reservation with target/bench/epoch/
+   provider checks at preflight and owner boundaries. Physical Auto remains blocked
+   pending real ABI/vectors and approved target-scoped workflow authorization.
+4. Integrate a thin Qt adapter and runtime-only row comment/progress overlay.
+   Reuse SecurityKeyJob and CAN owner; no second dialog in pre-authorized simulator.
+5. Execute end-to-end simulator negatives/cancellation/reentrancy/privacy tests,
+   existing manual suites, broad regression, Light/Dark render and final review.
+
+Verify: `.venv\Scripts\python.exe -m unittest tests.services.test_auto_security_access tests.gui.test_auto_security_access -q`.
+Report: `docs/can_interface/AUTO_SECURITY_ACCESS_REPORT.md`; no commit/push or asset copy.
+
 ## Vector SecurityAccess completion (2026-10-29)
 
 Contract: `docs/can_interface/VECTOR_SECURITY_ACCESS_SPEC.md`.

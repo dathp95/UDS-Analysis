@@ -1,5 +1,14 @@
 # M05B checkpoints
 
+## Commit 83 — Auto SecurityAccess
+
+- [x] Audit Commit82, baseline and configuration fingerprints.
+- [x] Pure composite coordinator and redacted trace tested.
+- [x] Simulator workflow reservation and physical preflight/owner gate tested.
+- [x] One row click dispatches two existing transactions; runtime overlay only.
+- [x] End-to-end success/negatives/cancel/privacy, regression and render (30 Auto tests pass).
+- [x] Report simulator PASS separately from physical BLOCKED; final504 vs baseline474, same23 existing problems.
+
 ## Vector SecurityAccess completion
 
 - [x] Read Vector AN-IDG-1-017; inspect supplied DLL headers/exports without loading.

@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal, QUrl
+from PySide6.QtGui import QPixmap, QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -29,6 +29,7 @@ class LicenseSupportTab(QWidget):
 
     DEVICE_ID_PLACEHOLDER = "VC-XXXX-XXXX-XXXX-XXXX-XXXX"
     GUIDE_PATH = RESOURCE_DIR / "docs" / "license_support.md"
+    TELEGRAM_BOT_URL = "https://t.me/REDO_V_CODE_bot"
     DURATION_PRICES = {
         "1 Month": "Demo price: 150,000 VND",
         "2 Months": "Demo price: 280,000 VND",
@@ -81,16 +82,32 @@ class LicenseSupportTab(QWidget):
         self.price_value_label = self._create_value_label("")
         self._update_price_label()
 
-        self.payment_label = self._create_section_label("Payment")
+        
+        # Telegram Support
+        self.payment_label = self._create_section_label(
+            "Telegram Support"
+        )
+
         self.qr_label = QLabel()
         self.qr_label.setObjectName("licenseSupportQr")
         self.qr_label.setAlignment(Qt.AlignCenter)
         self.qr_label.setFixedSize(220, 220)
         self.qr_label.setScaledContents(False)
+
         self._load_support_qr()
 
         self.payment_helper_label = self._create_body_label(
-            "Scan the QR code to complete payment."
+            "Scan QR code to contact V-CODE Support."
+        )
+
+        # Open Telegram Button
+        self.telegram_button = PrimaryButton(
+            "Open Telegram Bot",
+            width=180
+        )
+
+        self.telegram_button.setObjectName(
+            "open_telegram_button"
         )
         self.contact_title_label = self._create_section_label("Contact")
         self.email_label = self._create_body_label(
@@ -107,15 +124,33 @@ class LicenseSupportTab(QWidget):
         layout.addWidget(self.trial_detail_label)
         layout.addWidget(self.license_details_button)
         layout.addWidget(self.license_details_container)
+        
         details_layout.addWidget(self.duration_label)
         details_layout.addWidget(self.duration_combo)
         details_layout.addWidget(self.price_label)
         details_layout.addWidget(self.price_value_label)
         details_layout.addSpacing(8)
+        
         details_layout.addWidget(self.payment_label)
-        details_layout.addWidget(self.qr_label, 0, Qt.AlignHCenter)
-        details_layout.addWidget(self.payment_helper_label)
+
+        details_layout.addWidget(
+            self.qr_label,
+            0,
+            Qt.AlignHCenter
+        )
+
+        details_layout.addWidget(
+            self.payment_helper_label
+        )
+
+        details_layout.addWidget(
+            self.telegram_button,
+            0,
+            Qt.AlignHCenter
+        )
+
         details_layout.addSpacing(6)
+
         details_layout.addWidget(self.contact_title_label)
         details_layout.addWidget(self.email_label)
         details_layout.addWidget(self.phone_label)
@@ -322,6 +357,9 @@ class LicenseSupportTab(QWidget):
         self.activation_key_edit.textChanged.connect(
             self._update_activate_button
         )
+        self.telegram_button.clicked.connect(
+            self.open_telegram_bot
+        )
 
     def _update_activate_button(self):
         has_key = bool(
@@ -429,6 +467,11 @@ class LicenseSupportTab(QWidget):
         self.qr_label.setPixmap(display_pixmap)
         self.qr_label.setToolTip(str(image_path))
 
+    def open_telegram_bot(self):
+        url = QUrl(self.TELEGRAM_BOT_URL)
+
+        QDesktopServices.openUrl(url)
+    
     def _load_guide(self):
         try:
             guide_text = self.GUIDE_PATH.read_text(encoding="utf-8")
@@ -442,11 +485,7 @@ class LicenseSupportTab(QWidget):
 
     @staticmethod
     def _support_qr_path():
-        preferred_path = IMAGE_DIR / "support.qr.jpg"
-        if preferred_path.exists():
-            return preferred_path
-
-        return IMAGE_DIR / "support_qr.jpg"
+        return IMAGE_DIR / "qr-bot.png"
 
     def _update_price_label(self):
         duration = self.duration_combo.currentText()
@@ -575,6 +614,7 @@ class LicenseSupportTab(QWidget):
         self.device_id_edit.fn_refresh_theme()
         self.copy_device_id_button.fn_refresh_theme()
         self.activate_button.fn_refresh_theme()
+        self.telegram_button.fn_refresh_theme()
         self.license_details_button.fn_refresh_theme()
         self.activation_details_button.fn_refresh_theme()
         self.guide_details_button.fn_refresh_theme()

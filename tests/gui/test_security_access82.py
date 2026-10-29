@@ -174,7 +174,8 @@ class SecurityAccess82GuiTests(unittest.TestCase):
         self.assertIn('NRC 0x78 count: 1', self.panel.notice.text())
 
     def test_expected_seed_mismatch_cannot_enable_unlock(self):
-        self.panel.table.item(1, self.panel.COL_EXPECTED).setText('67 02')
+        # 67 02 now explicitly opts into Auto; use another wrong seed echo here.
+        self.panel.table.item(1, self.panel.COL_EXPECTED).setText('67 03')
         with patch.object(QMessageBox, 'question', return_value=QMessageBox.Yes):
             for row, outcome in ((0, 'Passed'), (1, 'Failed')):
                 self.panel.table.selectRow(row)

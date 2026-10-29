@@ -50,6 +50,67 @@ class CANService:
         self._security_epoch=0
         self._uds_session=None
         self._uds_session_target=None
+        self._auto_context = None
+        self._auto_seed_admitted = False
+
+    def begin_auto_security(self, request):
+        """Reserve a simulator-only, target-scoped two-transaction workflow.
+
+        A physical workflow needs a separately approved operation grant as well
+        as a real verified provider. Generic bench JSON cannot grant that right.
+        """
+        from services.can.auto_security_access import AutoSecurityAccessL1
+        with self._state_lock:
+            if not self.is_simulator:
+                raise DiagnosticValidationError('Physical Auto L1 blocked: real provider ABI/offline verification and scoped workflow authorization required.')
+            if self._auto_context is not None or self._diagnostic_request is not None:
+                raise DiagnosticValidationError('A diagnostic workflow is already running.')
+            if not self.security_ready_for(request):
+                raise DiagnosticValidationError('Auto L1 requires an authorized bench and confirmed Extended session for this ECU.')
+            provider = self.security_provider(request.vehicle_name, request.ecu_name)
+            if provider is None:
+                raise DiagnosticValidationError('Auto L1 blocked: no verified Seed-Key provider for this ECU.')
+            flow = AutoSecurityAccessL1(request)
+            self._auto_context = (flow, self.capture_session_id, self._security_epoch,
+                self.trusted_bench.authorization_id, provider, self.security_gate)
+            self._auto_seed_admitted = False
+            return flow
+
+    def _check_auto_security(self, flow):
+        context = self._auto_context
+        if context is None or context[0] is not flow:
+            raise DiagnosticValidationError('Auto L1 workflow was revoked.')
+        _, connection, epoch, authorization, provider, gate = context
+        request = flow.seed_request
+        grant = self.trusted_bench
+        if (flow.expired or not self.is_simulator or not self.security_ready_for(request) or grant is None
+                or (connection, epoch, authorization) !=
+                   (self.capture_session_id, self._security_epoch, grant.authorization_id)
+                or gate is not self.security_gate
+                or provider is not self.security_provider(request.vehicle_name, request.ecu_name)):
+            raise DiagnosticValidationError('Auto L1 target, provider, connection or bench authorization changed.')
+
+    def auto_provider(self, flow):
+        with self._state_lock:
+            self._check_auto_security(flow)
+            return self._auto_context[4], self._auto_context[5]
+
+    def prepare_auto_submission(self, flow, session, session_epoch):
+        with self._bench_tx_lock, self._state_lock:
+            self._check_auto_security(flow)
+            return self.prepare_security_submission(session, flow.seed_request, session_epoch, confirmed=True)
+
+    def end_auto_security(self, flow):
+        with self._state_lock:
+            if self._auto_context is not None and self._auto_context[0] is flow:
+                if flow.key_request is not None:
+                    self._security_authority.retire(flow.key_request)
+                self._auto_context = None
+
+    def is_auto_request(self, request):
+        context = self._auto_context
+        return context is not None and request is not None and (
+            request is context[0].seed_request or request is context[0].key_request)
 
     @property
     def is_simulator(self):
@@ -115,6 +176,7 @@ class CANService:
                 raise CANConnectionError("Invalid CAN connection state transition.")
             self._snapshot = CANConnectionSnapshot(state, config, error, rediscovery_required)
             if state != State.CONNECTED:
+                self._auto_context = None
                 self._security_authority.revoke_all()
                 self._security_epoch+=1
                 self._uds_session=None
@@ -238,6 +300,15 @@ class CANService:
                 if self.snapshot.state != State.CONNECTED:
                     raise CANConnectionError('Connect the selected Vector channel before sending.')
                 self._validate_bench_authorization(request)
+                if self._auto_context is not None:
+                    flow = self._auto_context[0]
+                    self._check_auto_security(flow)
+                    if not self.is_auto_request(request):
+                        raise DiagnosticValidationError('The CAN owner is reserved by Auto SecurityAccess.')
+                    if request is flow.seed_request:
+                        if self._auto_seed_admitted:
+                            raise DiagnosticValidationError('Auto seed request cannot be replayed.')
+                        self._auto_seed_admitted = True
                 from core.security_submission import is_key_submission
                 if is_key_submission(request): self._validate_key_submission(request,claim=True)
                 if request.uds_payload[:1] in (b'\x10', b'\x11'):
@@ -251,9 +322,14 @@ class CANService:
             self._operation_lock.release()
             raise
 
-    def _guard_diagnostic_owner(self):
+    def _guard_diagnostic_owner(self, *, check_auto=True):
         if self._diagnostic_request is None or self._diagnostic_owner != get_ident() or self.snapshot.state != State.CONNECTED:
             raise CANConnectionError('Diagnostic I/O requires the active transaction owner.')
+        if check_auto and self._auto_context is not None:
+            try:
+                self._check_auto_security(self._auto_context[0])
+            except DiagnosticValidationError:
+                raise DiagnosticCancelled('Auto L1 workflow context revoked.') from None
 
     def fn_send_diagnostic_frame(self, can_id, data):
         self._guard_diagnostic_owner()
@@ -291,7 +367,8 @@ class CANService:
         return self._backend.fn_receive_frame()
 
     def fn_end_diagnostic(self, transaction_id):
-        self._guard_diagnostic_owner()
+        # Revoked authorization must stop I/O, never prevent owner cleanup.
+        self._guard_diagnostic_owner(check_auto=False)
         if self._diagnostic_request.transaction_id != transaction_id:
             raise CANConnectionError('Stale diagnostic transaction.')
         self._security_authority.retire(self._diagnostic_request)
