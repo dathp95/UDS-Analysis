@@ -66,7 +66,6 @@ class LicenseSupportDetailsTests(unittest.TestCase):
         tab = LicenseSupportTab()
         self.addCleanup(tab.deleteLater)
 
-        self.assertIs(tab.duration_combo.parentWidget(), tab.license_details_container)
         self.assertIs(tab.device_id_edit.parentWidget(), tab.activation_details_container)
         self.assertIs(tab.guide_browser.parentWidget(), tab.guide_details_container)
         self.assertEqual(
@@ -78,12 +77,15 @@ class LicenseSupportDetailsTests(unittest.TestCase):
         tab.activation_details_button.click()
         tab.guide_details_button.click()
 
-        tab.duration_combo.setCurrentText("6 Months")
-        self.assertIn("720,000", tab.price_value_label.text())
         self.assertFalse(tab.qr_label.pixmap().isNull())
         tab.copy_device_id_button.click()
         self.assertEqual(QApplication.clipboard().text(), tab.device_id_edit.text())
+        self.assertIs(
+            tab.telegram_button.parentWidget(),
+            tab.license_details_container
+        )
 
+        self.assertFalse(tab.qr_label.pixmap().isNull())
 
 if __name__ == "__main__":
     unittest.main()

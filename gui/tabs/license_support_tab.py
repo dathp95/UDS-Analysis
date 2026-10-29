@@ -18,7 +18,6 @@ from gui.themes.theme_manager import ThemeManager
 from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
 from gui.widgets.controls.details_button import DetailsButton
 from gui.widgets.controls.primary_button import PrimaryButton
-from gui.widgets.controls.primary_combobox import PrimaryComboBox
 from gui.widgets.controls.primary_lineedit import PrimaryLineEdit
 from license.manager import LicenseManager
 
@@ -30,13 +29,7 @@ class LicenseSupportTab(QWidget):
     DEVICE_ID_PLACEHOLDER = "VC-XXXX-XXXX-XXXX-XXXX-XXXX"
     GUIDE_PATH = RESOURCE_DIR / "docs" / "license_support.md"
     TELEGRAM_BOT_URL = "https://t.me/REDO_V_CODE_bot"
-    DURATION_PRICES = {
-        "1 Month": "Demo price: 150,000 VND",
-        "2 Months": "Demo price: 280,000 VND",
-        "3 Months": "Demo price: 390,000 VND",
-        "6 Months": "Demo price: 720,000 VND",
-        "12 Months": "Demo price: 1,320,000 VND",
-    }
+   
 
     def __init__(self):
         super().__init__()
@@ -65,24 +58,11 @@ class LicenseSupportTab(QWidget):
 
         self.title_label = self._create_title_label("License & Support")
         self.plan_title_label = self._create_section_label("License Plan")
-        self.trial_name_label = self._create_value_label("Free Trial")
-        self.trial_detail_label = self._create_body_label("First 2 months FREE")
         self.license_details_button = DetailsButton()
         self.license_details_container = self._create_details_container()
         details_layout = self.license_details_container.layout()
 
-        self.duration_label = self._create_field_label("Duration")
-        self.duration_combo = PrimaryComboBox()
-        self.duration_combo.setObjectName("duration_combo")
-        self.duration_combo.addItems(self.DURATION_PRICES.keys())
-        self.duration_combo.setMaxVisibleItems(len(self.DURATION_PRICES))
-        fn_apply_scrollbar_style(self.duration_combo.view())
-
-        self.price_label = self._create_field_label("Price")
-        self.price_value_label = self._create_value_label("")
-        self._update_price_label()
-
-        
+             
         # Telegram Support
         self.payment_label = self._create_section_label(
             "Telegram Support"
@@ -120,16 +100,9 @@ class LicenseSupportTab(QWidget):
         layout.addWidget(self.title_label)
         layout.addSpacing(4)
         layout.addWidget(self.plan_title_label)
-        layout.addWidget(self.trial_name_label)
-        layout.addWidget(self.trial_detail_label)
         layout.addWidget(self.license_details_button)
         layout.addWidget(self.license_details_container)
-        
-        details_layout.addWidget(self.duration_label)
-        details_layout.addWidget(self.duration_combo)
-        details_layout.addWidget(self.price_label)
-        details_layout.addWidget(self.price_value_label)
-        details_layout.addSpacing(8)
+      
         
         details_layout.addWidget(self.payment_label)
 
@@ -342,7 +315,6 @@ class LicenseSupportTab(QWidget):
         return panel
 
     def _connect_signals(self):
-        self.duration_combo.currentTextChanged.connect(self._update_price_label)
         self.copy_device_id_button.clicked.connect(self.copy_device_id)
         self.activate_button.clicked.connect(self.activate_license)
         self.license_details_button.expandedChanged.connect(
@@ -485,13 +457,7 @@ class LicenseSupportTab(QWidget):
 
     @staticmethod
     def _support_qr_path():
-        return IMAGE_DIR / "qr-bot.png"
-
-    def _update_price_label(self):
-        duration = self.duration_combo.currentText()
-        self.price_value_label.setText(
-            self.DURATION_PRICES.get(duration, "Demo price: --")
-        )
+        return IMAGE_DIR / "qr-bot.png"  
 
     def copy_device_id(self):
         QApplication.clipboard().setText(self.device_id_edit.text())
@@ -610,7 +576,6 @@ class LicenseSupportTab(QWidget):
             }}
             """
         )
-        self.duration_combo.fn_refresh_theme()
         self.device_id_edit.fn_refresh_theme()
         self.copy_device_id_button.fn_refresh_theme()
         self.activate_button.fn_refresh_theme()
@@ -618,6 +583,5 @@ class LicenseSupportTab(QWidget):
         self.license_details_button.fn_refresh_theme()
         self.activation_details_button.fn_refresh_theme()
         self.guide_details_button.fn_refresh_theme()
-        fn_apply_scrollbar_style(self.duration_combo.view())
         fn_apply_scrollbar_style(self.activation_key_edit)
         fn_apply_scrollbar_style(self.guide_browser)
