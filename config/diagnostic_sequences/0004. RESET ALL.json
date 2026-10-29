@@ -1,0 +1,25 @@
+{
+    "schema_version": 1,
+    "name": "0004. RESET ALL",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "",
+            "ecu": "ALL",
+            "request": " 11 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1791,
+            "source_response_id": 0
+        }
+    ]
+}

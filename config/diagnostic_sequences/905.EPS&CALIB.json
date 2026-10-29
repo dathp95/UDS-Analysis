@@ -1,0 +1,103 @@
+{
+    "schema_version": 1,
+    "name": "905.EPS&CALIB",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "EPS",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "EPS",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "EPS",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 4,
+            "sequence_name": "Start Angle Calibration",
+            "ecu": "EPS",
+            "request": " 31 01 01 00",
+            "delay_ms": 500,
+            "repeat": 1,
+            "expected_response": "71 01 01 00",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 5,
+            "sequence_name": "Request Angle Calibration Result",
+            "ecu": "EPS",
+            "request": " 31 03 01 00",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 03 01 00 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 6,
+            "sequence_name": "ClearDTCInformation",
+            "ecu": "EPS",
+            "request": " 14 FF FF FF",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "54",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        },
+        {
+            "step": 7,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "EPS",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1704,
+            "source_response_id": 1576
+        }
+    ]
+}

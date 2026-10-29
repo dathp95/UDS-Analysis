@@ -86,7 +86,8 @@ class DiagnosticRequest:
         sid = self.uds_payload[0]
         if sid == 0x27:
             if self.uds_payload not in SECURITY_SEED_REQUESTS:
-                raise DiagnosticValidationError('Security Access permits only exact 27 01 requestSeed; key submission is not enabled.')
+                from core.security_submission import validate_generated_constructor
+                validate_generated_constructor(self)
         elif sid not in SAFE_SERVICES | CONFIRM_SERVICES or (sid == 0x10 and len(self.uds_payload)>1 and self.uds_payload[1]&0x7F == 2):
             raise DiagnosticValidationError('This service/programming operation is not enabled in M04.')
         if self.match not in ('prefix','exact'):
@@ -107,7 +108,7 @@ class DiagnosticRequest:
 def validate_send_policy(request):
     if not isinstance(request,DiagnosticRequest):
         raise DiagnosticValidationError('Invalid diagnostic request.')
-    request.__post_init__()
+    DiagnosticRequest.__post_init__(request)
     if request.requires_confirmation and not request.confirmed:
         raise DiagnosticValidationError('Manual confirmation is required for this state-changing service.')
 
@@ -134,6 +135,9 @@ def response_belongs_to_request(request, payload):
     if payload[0] == 0x7F:
         return len(payload)>=2 and payload[1] == sent[0]
     if payload[0] != sent[0]+0x40: return False
+    if sent[:2] == b'\x27\x02':
+        from core.security_submission import is_key_submission
+        return is_key_submission(request) and payload == b'\x67\x02'
     if sent[0] == 0x27 and (sent not in SECURITY_SEED_REQUESTS or len(payload) < 3):
         return False  # 67 01 alone is not a successful seed response.
     echo_length={0x10:1,0x11:1,0x19:1,0x22:2,0x27:1,0x2E:2,0x31:3,0x3E:1,0x85:1}.get(sent[0],0)

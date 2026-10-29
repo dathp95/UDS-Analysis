@@ -1,5 +1,22 @@
 # M05B checkpoints
 
+## Vector SecurityAccess completion
+
+- [x] Read Vector AN-IDG-1-017; inspect supplied DLL headers/exports without loading.
+- [x] Record focused baseline (16 tests, 5 missing-GUI errors) and scoped contract.
+- [x] Zero-seed handling and session/result tests (profile-length validation).
+- [x] Async Unlock L1, exact response, cancellation and one-shot GUI flow.
+- [x] Focused/regression tests, render and independent review; pre-existing failures reported separately.
+- [ ] Native provider: verify OEM ABI/parameters and all authorized offline vectors.
+
+## Commit 82 checkpoints
+
+- [ ] A baseline audit and source/asset hashes.
+- [ ] B HMAC/provenance/offline verifier; report real-provider blockers explicitly.
+- [ ] C one-shot generated-key capability at core/owner/TX boundaries.
+- [ ] D deliberate async Unlock L1 and exact response state machine.
+- [ ] E full simulator flow, negatives/cancellation/replay, regressions and report.
+
 ## Commit 81 checkpoints
 
 - [x] A: audit baseline and independent manual 27xx gates; CAN baseline 9 failures/2 errors recorded.

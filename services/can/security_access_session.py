@@ -1,8 +1,4 @@
-"""Expiring L1 lifecycle scaffold. Live submission stays closed pending ABI proof.
-
-Reserved KEY_SUBMITTED/UNLOCKED states deliberately have no reachable transition:
-this release has neither a validated real provider nor an admitted key request.
-"""
+"""Expiring L1 lifecycle. Only verified provenance can prepare an owner capability."""
 from dataclasses import dataclass
 from enum import Enum
 from math import isfinite
@@ -22,9 +18,11 @@ class SecurityAccessState(Enum):
     IDLE = 'Idle'
     SEED_REQUESTED = 'Seed requested'
     SEED_RECEIVED = 'Seed received'
+    CALCULATING = 'Calculating key'
     KEY_CALCULATED = 'Key calculated (offline mock)'
-    KEY_SUBMITTED = 'Key submitted'
-    UNLOCKED = 'Unlock successful'
+    AWAITING_CONFIRMATION = 'Awaiting bench confirmation'
+    KEY_SUBMITTED = 'Sending key'
+    UNLOCKED = 'Security Unlocked (Level 1)'
     FAILED = 'Unlock failed'
     CANCELLED = 'Cancelled'
 
@@ -61,6 +59,9 @@ class SecurityAccessSession:
         self._cancel = Event()
         self._calculating = False
         self._deadline = None
+        self._material=self._verified_gate=self._submission=self._authority=None
+        self._already_unlocked = False
+        self._simulated_unlock = False
 
     @property
     def has_seed(self):
@@ -72,12 +73,24 @@ class SecurityAccessSession:
     def status_text(self):
         with self._lock:
             self.expire()
-            return f'{self.state.value}; 27 02 disabled: DLL ABI/offline verification pending.'
+            if self._material is not None:
+                label='Key calculated' if self.state==SecurityAccessState.KEY_CALCULATED else self.state.value
+                return ('Simulator only: ' if not self._material.verified_real else '')+label
+            if self.state==SecurityAccessState.UNLOCKED:
+                prefix = 'Simulator only: ' if self._simulated_unlock else ''
+                suffix = ' (already active; zero seed)' if self._already_unlocked else ''
+                return prefix + self.state.value + suffix
+            return self.state.value
 
     def _clear(self):
+        if self._authority is not None and self._submission is not None:
+            self._authority.retire(self._submission)
+        self._material=self._verified_gate=self._submission=self._authority=None
         self._cancel.set()
         self._seed = self._key = None
         self.identity = self._deadline = None
+        self._already_unlocked = False
+        self._simulated_unlock = False
 
     def invalidate(self):
         with self._lock:
@@ -125,9 +138,22 @@ class SecurityAccessSession:
                 if result.outcome not in (DiagnosticOutcome.PASSED,DiagnosticOutcome.NOT_EVALUATED):
                     raise ValueError
                 parsed = parse_security_seed(result.request.uds_payload, result.response_payload)
+                if not any(parsed.seed) and len(parsed.seed) != 16:
+                    # Only the current 16-byte L1 profile can establish zero-seed
+                    # semantics; a truncated/oversized response is not unlock proof.
+                    raise ValueError
             except ValueError:
                 self._clear()
                 self.state = SecurityAccessState.FAILED
+                return
+            if not any(parsed.seed):
+                # UDS: a zero seed reports this access level is already active.
+                # Retain target identity so ECU/selection changes revoke the status.
+                identity = self.identity
+                self._clear()
+                self.identity = identity
+                self._already_unlocked = True
+                self.state = SecurityAccessState.UNLOCKED
                 return
             self._seed = parsed.seed
             self._deadline = self._clock()+self._ttl
@@ -165,10 +191,72 @@ class SecurityAccessSession:
             with self._lock:
                 self._calculating = False
 
-    def prepare_submission(self, request, connection_id, session_epoch, *, authorized, confirmed):
+    @property
+    def can_calculate(self):
+        with self._lock:
+            self.expire()
+            return self.state==SecurityAccessState.SEED_RECEIVED and self._seed is not None and len(self._seed)==16
+
+    def calculate_verified(self,provider,gate):
+        with self._lock:
+            if not self.can_calculate or self._calculating:
+                raise SecurityAccessBlocked('A current profile-compatible 16-byte seed is required.')
+            identity,seed,cancel=self.identity,self._seed,self._cancel
+            self._calculating=True
+            self.state=SecurityAccessState.CALCULATING
+        try:
+            result=provider.calculate(seed,source_transaction=identity.transaction_id,cancel=cancel)
+            with self._lock:
+                self.expire()
+                if (cancel.is_set() or self.identity!=identity
+                        or not gate.validate(result,identity.vehicle,identity.ecu,identity.transaction_id)):
+                    raise SecurityAccessBlocked('Untrusted or stale key calculation.')
+                self._material,self._verified_gate=result,gate
+                self.state=SecurityAccessState.KEY_CALCULATED
+                return result
+        except Exception:
+            with self._lock:
+                if self.identity==identity:
+                    self._clear();self.state=SecurityAccessState.FAILED
+            raise SecurityAccessBlocked('Key calculation failed or cancelled; nothing was submitted.') from None
+        finally:
+            with self._lock: self._calculating=False
+
+    def await_confirmation(self):
+        with self._lock:
+            self.expire()
+            if self.state!=SecurityAccessState.KEY_CALCULATED or self._material is None:
+                raise SecurityAccessBlocked('No current verified key.')
+            self.state=SecurityAccessState.AWAITING_CONFIRMATION
+
+    def prepare_submission(self, request, connection_id, session_epoch, *, authorized, confirmed,
+                           authority=None,owner_epoch=None,authorization_id=None):
         with self._lock:
             self._check(request,connection_id,session_epoch)
             if authorized is not True or confirmed is not True:
                 raise SecurityAccessBlocked('An authorized bench and per-submission confirmation are required.')
-            # Do not create a DiagnosticRequest or expose the mock key as manual text.
-            raise SecurityAccessBlocked('Live 27 02 disabled: no ABI-verified, offline-validated real provider.')
+            if (authority is None or self.state not in (SecurityAccessState.KEY_CALCULATED,SecurityAccessState.AWAITING_CONFIRMATION)
+                    or self._material is None or self._verified_gate is None
+                    or not self._verified_gate.validate(self._material,request.vehicle_name,request.ecu_name,request.transaction_id)):
+                raise SecurityAccessBlocked('Live 27 02 disabled: no verified provider capability.')
+            submission=authority.issue(request,self._material,connection_id=connection_id,epoch=owner_epoch,
+                                       authorization_id=authorization_id,deadline=self._deadline,cancel=self._cancel)
+            self._authority,self._submission=authority,submission
+            self.state=SecurityAccessState.KEY_SUBMITTED
+            return submission
+
+    def finish_submission(self,result):
+        with self._lock:
+            self.expire()
+            if self._submission is None or result.request is not self._submission:
+                return False
+            success=result.outcome==DiagnosticOutcome.PASSED and result.response_payload==b'\x67\x02'
+            identity = self.identity
+            simulated = self._material is not None and not self._material.verified_real
+            self._clear()
+            if success:
+                self.identity = identity
+                self._simulated_unlock = simulated
+            self.state=(SecurityAccessState.UNLOCKED if success else SecurityAccessState.CANCELLED
+                        if result.outcome==DiagnosticOutcome.CANCELLED else SecurityAccessState.FAILED)
+            return success

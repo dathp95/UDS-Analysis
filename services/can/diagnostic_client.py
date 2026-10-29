@@ -7,6 +7,15 @@ from core.diagnostic_request import DiagnosticResult,DiagnosticOutcome as Outcom
 from services.can.isotp_transport import IsoTpTransport,DiagnosticCancelled
 
 
+SECURITY_NRC_NAMES = {
+    0x24: 'request sequence error',
+    0x33: 'security access denied',
+    0x35: 'invalid key',
+    0x36: 'exceeded number of attempts',
+    0x37: 'required time delay not expired',
+}
+
+
 class DiagnosticClient:
     def __init__(self, request, send_frame, cancelled=None, clock=time.monotonic):
         self.request=request
@@ -54,7 +63,11 @@ class DiagnosticClient:
                     self.pending_times.append(now-self.started)
                     self.deadline=now+self.request.settings.p2_star_s
                 else:
-                    return self.finish(Outcome.FAILED,payload,f'ECU terminal negative response NRC 0x{nrc:02X}; no security unlock attempted.',nrc)
+                    suffix = ''
+                    if sid == 0x27:
+                        name = SECURITY_NRC_NAMES.get(nrc, 'SecurityAccess rejected')
+                        suffix = f'; {name}; no automatic retry.'
+                    return self.finish(Outcome.FAILED,payload,f'ECU terminal negative response NRC 0x{nrc:02X}'+suffix,nrc)
             elif payload and payload[0] == sid+0x40:
                 expected=self.request.expected
                 outcome=(Outcome.NOT_EVALUATED if not expected else

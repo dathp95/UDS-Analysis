@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QSizePolicy, QVBoxLayout, QWidget
 from gui.widgets.controls.primary_label import PrimaryLabel
+from gui.widgets.controls.action_button import ActionButton
 from html import escape
 
 
@@ -44,6 +45,16 @@ class CurrentTestCasePanel(QWidget):
         self.security_status.setWordWrap(True)
         self.security_status.setAccessibleName('SecurityAccess session status')
         layout.addWidget(self.security_status)
+        self.key_result = PrimaryLabel('27 02: —')
+        self.key_result.setTextFormat(Qt.PlainText)
+        self.key_result.setWordWrap(True)
+        self.key_result.setAccessibleName('SecurityAccess key submission result')
+        layout.addWidget(self.key_result)
+        self.btn_unlock_l1 = ActionButton('Unlock L1', width=110, height=30)
+        self.btn_unlock_l1.setAccessibleName('Calculate and submit SecurityAccess Level 1 key')
+        self.btn_unlock_l1.setEnabled(False)
+        self.btn_unlock_l1.setToolTip('Request a seed with 27 01 first; a verified provider is required.')
+        layout.addWidget(self.btn_unlock_l1, 0, Qt.AlignLeft)
         layout.addStretch(1)
         self.display_step()
 
@@ -64,5 +75,7 @@ class CurrentTestCasePanel(QWidget):
         self.empty.fn_refresh_theme()
         self.dll_status.fn_refresh_theme()
         self.security_status.fn_refresh_theme()
+        self.key_result.fn_refresh_theme()
+        self.btn_unlock_l1.fn_refresh_theme()
         for widget in (*self.labels.values(), *self.values.values()):
             widget.fn_refresh_theme()

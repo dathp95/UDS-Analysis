@@ -5,11 +5,14 @@ from PySide6.QtWidgets import QMessageBox
 from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError
 from services.can import CANConnectionState
 from services.can.ecu_diagnostic_resolver import resolve_request
-from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked
+from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked, SecurityAccessState
+from core.security_submission import is_key_submission
+from gui.workers.security_key_job import SecurityKeyJob
 
 class CanDiagnosticController(QObject):
     """Manual row intent -> frozen canonical request -> GUI-only real results."""
     security_status_changed = Signal(str)
+    security_key_result_changed = Signal(str)
 
     def __init__(self,panel,monitor,service,task,parent=None):
         super().__init__(parent)
@@ -19,6 +22,9 @@ class CanDiagnosticController(QObject):
         self._active=None
         self._preparing=False
         self._closed=False
+        self._seed_request = None
+        self._key_job = None
+        self._unlock_button = None
         self.security_session=SecurityAccessSession()
         self._security_connection_id=''
         self._session_epoch=0
@@ -51,6 +57,7 @@ class CanDiagnosticController(QObject):
             self._security_connection_id=connection_id
         self.panel.set_send_available(not self._closed and self.service.snapshot.state == CANConnectionState.CONNECTED
                                       and self.task.alive and not self.task.running)
+        self._refresh_security_status()
 
     def _connection_identity(self):
         # Discovery-only service adapters can present the tab without capture.
@@ -60,11 +67,119 @@ class CanDiagnosticController(QObject):
 
     def _refresh_security_status(self):
         status=self.security_session.status_text
+        ready, reason = self._unlock_readiness()
+        if self.security_session.state == SecurityAccessState.SEED_RECEIVED:
+            status += '; ready for Unlock L1' if ready else '; 27 02 disabled: ' + reason
+        if getattr(self.service, 'is_simulator', False) and not status.startswith('Simulator only:'):
+            status = 'Simulator only: ' + status
         if status != self._security_status:
             self._security_status=status
             self.security_status_changed.emit(status)
+        if self._unlock_button is not None:
+            self._unlock_button.setEnabled(ready)
+            self._unlock_button.setToolTip(reason)
+
+    def bind_unlock_action(self, button):
+        self._unlock_button = button
+        button.clicked.connect(self.unlock_l1)
+        self._refresh_security_status()
+
+    def _seed_context_current(self, request):
+        identity = self.security_session.identity
+        step = self.panel.step_for_id(request.step_id) if request else None
+        selected = self.panel.step_for_id(self.panel.selected_step_id())
+        return bool(request and identity and step and selected
+                    and identity.transaction_id == request.transaction_id
+                    and request.generation == self.generation
+                    and request.vehicle_name == self.panel.fn_current_vehicle()
+                    and selected.ecu == request.ecu_name
+                    and identity.connection_id == self._connection_identity()
+                    and identity.session_epoch == self._session_epoch)
+
+    def _unlock_readiness(self):
+        if self._closed or self._preparing or self._active is not None or self.task.diagnostic_busy:
+            return False, 'A diagnostic operation is running or the workspace is closed.'
+        if (self.service.snapshot.state != CANConnectionState.CONNECTED
+                or not self.task.alive or self.task.running):
+            return False, 'Connect the selected CAN channel first.'
+        if not self.security_session.can_calculate or not self._seed_context_current(self._seed_request):
+            return False, 'Select the seed ECU and request a current seed with 27 01 (expected 67 01).'
+        provider = self.service.security_provider(self._seed_request.vehicle_name, self._seed_request.ecu_name)
+        if provider is None:
+            return False, '27 02 disabled: no verified ECU Seed-Key provider; DLL ABI/profile verification is required.'
+        if not self.service.security_ready_for(self._seed_request):
+            return False, 'An authorized bench and confirmed Extended diagnostic session are required.'
+        return True, 'Calculate a key, confirm, then send one generated 27 02 request.'
+
+    def unlock_l1(self):
+        ready, reason = self._unlock_readiness()
+        if not ready:
+            self.panel.show_notice(reason)
+            return
+        request = self._seed_request
+        provider = self.service.security_provider(request.vehicle_name, request.ecu_name)
+        self._preparing = True
+        self.panel.set_request_busy(True)
+        self.panel.show_notice('Calculating SecurityAccess key; no key has been sent.')
+        self.security_key_result_changed.emit('27 02: Calculating key (not sent)')
+        job = SecurityKeyJob(self.security_session, provider, self.service.security_gate, request)
+        self._key_job = job
+        job.finished.connect(self._key_calculated)
+        job.start()
+        self._refresh_security_status()
+
+    def _key_calculated(self):
+        job = self._key_job
+        self._key_job = None
+        try:
+            if self._closed:
+                return
+            self.security_session.expire()
+            if job is None or not job.succeeded or not self._seed_context_current(job.request):
+                raise SecurityAccessBlocked('Key calculation failed, expired or was cancelled; nothing was submitted.')
+            # Resolve configured IDs again after asynchronous work, before any TX.
+            self._validate_seed_target(job.request)
+            self.security_session.await_confirmation()
+            self._refresh_security_status()
+            prefix = 'Simulator only.\n' if self.service.is_simulator else ''
+            answer = QMessageBox.question(self.panel, 'Confirm SecurityAccess Level 1',
+                prefix + f'Vehicle: {job.request.vehicle_name}\nECU: {job.request.ecu_name}\n'
+                f'TX: 0x{job.request.tx_id:03X}, RX: 0x{job.request.rx_id:03X}\n'
+                'Send the generated 27 02 key once on this test bench?',
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            # A modal dialog runs an event loop: selection/disconnect/edit may change.
+            if answer != QMessageBox.Yes:
+                raise SecurityAccessBlocked('Key submission cancelled by operator; nothing was sent.')
+            if not self._seed_context_current(job.request):
+                raise SecurityAccessBlocked('SecurityAccess context changed; nothing was sent.')
+            self._validate_seed_target(job.request)
+            submission = self.service.prepare_security_submission(
+                self.security_session, job.request, self._session_epoch, confirmed=True)
+            if not self.task.submit_diagnostic(submission):
+                raise SecurityAccessBlocked('CAN owner is busy or disconnected; nothing was sent.')
+            self._active = submission
+            self.security_key_result_changed.emit('27 02: Running; awaiting ECU response')
+            self.panel.show_notice(prefix + 'Sending key; key TX frames are excluded from Monitor/BLF. Waiting for ECU 67 02.')
+        except (ValueError, RuntimeError) as error:
+            self._invalidate_security()
+            if not self._closed:
+                self.panel.show_notice(str(error))
+                self.security_key_result_changed.emit('27 02: Cancelled or unavailable (not sent)')
+        finally:
+            self._preparing = False
+            self.panel.set_request_busy(self._active is not None)
+            self._state()
+
+    def _validate_seed_target(self, request):
+        current = resolve_request(self.panel._vehicle_service, request.vehicle_name,
+            self.panel.step_for_id(request.step_id), request.step_id, self.generation, self.settings)
+        if (current.tx_id, current.rx_id, current.uds_payload) != (
+                request.tx_id, request.rx_id, request.uds_payload):
+            raise SecurityAccessBlocked('ECU configuration changed; request a new seed.')
 
     def _invalidate_security(self,*_):
+        self._seed_request = None
+        self.security_key_result_changed.emit('27 02: —')
         self.security_session.invalidate()
         self._refresh_security_status()
 
@@ -114,7 +229,7 @@ class CanDiagnosticController(QObject):
             if identity is not None and (request.vehicle_name,request.ecu_name,request.tx_id,request.rx_id) != (
                     identity.vehicle,identity.ecu,identity.tx_id,identity.rx_id):
                 self._invalidate_security()
-            if request.uds_payload[:1] == b'\x10':
+            if request.uds_payload[:1] in (b'\x10', b'\x11'):
                 self._session_epoch+=1
                 self._invalidate_security()
             if request.uds_payload == b'\x27\x01':
@@ -123,6 +238,8 @@ class CanDiagnosticController(QObject):
             if not self.task.submit_diagnostic(request):
                 raise DiagnosticValidationError('The CAN owner is busy or disconnected; request was not sent.')
             self._active=request
+            if request.uds_payload == b'\x27\x01':
+                self._seed_request = request
             self.panel.set_request_busy(True)
             self.panel.set_step_running(key)
             self.panel.show_notice('One manual UDS request running. TX indicates driver acceptance, not ECU acknowledgement.')
@@ -182,12 +299,14 @@ class CanDiagnosticController(QObject):
             f"NRC 0x78 count: {result.pending_count}."
         )
 
-        self.panel.set_step_result(
-            request.step_id,
-            payload,
-            result.outcome.value,
-            detail,
-        )
+        if is_key_submission(request):
+            # The generated key is a separate transaction, not a response to 27 01.
+            summary = f'27 02 → {payload or "no final response"}: {result.outcome.value}'
+            self.security_key_result_changed.emit(summary)
+        else:
+            self.panel.set_step_result(
+                request.step_id, payload, result.outcome.value, detail,
+            )
 
         # 4. Default notice for all diagnostic services.
         notice = detail
@@ -200,6 +319,12 @@ class CanDiagnosticController(QObject):
                 self._invalidate_security()
             self._refresh_security_status()
             notice = self.security_session.status_text+' '+detail
+
+        if is_key_submission(request):
+            self.security_session.finish_submission(result)
+            self._seed_request = None
+            self._refresh_security_status()
+            notice = self.security_session.status_text + ' ' + detail
 
         # 6. Display one final notice.
         self.panel.show_notice(notice)

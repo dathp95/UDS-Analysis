@@ -1,0 +1,90 @@
+{
+    "schema_version": 1,
+    "name": "9601.USSF&S",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "",
+            "ecu": "USS_R",
+            "request": " 22 f1 91",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        },
+        {
+            "step": 2,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "USS_R",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Request seed",
+            "ecu": "USS_R",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        },
+        {
+            "step": 4,
+            "sequence_name": "Perform Security Access -Request seed",
+            "ecu": "USS_R",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "01,02: AfterSales|03,04:MF",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        },
+        {
+            "step": 5,
+            "sequence_name": "",
+            "ecu": "USS_R",
+            "request": " 22 F1 90",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 90",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        },
+        {
+            "step": 6,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "USS_R",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1713,
+            "source_response_id": 1585
+        }
+    ]
+}

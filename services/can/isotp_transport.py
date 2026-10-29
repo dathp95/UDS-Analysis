@@ -57,7 +57,8 @@ class IsoTpTransport:
             if self.layer.transmitting(): return
             offset=1 if kind == 0 else 2
             if len(data) > offset:
-                if not response_belongs_to_request(self.request,data[offset:]): return
+                prefix=data[offset:offset+(data[0]&0x0F)] if kind == 0 else data[offset:]
+                if not response_belongs_to_request(self.request,prefix): return
         if kind == 2 and not self.layer.is_rx_active(): return
         if kind == 3 and not self.layer.transmitting(): return
         if len(self._inbox) >= 64:

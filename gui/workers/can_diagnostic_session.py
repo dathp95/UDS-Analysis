@@ -1,10 +1,14 @@
 """Bounded I/O pump, child of the existing native connection owner worker."""
 import logging
 import time
+import hashlib
+import secrets
+from collections import deque
 
 from PySide6.QtCore import QObject,QTimer,Qt,Signal,Slot
-from core.diagnostic_request import DiagnosticResult,DiagnosticOutcome as Outcome
+from core.diagnostic_request import DiagnosticResult,DiagnosticOutcome as Outcome,DiagnosticCancelled
 from services.can.can_connection import CANIoError
+from core.security_submission import is_key_submission
 
 LOG=logging.getLogger(__name__)
 
@@ -23,6 +27,9 @@ class CanDiagnosticSession(QObject):
         self.client=None
         self.cancelled=None
         self._frames=[]
+        self._private_tx = deque(maxlen=4096)
+        self._private_fingerprints = deque(maxlen=4096)
+        self._capture_salt = secrets.token_bytes(16)
         self._leased=False
         self.monitoring=False
         self.capture_sink=None
@@ -44,8 +51,26 @@ class CanDiagnosticSession(QObject):
         self.monitoring_changed.emit(False)
 
     def _capture(self,frame):
+        # Key bytes may reach the physical bus, but never generic Monitor/CSV/BLF.
+        # Retain only frame identity to suppress a later driver echo as well.
+        if (is_key_submission(self.request) and frame.direction == 'TX'
+                and frame.can_id == self.request.tx_id):
+            self._private_tx.append((frame.session_id, frame.sequence))
+            self._private_fingerprints.append(self._frame_fingerprint(frame))
+            return
+        if frame.echo_of_sequence is not None and (frame.session_id, frame.echo_of_sequence) in self._private_tx:
+            return
+        if (frame.direction == 'TX' and frame.tx_origin == 'observed_echo'
+                and self._frame_fingerprint(frame) in self._private_fingerprints):
+            return
         if self.capture_sink is not None: self.capture_sink(frame)
         self._frames.append(frame)
+
+    def _frame_fingerprint(self, frame):
+        # Driver echo correlation expires after 1 s. A bounded, salted in-memory
+        # digest also protects delayed copies without retaining any raw key bytes.
+        digest = hashlib.blake2s(frame.data, key=self._capture_salt, digest_size=16).digest()
+        return (frame.session_id, frame.can_id, frame.dlc, digest)
 
     def start(self,request,cancelled):
         if self.request is not None:
@@ -120,6 +145,8 @@ class CanDiagnosticSession(QObject):
                     self.client.poll()
             self.client.poll()
             if self.client.result is not None: self._finish(self.client.result)
+        except DiagnosticCancelled:
+            self.cancel()  # Expired authorization is not a capture/BLF failure.
         except CANIoError as error:
             self.capture_failed.emit(f'CAN capture stopped unexpectedly: {error}')
             LOG.exception('Native diagnostic I/O failed')
@@ -156,6 +183,8 @@ class CanDiagnosticSession(QObject):
         self._publish()
 
     def _finish(self,result):
+        completed=getattr(self.service,'fn_diagnostic_completed',None)
+        if callable(completed): completed(result)
         self._release()
         self.finished.emit(result)
 

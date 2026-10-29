@@ -1,0 +1,129 @@
+{
+    "schema_version": 1,
+    "name": "511.ACM&Initialization",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "ACU",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "ACU",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "ACU",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 4,
+            "sequence_name": "BEFORE-READ ACM MODE-01: ACM normal mode",
+            "ecu": "ACU",
+            "request": " 22 1A 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 1A 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 5,
+            "sequence_name": "Write Coding - Write ACM mode",
+            "ecu": "ACU",
+            "request": " 2E 1A 01 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "6E 1A 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 6,
+            "sequence_name": "ACM reset -WATITING FOR 6S",
+            "ecu": "ACU",
+            "request": " 11 03",
+            "delay_ms": 6000,
+            "repeat": 1,
+            "expected_response": "51 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 7,
+            "sequence_name": "Read Writing Value- ACM mode",
+            "ecu": "ACU",
+            "request": " 22 1A 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 1A 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 8,
+            "sequence_name": "clear all DTC information",
+            "ecu": "ACU",
+            "request": " 14 FF FF FF",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "54",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        },
+        {
+            "step": 9,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "ACU",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1672,
+            "source_response_id": 1544
+        }
+    ]
+}

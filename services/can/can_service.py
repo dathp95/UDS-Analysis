@@ -43,6 +43,58 @@ class CANService:
         self._trusted_bench = None
         self._bench_context = None
         self._bench_revision = 0
+        from services.can.hmac_sha1_provider import ProviderVerificationGate
+        from core.security_submission import SubmissionAuthority
+        self.security_gate=ProviderVerificationGate(simulator=self.is_simulator)
+        self._security_authority=SubmissionAuthority(self.security_gate.validate)
+        self._security_epoch=0
+        self._uds_session=None
+        self._uds_session_target=None
+
+    @property
+    def is_simulator(self):
+        from services.can.simulated_backend import SimulatedCANBackend
+        return type(self._backend) is SimulatedCANBackend
+
+    def security_provider(self,vehicle,ecu): return self.security_gate.provider(vehicle,ecu)
+
+    @property
+    def security_ready(self):
+        return self.fn_is_connected() and self.trusted_bench is not None and self._uds_session==3
+
+    @staticmethod
+    def _security_target(request):
+        return (request.vehicle_name, request.ecu_name, request.tx_id, request.rx_id)
+
+    def security_ready_for(self, request):
+        with self._state_lock:
+            return self.security_ready and self._uds_session_target == self._security_target(request)
+
+    def prepare_security_submission(self,session,request,session_epoch,*,confirmed):
+        with self._bench_tx_lock,self._state_lock:
+            grant=self.trusted_bench
+            if not self.security_ready_for(request) or grant is None:
+                raise DiagnosticValidationError('Authorized connected bench and confirmed Extended session are required.')
+            return session.prepare_submission(request,self.capture_session_id,session_epoch,
+                authorized=True,confirmed=confirmed,authority=self._security_authority,
+                owner_epoch=self._security_epoch,authorization_id=grant.authorization_id)
+
+    def _validate_key_submission(self,request,*,claim=False):
+        grant=self.trusted_bench
+        if grant is None or not self.security_ready_for(request):
+            raise DiagnosticValidationError('SecurityAccess bench/session authorization expired.')
+        method=self._security_authority.claim if claim else self._security_authority.check_active
+        method(request,self.capture_session_id,self._security_epoch,grant.authorization_id,simulator=self.is_simulator)
+
+    def fn_diagnostic_completed(self,result):
+        from core.diagnostic_request import DiagnosticOutcome
+        request=result.request
+        if (self._diagnostic_request is request and len(request.uds_payload)>1 and request.uds_payload[:1]==b'\x10'
+                and result.outcome in (DiagnosticOutcome.PASSED,DiagnosticOutcome.NOT_EVALUATED)
+                and result.response_payload is not None and len(result.response_payload)>=2
+                and result.response_payload[:2]==bytes((0x50,request.uds_payload[1]&0x7f))):
+            self._uds_session=request.uds_payload[1]&0x7f
+            self._uds_session_target=self._security_target(request)
 
     @property
     def snapshot(self) -> CANConnectionSnapshot:
@@ -63,6 +115,10 @@ class CANService:
                 raise CANConnectionError("Invalid CAN connection state transition.")
             self._snapshot = CANConnectionSnapshot(state, config, error, rediscovery_required)
             if state != State.CONNECTED:
+                self._security_authority.revoke_all()
+                self._security_epoch+=1
+                self._uds_session=None
+                self._uds_session_target=None
                 self._trusted_bench = None
                 self._bench_context = None
 
@@ -148,12 +204,14 @@ class CANService:
             raise DiagnosticValidationError('Invalid bench authorization context.')
         with self._bench_tx_lock, self._state_lock:
             if context != self._bench_context:
+                self._security_authority.revoke_all()
                 self._bench_revision += 1
                 self._trusted_bench = None
                 self._bench_context = context
 
     def fn_revoke_trusted_bench(self):
         with self._bench_tx_lock, self._state_lock:
+            self._security_authority.revoke_all()
             self._bench_revision += 1
             self._trusted_bench = None
 
@@ -180,6 +238,13 @@ class CANService:
                 if self.snapshot.state != State.CONNECTED:
                     raise CANConnectionError('Connect the selected Vector channel before sending.')
                 self._validate_bench_authorization(request)
+                from core.security_submission import is_key_submission
+                if is_key_submission(request): self._validate_key_submission(request,claim=True)
+                if request.uds_payload[:1] in (b'\x10', b'\x11'):
+                    self._security_epoch+=1
+                    self._uds_session=None
+                    self._uds_session_target=None
+                    self._security_authority.revoke_all()
                 self._diagnostic_request=request
                 self._diagnostic_owner=get_ident()
         except Exception:
@@ -194,6 +259,12 @@ class CANService:
         self._guard_diagnostic_owner()
         if can_id != self._diagnostic_request.tx_id or not isinstance(data,bytes) or not 1 <= len(data) <= 8:
             raise CANConnectionError('Invalid diagnostic transport frame/target.')
+        from core.security_submission import is_key_submission
+        if is_key_submission(self._diagnostic_request):
+            with self._bench_tx_lock:
+                try: self._validate_key_submission(self._diagnostic_request)
+                except DiagnosticValidationError as error: raise DiagnosticCancelled(str(error)) from None
+                return self._backend.fn_send_frame(can_id,data)
         if not self._diagnostic_request.bench_authorization_id:
             return self._backend.fn_send_frame(can_id,data)
         with self._bench_tx_lock:
@@ -206,6 +277,11 @@ class CANService:
 
     def fn_receive_diagnostic_frame(self):
         self._guard_diagnostic_owner()
+        from core.security_submission import is_key_submission
+        if is_key_submission(self._diagnostic_request):
+            with self._bench_tx_lock:
+                try: self._validate_key_submission(self._diagnostic_request)
+                except DiagnosticValidationError as error: raise DiagnosticCancelled(str(error)) from None
         return self.fn_receive_capture_frame()
 
     def fn_receive_capture_frame(self):
@@ -218,6 +294,7 @@ class CANService:
         self._guard_diagnostic_owner()
         if self._diagnostic_request.transaction_id != transaction_id:
             raise CANConnectionError('Stale diagnostic transaction.')
+        self._security_authority.retire(self._diagnostic_request)
         self._diagnostic_request=None
         self._diagnostic_owner=None
         self._operation_lock.release()

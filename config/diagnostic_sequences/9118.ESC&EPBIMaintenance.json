@@ -1,0 +1,142 @@
+{
+    "schema_version": 1,
+    "name": "9118.ESC&EPBIMaintenance",
+    "description": "",
+    "enabled": true,
+    "execution": {
+        "loop": 1,
+        "command_delay_ms": 100
+    },
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "ESC",
+            "request": " 10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 2,
+            "sequence_name": "Read DTC",
+            "ecu": "ESC",
+            "request": " 19 02 FF",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "59 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "ESC",
+            "request": " 27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 4,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "ESC",
+            "request": " 27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 5,
+            "sequence_name": "start EPBi Maintenance Open-0x01 start successful|0x02 already started|0x03 not possible to start\"",
+            "ecu": "ESC",
+            "request": " 31 01 11 07",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 01 11 07",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 6,
+            "sequence_name": "status of EPBi Maintenance Open-0x01 finished|0x02 still running|0x03 stopped or not start|0x04 routine stopped abnormal\"",
+            "ecu": "ESC",
+            "request": " 31 03 11 07",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 03 11 07",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 7,
+            "sequence_name": "start EPBi Maintenance Close-0x01 start successful|0x02 already started|0x03 not possible to start\"",
+            "ecu": "ESC",
+            "request": " 31 01 11 08",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 01 11 08",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 8,
+            "sequence_name": "status of EPBi Maintenance Close-0x01 finished|0x02 still running|0x03 stopped or not start|0x04 routine stopped abnormal\"",
+            "ecu": "ESC",
+            "request": " 31 03 11 08",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "71 03 11 08",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 9,
+            "sequence_name": "Clear DTC (optional)",
+            "ecu": "ESC",
+            "request": " 14 FF FF FF",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "54",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        },
+        {
+            "step": 10,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "ESC",
+            "request": " 10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": "",
+            "source_request_id": 1705,
+            "source_response_id": 1577
+        }
+    ]
+}

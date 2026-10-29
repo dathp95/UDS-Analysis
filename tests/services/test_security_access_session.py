@@ -70,6 +70,28 @@ class SecurityAccessSessionTests(unittest.TestCase):
                 self.session.prepare_submission(self.request,'connection',0,authorized=authorized,confirmed=confirmed)
         with self.assertRaises(DiagnosticValidationError): seed_request(uds_payload=b'\x27\x02\x11')
 
+    def test_zero_seed_means_already_unlocked_without_key_generation(self):
+        self.receive(response_payload=b'\x67\x01'+bytes(16))
+        self.assertEqual(self.session.state, State.UNLOCKED)
+        self.assertIn('already', self.session.status_text.lower())
+        self.assertFalse(self.session.has_seed)
+        self.assertFalse(self.session.can_calculate)
+        with self.assertRaises(SecurityAccessBlocked):
+            self.session.calculate_verified(None, None)
+
+    def test_zero_seed_unlock_status_is_invalidated_with_context(self):
+        self.receive(response_payload=b'\x67\x01'+bytes(16))
+        self.session.invalidate()
+        self.assertEqual(self.session.state, State.CANCELLED)
+        self.assertNotIn('already', self.session.status_text.lower())
+
+    def test_malformed_zero_seed_length_never_claims_unlocked(self):
+        for size in (1, 2, 15, 17, 64):
+            with self.subTest(size=size):
+                self.receive(response_payload=b'\x67\x01'+bytes(size))
+                self.assertEqual(self.session.state, State.FAILED)
+                self.assertFalse(self.session.has_seed)
+
     def test_stale_provider_result_and_real_provider_cannot_be_promoted(self):
         session=self.session
         class SlowMock:

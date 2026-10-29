@@ -60,6 +60,8 @@ class CANInterfaceTab(QWidget):
         self.workspace_controller = CanWorkspaceController(self.sequence_list, self.sequence_table, repository, self.ui_store, self)
         self.diagnostic_controller=CanDiagnosticController(self.sequence_table,self.monitor_panel,self._service,self._connection_task,self)
         self.diagnostic_controller.security_status_changed.connect(self.session_panel.current_test_case.security_status.setText)
+        self.diagnostic_controller.security_key_result_changed.connect(self.session_panel.current_test_case.key_result.setText)
+        self.diagnostic_controller.bind_unlock_action(self.session_panel.current_test_case.btn_unlock_l1)
         self.session_panel.current_test_case.security_status.setText(self.diagnostic_controller.security_session.status_text)
         self.recording_controller=CanRecordingController(self.monitor_panel,self._connection_task,self._service,
                                                         self.sequence_table.fn_current_vehicle,self)

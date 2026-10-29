@@ -1,5 +1,41 @@
 # M05B implementation plan (commit 62 baseline)
 
+## Vector SecurityAccess completion (2026-10-29)
+
+Contract: `docs/can_interface/VECTOR_SECURITY_ACCESS_SPEC.md`.
+Preserve existing Commit82 changes and configuration. Baseline: 16 focused
+tests, 5 GUI errors (missing Unlock L1). Implement zero-seed semantics and
+asynchronous deliberate Unlock L1 through existing verified provider/owner.
+Validate cancellation, selection changes, exact 67 02, NRC/pending, no retries,
+and unchanged manual 27xx gates. Render Qt Light/Dark and run regressions.
+Supplied native DLLs inspected statically only; physical provider remains
+unavailable until OEM ABI/parameters and offline reference vectors are proven.
+
+## Commit 82 plan (baseline 52aebbb5)
+
+Specification: `.codex/skills/vcode-security-access-commit82/SKILL.md`.
+1. Audit owner/core/grid gates; baseline failures remain separate. Preserve user
+   UI config and supplied PDFs. Read security PDF sections 3.3/3.8/3.9, not secrets.
+2. Standard HMAC-SHA1-128 provider and offline comparison with typed provenance.
+   Only registered approved profiles may issue real authority; none are supplied.
+   Dummy simulator proofs are bound to a memory-only backend, never Vector.
+3. A dedicated generated-key request with an opaque one-use owner capability,
+   exact target/connection/session/seed expiry/provider binding. Validate at
+   construction, owner admission and every TX; preserve raw manual 27xx blocking.
+4. Memory-only simulated ECU and full existing QThread owner/ISO-TP path tests:
+   manual 10 03, manual 27 01, deliberate Unlock L1, generated key, exact 67 02.
+   Add async key job and statuses, cancellation, NRC/pending/timeout tests.
+5. Regression, review, compile/hash/secret checks and Commit82 report. Native
+   BCM ABI remains unverified; no real profile secret/vector approval exists.
+   No live key submission, OEM DLL invocation, license changes or commit/push.
+
+Verification: `.venv\Scripts\python.exe -m unittest
+tests.services.test_security_access82 tests.gui.test_security_access82 -v`,
+existing 81/seed/provider/owner/BLF/Log Analyzer groups via isolated QA runner.
+Implementation follows existing frozen requests, pure services and Qt signals.
+Trust boundaries: config/PDF/vector/provider/GUI intent are not authorization.
+Simulator status must identify simulation; mock material cannot cross real owner.
+
 ## Commit 81 plan (baseline 58ff2ed8)
 
 Specification: `.codex/skills/vcode-security-access-commit81/SKILL.md` (the requested
