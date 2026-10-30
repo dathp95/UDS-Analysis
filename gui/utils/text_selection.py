@@ -8,17 +8,16 @@ class _ClearTextSelectionOnFocusOut(QObject):
         if event.type() == QEvent.FocusOut:
             _clear_text_selection(watched)
 
-        return super().eventFilter(watched, event)
+        return False
 
 
 def clear_text_selection_on_focus_out(parent, widgets):
-    filters = getattr(parent, "_text_selection_clear_filters", [])
     for widget in widgets:
-        event_filter = _ClearTextSelectionOnFocusOut(parent)
+        if getattr(widget, "_has_focus_out_selection_clear", False):
+            continue
+        event_filter = _ClearTextSelectionOnFocusOut(widget)
         widget.installEventFilter(event_filter)
-        filters.append(event_filter)
-
-    parent._text_selection_clear_filters = filters
+        widget._has_focus_out_selection_clear = True
 
 
 def _clear_text_selection(widget):

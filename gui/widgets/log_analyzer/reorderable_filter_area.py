@@ -81,6 +81,7 @@ class ReorderableFilterArea(QScrollArea):
                     self._dragged = False
                     watched.setDown(False)
                     return True
+            return False
         return super().eventFilter(watched, event)
 
     def _fn_accepts(self, event):

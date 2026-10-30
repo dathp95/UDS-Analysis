@@ -53,3 +53,25 @@ class RawCaptureTests(unittest.TestCase):
         second=backend.fn_send_frame(0x681,b'\x01')
         self.assertNotEqual(first.session_id,second.session_id)
         self.assertEqual(second.sequence,1)
+
+    def test_nonstandard_dlc_and_data_normalized_without_crash(self):
+        backend, bus = self.backend()
+        # Case 1: DLC > 8 (e.g. 15 on Classical CAN)
+        bus.recv = lambda **k: can.Message(
+            timestamp=time.time(), arbitration_id=0x760, data=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            dlc=15, is_extended_id=False
+        )
+        frame1 = backend.fn_receive_frame()
+        self.assertIsNotNone(frame1)
+        self.assertLessEqual(frame1.dlc, 8)
+        self.assertLessEqual(len(frame1.data), frame1.dlc)
+
+        # Case 2: DLC is 0 but has data payload
+        bus.recv = lambda **k: can.Message(
+            timestamp=time.time(), arbitration_id=0x761, data=[1, 2, 3, 4],
+            dlc=0, is_extended_id=False
+        )
+        frame2 = backend.fn_receive_frame()
+        self.assertIsNotNone(frame2)
+        self.assertLessEqual(frame2.dlc, 8)
+        self.assertLessEqual(len(frame2.data), frame2.dlc)

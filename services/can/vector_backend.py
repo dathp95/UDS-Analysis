@@ -192,7 +192,13 @@ class VectorBackend:
             LOG.warning('Ignoring unsupported CAN FD frame on Classical CAN session')
             return None
         rx=message.is_rx
-        return self._raw_frame('RX' if rx else 'TX',message.arbitration_id,message.dlc,bytes(message.data),
+        raw_data = bytes(message.data) if message.data is not None else b''
+        raw_dlc = message.dlc if isinstance(message.dlc, int) and not isinstance(message.dlc, bool) else len(raw_data)
+        clamped_dlc = min(8, max(0, raw_dlc))
+        data = raw_data[:clamped_dlc]
+        dlc = min(8, max(clamped_dlc, len(data)))
+        data = data[:dlc]
+        return self._raw_frame('RX' if rx else 'TX',message.arbitration_id,dlc,data,
             stamp=message.timestamp,source_channel=message.channel,extended=message.is_extended_id,
             origin='' if rx else 'observed_echo',remote=message.is_remote_frame,error=message.is_error_frame)
 

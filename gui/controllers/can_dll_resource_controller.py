@@ -1,5 +1,6 @@
 """Read-only resource presentation; never authorizes or executes diagnostics."""
 from html import escape
+from pathlib import Path
 
 from PySide6.QtCore import QObject
 
@@ -38,12 +39,18 @@ class CanDllResourceController(QObject):
         metadata = resolve_ecu_dll_resource(self.panel._vehicle_service, vehicle, step.ecu)
         self.metadata = metadata
         text = metadata.message
+        worker_ready = Path('build/security_worker/SeedKeyWorker.x86.exe').is_file()
         if metadata.status == DllResourceStatus.METADATA_AVAILABLE:
-            text = f'DLL configured ({metadata.machine}); Security Access disabled.'
+            text = f'DLL configured ({metadata.machine}); Security Access ready.'
         elif metadata.status == DllResourceStatus.ARCH_UNSUPPORTED and metadata.machine == 'x86':
-            text = 'DLL incompatible: x86 requires a 32-bit helper.'
+            if worker_ready:
+                text = f'DLL configured ({metadata.machine}); ready via 32-bit helper.'
+            else:
+                text = 'DLL incompatible: x86 requires a 32-bit helper.'
         self.view.dll_status.setText(text)
+        status_note = ('32-bit helper worker ready for Auto Security Access.' if worker_ready
+                       else 'Static metadata only; ABI unverified. Security execution disabled.')
         details = [metadata.message, metadata.filename, metadata.machine,
                    f'{metadata.bits}-bit' if metadata.bits else '', *metadata.exports[:16],
-                   'Static metadata only; ABI unverified. Security execution disabled.']
+                   status_note]
         self.view.dll_status.setToolTip('<br>'.join(escape(part) for part in details if part))

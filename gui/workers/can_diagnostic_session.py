@@ -126,7 +126,11 @@ class CanDiagnosticSession(QObject):
         try:
             if self.request is None:
                 for _ in range(32):
-                    frame=self.service.fn_receive_capture_frame()
+                    try:
+                        frame=self.service.fn_receive_capture_frame()
+                    except ValueError as err:
+                        LOG.warning('Skipped malformed CAN frame: %s', err)
+                        continue
                     if frame is None: break
                     self._capture(frame)
                 return
@@ -140,7 +144,11 @@ class CanDiagnosticSession(QObject):
             if self.client is None:
                 for _ in range(32):
                     if self.cancelled.is_set(): self.cancel();return
-                    frame=self.service.fn_receive_diagnostic_frame()
+                    try:
+                        frame=self.service.fn_receive_diagnostic_frame()
+                    except ValueError as err:
+                        LOG.warning('Skipped malformed CAN frame: %s', err)
+                        continue
                     if frame is None:
                         self.client=self._client_class(self.request,self._send,self.cancelled)
                         self._wall_start=time.time()
@@ -154,7 +162,11 @@ class CanDiagnosticSession(QObject):
             for _ in range(32):
                 if self.client.result is not None: break
                 if self.cancelled.is_set(): self.cancel();return
-                frame=self.service.fn_receive_diagnostic_frame()
+                try:
+                    frame=self.service.fn_receive_diagnostic_frame()
+                except ValueError as err:
+                    LOG.warning('Skipped malformed CAN frame: %s', err)
+                    continue
                 if frame is None: break
                 self._capture(frame)
                 # Preserve stale frames for monitor, but not for a new transaction.

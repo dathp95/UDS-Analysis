@@ -97,7 +97,7 @@ class FilterBox(QWidget):
                 self.filter_changed.emit(formatted)
                 return True
 
-        return super().eventFilter(watched, event)
+        return False
         
 
     # ==========================
