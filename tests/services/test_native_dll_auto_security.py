@@ -1,0 +1,242 @@
+import time
+import unittest
+from dataclasses import replace
+
+from core.bench_authorization import BenchAuthorizationContext
+from core.diagnostic_request import (
+    DiagnosticRequest,
+    DiagnosticSettings,
+    DiagnosticOutcome,
+)
+from services.can import CANService, CANConfig
+from services.can.simulated_backend import SimulatedCANBackend
+from services.can.diagnostic_client import DiagnosticClient
+from services.can.security_access_session import SecurityAccessState
+
+
+class NativeDllAutoSecurityTests(unittest.TestCase):
+    def setUp(self):
+        self.backend = SimulatedCANBackend()
+        self.service = CANService(self.backend)
+        self.service.fn_connect(
+            CANConfig('vector', 0, 500000, bench_context=BenchAuthorizationContext('sim-bench', True))
+        )
+        self.addCleanup(self.service.fn_disconnect)
+        self.settings = DiagnosticSettings(p2_s=0.1, p2_star_s=0.2, total_s=2.0)
+
+    def transact(self, request):
+        self.service.fn_begin_diagnostic(request)
+        try:
+            client = DiagnosticClient(request, self.service.fn_send_diagnostic_frame)
+            while client.result is None:
+                client.poll()
+                frame = self.service.fn_receive_diagnostic_frame()
+                if frame is not None:
+                    client.feed(frame)
+                time.sleep(0.001)
+            self.service.fn_diagnostic_completed(client.result)
+            return client.result
+        finally:
+            self.service.fn_end_diagnostic(request.transaction_id)
+
+    def test_auto_security_l1_end_to_end_with_bcm_dll(self):
+        # 1. Extended session 10 03 -> 50 03
+        ext_req = DiagnosticRequest(
+            transaction_id='tx_ext',
+            step_id='step_1',
+            generation=1,
+            vehicle_name='VF5NP',
+            ecu_name='BCM',
+            tx_id=0x681,
+            rx_id=0x601,
+            uds_payload=b'\x10\x03',
+            expected=b'\x50\x03',
+            settings=self.settings,
+            confirmed=True,
+        )
+        ext_res = self.transact(ext_req)
+        self.assertEqual(ext_res.outcome, DiagnosticOutcome.PASSED)
+
+        # Vector 0 offline seed & expected key for BCM subfunction 1
+        seed_bytes = bytes.fromhex('adbeb3dd50ef2e87052cdce050f651b2')
+        expected_key = bytes.fromhex('c141495385515aa08a006885b67815ac')
+        self.backend.seed = seed_bytes
+        self.backend.expected_key = expected_key
+
+        # 2. Logical request 27 01 -> expected 67 02
+        logical_req = DiagnosticRequest(
+            transaction_id='tx_l1',
+            step_id='step_2',
+            generation=1,
+            vehicle_name='VF5NP',
+            ecu_name='BCM',
+            tx_id=0x681,
+            rx_id=0x601,
+            uds_payload=b'\x27\x01',
+            expected=b'\x67\x02',
+            settings=self.settings,
+            confirmed=True,
+        )
+
+        flow = self.service.begin_auto_security(logical_req)
+        self.assertEqual(flow.subfunction, 1)
+        self.assertEqual(flow.key_subfunction, 2)
+        self.assertEqual(flow.expected_unlock, b'\x67\x02')
+
+        # Transact seed request
+        seed_res = self.transact(flow.seed_request)
+        advance = flow.accept_seed(seed_res)
+        self.assertTrue(advance)
+        self.assertEqual(flow.phase, 'Seed received')
+
+        # Calculate key with real DLL provider
+        provider, gate = self.service.auto_provider(flow)
+        flow.calculating()
+        key_material = provider.calculate(seed_bytes, source_transaction=flow.seed_request.transaction_id)
+        self.assertEqual(key_material.key, expected_key)
+        self.assertTrue(key_material.verified_real)
+
+        # Prepare key submission
+        from services.can.security_access_session import SecurityAccessSession
+        session = SecurityAccessSession()
+        session.start(flow.seed_request, self.service.capture_session_id, 1)
+        session.receive(seed_res, self.service.capture_session_id, 1)
+        session.calculate_verified(provider, gate)
+        key_req = self.service.prepare_auto_submission(flow, session, 1)
+        flow.key_ready(key_req)
+
+        # Transact key request
+        key_res = self.transact(key_req)
+        accepted = session.finish_submission(key_res)
+        self.assertTrue(accepted)
+        success = flow.accept_key(key_res, accepted=accepted)
+        self.assertTrue(success)
+        self.assertEqual(flow.result.outcome, DiagnosticOutcome.PASSED)
+        self.assertEqual(flow.result.response, b'\x67\x02')
+        self.assertEqual(session.state, SecurityAccessState.UNLOCKED)
+        self.service.end_auto_security(flow)
+
+    def test_auto_security_l2_end_to_end_with_bcm_dll(self):
+        # 1. Extended session 10 03 -> 50 03
+        ext_req = DiagnosticRequest(
+            transaction_id='tx_ext2',
+            step_id='step_1',
+            generation=1,
+            vehicle_name='VF5NP',
+            ecu_name='BCM',
+            tx_id=0x681,
+            rx_id=0x601,
+            uds_payload=b'\x10\x03',
+            expected=b'\x50\x03',
+            settings=self.settings,
+            confirmed=True,
+        )
+        ext_res = self.transact(ext_req)
+        self.assertEqual(ext_res.outcome, DiagnosticOutcome.PASSED)
+
+        # Vector offline seed & expected key for BCM subfunction 3 (Level 2)
+        seed_bytes = bytes.fromhex('0d84466fdfd1a53c4c3f6f606661c113')
+        expected_key = bytes.fromhex('4a04f887df23553b9e2a53a6d74e43a5')
+        self.backend.seed = seed_bytes
+        self.backend.expected_key = expected_key
+
+        # 2. Logical request 27 03 -> expected 67 04
+        logical_req = DiagnosticRequest(
+            transaction_id='tx_l2',
+            step_id='step_3',
+            generation=1,
+            vehicle_name='VF5NP',
+            ecu_name='BCM',
+            tx_id=0x681,
+            rx_id=0x601,
+            uds_payload=b'\x27\x03',
+            expected=b'\x67\x04',
+            settings=self.settings,
+            confirmed=True,
+        )
+
+        flow = self.service.begin_auto_security(logical_req)
+        self.assertEqual(flow.subfunction, 3)
+        self.assertEqual(flow.key_subfunction, 4)
+        self.assertEqual(flow.expected_unlock, b'\x67\x04')
+
+        # Transact seed request
+        seed_res = self.transact(flow.seed_request)
+        advance = flow.accept_seed(seed_res)
+        self.assertTrue(advance)
+        self.assertEqual(flow.phase, 'Seed received')
+
+        # Calculate key with real DLL provider (subfunction=3)
+        provider, gate = self.service.auto_provider(flow)
+        flow.calculating()
+        key_material = provider.calculate(seed_bytes, source_transaction=flow.seed_request.transaction_id)
+        self.assertEqual(key_material.key, expected_key)
+        self.assertTrue(key_material.verified_real)
+
+        # Prepare key submission 27 04
+        from services.can.security_access_session import SecurityAccessSession
+        session = SecurityAccessSession()
+        session.start(flow.seed_request, self.service.capture_session_id, 1)
+        session.receive(seed_res, self.service.capture_session_id, 1)
+        session.calculate_verified(provider, gate)
+        key_req = self.service.prepare_auto_submission(flow, session, 1)
+        self.assertEqual(key_req.uds_payload[:2], b'\x27\x04')
+        self.assertEqual(key_req.expected, b'\x67\x04')
+        flow.key_ready(key_req)
+
+        # Transact key request
+        key_res = self.transact(key_req)
+        accepted = session.finish_submission(key_res)
+        self.assertTrue(accepted)
+        success = flow.accept_key(key_res, accepted=accepted)
+        self.assertTrue(success)
+        self.assertEqual(flow.result.outcome, DiagnosticOutcome.PASSED)
+        self.assertEqual(flow.result.response, b'\x67\x04')
+        self.assertEqual(session.state, SecurityAccessState.UNLOCKED)
+        self.service.end_auto_security(flow)
+
+    def test_physical_backend_permitted_when_real_dll_present(self):
+        # Set up extended session
+        ext_req = DiagnosticRequest(
+            transaction_id='tx_ext_phys',
+            step_id='step_1',
+            generation=1,
+            vehicle_name='VF5NP',
+            ecu_name='BCM',
+            tx_id=0x681,
+            rx_id=0x601,
+            uds_payload=b'\x10\x03',
+            expected=b'\x50\x03',
+            settings=self.settings,
+            confirmed=True,
+        )
+        self.transact(ext_req)
+
+        # Mock a physical backend (non-simulator)
+        original_backend = self.service._backend
+        class PhysicalBackendStub:
+            def fn_is_connected(self): return True
+            capture_session_id = original_backend.capture_session_id
+
+        self.service._backend = PhysicalBackendStub()
+        try:
+            logical_req = DiagnosticRequest(
+                transaction_id='tx_phys',
+                step_id='step_2',
+                generation=1,
+                vehicle_name='VF5NP',
+                ecu_name='BCM',
+                tx_id=0x681,
+                rx_id=0x601,
+                uds_payload=b'\x27\x01',
+                expected=b'\x67\x02',
+                settings=self.settings,
+                confirmed=True,
+            )
+            # Must succeed and not raise 'Physical Auto L1 blocked' because BCM has real DLL
+            flow = self.service.begin_auto_security(logical_req)
+            self.assertIsNotNone(flow)
+            self.service.end_auto_security(flow)
+        finally:
+            self.service._backend = original_backend
+

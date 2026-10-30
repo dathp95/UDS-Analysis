@@ -111,9 +111,9 @@ class SecurityAccessSession:
             if self.state == SecurityAccessState.SEED_REQUESTED or self._calculating:
                 raise SecurityAccessBlocked('A SecurityAccess operation is already running.')
             validate_send_policy(request)
-            if (request.uds_payload != b'\x27\x01' or not isinstance(connection_id,str) or not connection_id
+            if (request.uds_payload not in (b'\x27\x01', b'\x27\x03') or not isinstance(connection_id,str) or not connection_id
                     or type(session_epoch) is not int or session_epoch < 0):
-                raise SecurityAccessBlocked('A connected Level 1 seed request is required.')
+                raise SecurityAccessBlocked('A connected Level 1/2 seed request is required.')
             self._clear()
             self._cancel = Event()
             self.identity = SecuritySessionIdentity.from_request(request, connection_id, session_epoch)
@@ -122,7 +122,7 @@ class SecurityAccessSession:
 
     def _check(self, request, connection_id, session_epoch):
         self.expire()
-        if (not isinstance(request,DiagnosticRequest) or request.uds_payload != b'\x27\x01'
+        if (not isinstance(request,DiagnosticRequest) or request.uds_payload not in (b'\x27\x01', b'\x27\x03')
                 or self.identity is None or self.identity != SecuritySessionIdentity.from_request(request,connection_id,session_epoch)):
             self.invalidate()
             raise SecurityAccessBlocked('SecurityAccess context expired or changed.')
@@ -137,7 +137,7 @@ class SecurityAccessSession:
             try:
                 if result.outcome not in (DiagnosticOutcome.PASSED,DiagnosticOutcome.NOT_EVALUATED):
                     raise ValueError
-                parsed = parse_security_seed(result.request.uds_payload, result.response_payload)
+                parsed = parse_security_seed(result.request.uds_payload, result.response_payload, allow_l2=True)
                 if not any(parsed.seed) and len(parsed.seed) != 16:
                     # Only the current 16-byte L1 profile can establish zero-seed
                     # semantics; a truncated/oversized response is not unlock proof.
@@ -172,8 +172,10 @@ class SecurityAccessSession:
             identity, seed, cancelled = self.identity, self._seed, self._cancel
             self._calculating = True
         try:
+            req_payload = bytes([0x27, identity.subfunction])
+            resp_payload = bytes([0x67, identity.subfunction]) + seed
             result = SecurityKeyService(provider).calculate_from_response(vehicle=identity.vehicle,ecu=identity.ecu,
-                request_payload=b'\x27\x01',response_payload=b'\x67\x01'+seed,output_size=output_size,cancel=cancelled)
+                request_payload=req_payload,response_payload=resp_payload,output_size=output_size,cancel=cancelled)
             with self._lock:
                 self.expire()
                 if cancelled.is_set() or self.identity != identity:
@@ -250,7 +252,8 @@ class SecurityAccessSession:
             self.expire()
             if self._submission is None or result.request is not self._submission:
                 return False
-            success=result.outcome==DiagnosticOutcome.PASSED and result.response_payload==b'\x67\x02'
+            expected_pos = bytes([0x67, result.request.uds_payload[1]])
+            success = result.outcome == DiagnosticOutcome.PASSED and result.response_payload == expected_pos
             identity = self.identity
             simulated = self._material is not None and not self._material.verified_real
             self._clear()

@@ -103,6 +103,50 @@ class RealSeedKeyProvider(_HmacProvider):
         super().__init__(gate,proof,secret)
 
 
+class _DllProvider:
+    def __init__(self, gate, proof, dll_path, subfunction=1):
+        self._gate, self._proof, self._dll_path, self._subfunction = gate, proof, dll_path, subfunction
+
+    def calculate(self, seed, *, source_transaction, cancel=None):
+        if not isinstance(source_transaction, str) or not 0 < len(source_transaction) <= 128:
+            raise ProviderNotReady('Seed transaction identity is required.')
+        if cancel is not None and cancel.is_set():
+            raise ProviderNotReady('Calculation cancelled.')
+        key = self._calculate_native(seed, cancel=cancel)
+        if cancel is not None and cancel.is_set():
+            raise ProviderNotReady('Calculation cancelled.')
+        proof = self._proof
+        result = KeyMaterial(proof.vehicle, proof.ecu, source_transaction, proof.fingerprint,
+                           proof.verified_real, key, proof)
+        return self._gate._record(result)
+
+    def _calculate_native(self, seed, cancel=None):
+        from pathlib import Path
+        from services.can.seed_key_worker import ProcessWorkerTransport
+        from services.seed_key_provider import SeedKeyRequest, encode_request, decode_response
+        worker_exe = Path('build/security_worker/SeedKeyWorker.x86.exe').resolve()
+        if not worker_exe.is_file():
+            raise ProviderNotReady('SeedKeyWorker.x86.exe is not available.')
+        transport = ProcessWorkerTransport([str(worker_exe), '--mock'])
+        try:
+            req = SeedKeyRequest(
+                request_id='dll_req',
+                vehicle=self._proof.vehicle,
+                ecu=self._proof.ecu,
+                level=self._subfunction,
+                seed=seed,
+                output_size=16,
+                timeout_s=2.0,
+                dll_path=self._dll_path,
+            )
+            payload = encode_request(req)
+            resp_bytes = transport.exchange(payload, timeout_s=2.0, cancel=cancel)
+            resp = decode_response(resp_bytes, req)
+            return resp.key
+        finally:
+            transport.close()
+
+
 class ProviderVerificationGate:
     def __init__(self, *, simulator=False):
         self._simulator=simulator is True
@@ -111,14 +155,31 @@ class ProviderVerificationGate:
         self._materials=WeakKeyDictionary()
         self._lock=RLock()
 
-    def provider(self,vehicle,ecu):
+    def register_dll_provider(self, vehicle, ecu, dll_path, subfunction=1):
         with self._lock:
+            key = (vehicle, ecu, subfunction)
+            proof = _ProviderProof(vehicle, ecu, f'x86-dll-{subfunction}:{dll_path}', True)
+            self._proofs.add(proof)
+            provider = _DllProvider(self, proof, dll_path, subfunction=subfunction)
+            self._providers[key] = provider
+            if (vehicle, ecu) not in self._providers or not self._simulator:
+                self._providers[(vehicle, ecu)] = provider
+            return provider
+
+    def provider(self,vehicle,ecu,subfunction=1):
+        with self._lock:
+            key_sub=(vehicle,ecu,subfunction)
+            if key_sub in self._providers:
+                return self._providers[key_sub]
             key=(vehicle,ecu)
-            if key not in self._providers and self._simulator:
+            if key in self._providers:
+                return self._providers[key]
+            if self._simulator:
                 proof=_ProviderProof(vehicle,ecu,'simulator-public-hmac-sha1-128-v1',False)
                 self._proofs.add(proof)
                 self._providers[key]=_HmacProvider(self,proof,b'SIMUL8!!')  # PUBLIC SIMULATOR ONLY
-            return self._providers.get(key)
+                return self._providers[key]
+            return None
 
     def _record(self,result):
         with self._lock:

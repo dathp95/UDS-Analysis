@@ -1,7 +1,7 @@
-// MOCK ONLY. There is deliberately no native DLL loader or GenerateKeyEx delegate.
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,6 +11,27 @@ internal static class SeedKeyWorker
 {
     private const int MaxFrame = 4096;
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = MaxFrame, RecursionLimit = 4 };
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern IntPtr LoadLibrary(string lpFileName);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FreeLibrary(IntPtr hModule);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GenerateKeyExDelegate(
+        [In] byte[] ipSeedArray,
+        uint iSeedArraySize,
+        uint iSecurityLevel,
+        [MarshalAs(UnmanagedType.LPStr)] string ipVariant,
+        [Out] byte[] ioKeyArray,
+        uint iMaxKeyArraySize,
+        ref uint oActualKeyArraySize
+    );
 
     private static byte[] ReadExact(Stream stream, int count)
     {
@@ -46,8 +67,10 @@ internal static class SeedKeyWorker
     // Reject duplicate/unknown members and nested data before deserialization.
     private static void CheckMembers(string text)
     {
-        HashSet<string> expected = new HashSet<string>(new string[] {
+        HashSet<string> required = new HashSet<string>(new string[] {
             "version", "request_id", "vehicle", "ecu", "level", "seed_hex", "output_size", "timeout_ms" });
+        HashSet<string> optional = new HashSet<string>(new string[] {
+            "dll_path", "variant" });
         int index = 0;
         SkipSpace(text, ref index);
         if (index >= text.Length || text[index++] != '{') throw new InvalidDataException();
@@ -55,7 +78,7 @@ internal static class SeedKeyWorker
         {
             SkipSpace(text, ref index);
             string key = ReadString(text, ref index);
-            if (!expected.Remove(key)) throw new InvalidDataException();
+            if (!required.Remove(key) && !optional.Remove(key)) throw new InvalidDataException();
             SkipSpace(text, ref index);
             if (index >= text.Length || text[index++] != ':') throw new InvalidDataException();
             SkipSpace(text, ref index);
@@ -72,7 +95,7 @@ internal static class SeedKeyWorker
             if (text[index - 1] != ',') throw new InvalidDataException();
         }
         SkipSpace(text, ref index);
-        if (index != text.Length || expected.Count != 0) throw new InvalidDataException();
+        if (index != text.Length || required.Count != 0) throw new InvalidDataException();
     }
 
     private static int Number(Dictionary<string, object> request, string name, int minimum, int maximum)
@@ -82,10 +105,15 @@ internal static class SeedKeyWorker
         return (int)raw;
     }
 
-    private static string Text(Dictionary<string, object> request, string name, int maximum)
+    private static string Text(Dictionary<string, object> request, string name, int maximum, bool optional = false)
     {
+        if (optional && !request.ContainsKey(name)) return null;
         string value = request[name] as string;
-        if (String.IsNullOrEmpty(value) || value.Length > maximum) throw new InvalidDataException();
+        if (String.IsNullOrEmpty(value) || value.Length > maximum)
+        {
+            if (optional && value == "") return "";
+            throw new InvalidDataException();
+        }
         foreach (char item in value) if (Char.IsControl(item)) throw new InvalidDataException();
         return value;
     }
@@ -118,26 +146,62 @@ internal static class SeedKeyWorker
             Number(request, "timeout_ms", 1, 30000);
             string hex = Text(request, "seed_hex", 128);
             if (!Regex.IsMatch(hex, "^(?:[0-9a-fA-F]{2})+$")) return 2;
+            string dllPath = Text(request, "dll_path", 512, optional: true);
+            string variant = Text(request, "variant", 64, optional: true) ?? "";
+
             byte[] seed = new byte[hex.Length / 2];
             for (int i = 0; i < seed.Length; i++) seed[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-            byte[] prefix = Encoding.UTF8.GetBytes("V-CODE M05B TEST ONLY\0" + vehicle + "\0" + ecu);
-            byte[] material = new byte[prefix.Length + 1 + seed.Length];
-            Buffer.BlockCopy(prefix, 0, material, 0, prefix.Length);
-            material[prefix.Length] = (byte)level;
-            Buffer.BlockCopy(seed, 0, material, prefix.Length + 1, seed.Length);
-            byte[] digest;
-            using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(material);
-            StringBuilder key = new StringBuilder();
-            for (int i = 0; i < size; i++) key.Append(digest[i % digest.Length].ToString("x2"));
+
+            string keyHex;
+            bool isMock = true;
+
+            if (!String.IsNullOrEmpty(dllPath) && File.Exists(dllPath))
+            {
+                IntPtr hModule = LoadLibrary(dllPath);
+                if (hModule == IntPtr.Zero) return 2;
+                try
+                {
+                    IntPtr pFunc = GetProcAddress(hModule, "GenerateKeyEx");
+                    if (pFunc == IntPtr.Zero) return 2;
+                    GenerateKeyExDelegate generateKey = (GenerateKeyExDelegate)Marshal.GetDelegateForFunctionPointer(pFunc, typeof(GenerateKeyExDelegate));
+                    byte[] keyBuf = new byte[64];
+                    uint actualSize = 0;
+                    int status = generateKey(seed, (uint)seed.Length, (uint)level, variant, keyBuf, (uint)keyBuf.Length, ref actualSize);
+                    if (status != 0 || actualSize == 0 || actualSize > 64) return 2;
+                    StringBuilder nativeKey = new StringBuilder();
+                    for (int i = 0; i < actualSize; i++) nativeKey.Append(keyBuf[i].ToString("x2"));
+                    keyHex = nativeKey.ToString();
+                    isMock = false;
+                    Array.Clear(keyBuf, 0, keyBuf.Length);
+                }
+                finally
+                {
+                    FreeLibrary(hModule);
+                }
+            }
+            else
+            {
+                byte[] prefix = Encoding.UTF8.GetBytes("V-CODE M05B TEST ONLY\0" + vehicle + "\0" + ecu);
+                byte[] material = new byte[prefix.Length + 1 + seed.Length];
+                Buffer.BlockCopy(prefix, 0, material, 0, prefix.Length);
+                material[prefix.Length] = (byte)level;
+                Buffer.BlockCopy(seed, 0, material, prefix.Length + 1, seed.Length);
+                byte[] digest;
+                using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(material);
+                StringBuilder mockKey = new StringBuilder();
+                for (int i = 0; i < size; i++) mockKey.Append(digest[i % digest.Length].ToString("x2"));
+                keyHex = mockKey.ToString();
+                Array.Clear(material, 0, material.Length);
+                Array.Clear(digest, 0, digest.Length);
+            }
+
             byte[] output = Encoding.ASCII.GetBytes(Json.Serialize(new {
-                version = 1, request_id = id, status = "ok", key_hex = key.ToString(), mock_only = true }));
+                version = 1, request_id = id, status = "ok", key_hex = keyHex, mock_only = isMock }));
             Stream stream = Console.OpenStandardOutput();
             stream.Write(BitConverter.GetBytes(output.Length), 0, 4);
             stream.Write(output, 0, output.Length);
             stream.Flush();
             Array.Clear(seed, 0, seed.Length);
-            Array.Clear(material, 0, material.Length);
-            Array.Clear(digest, 0, digest.Length);
             Array.Clear(frame, 0, frame.Length);
             return 0;
         }

@@ -41,7 +41,7 @@ class SubmissionAuthority:
             for token,record in tuple(self._records.items()):
                 if self._clock()>=record['deadline'] or record['cancel'].is_set():
                     del self._records[token]
-            if (seed_request.uds_payload!=b'\x27\x01' or len(self._records)>=32
+            if (seed_request.uds_payload not in (b'\x27\x01', b'\x27\x03') or len(self._records)>=32
                     or not self._validate_proof(material,seed_request.vehicle_name,seed_request.ecu_name,seed_request.transaction_id)
                     or not isinstance(connection_id,str) or not connection_id
                     or not isinstance(authorization_id,str) or not authorization_id
@@ -50,8 +50,10 @@ class SubmissionAuthority:
                     or not self._clock()<deadline<=self._clock()+30):
                 raise Invalid('Generated key has no current verified submission authority.')
             values={item.name:getattr(seed_request,item.name) for item in fields(DiagnosticRequest)}
-            values.update(transaction_id=uuid4().hex,uds_payload=b'\x27\x02'+material.key,
-                          expected=b'\x67\x02',match='exact',confirmed=True,bench_authorization_id='')
+            subfunc=seed_request.uds_payload[1]
+            key_subfunc=subfunc+1
+            values.update(transaction_id=uuid4().hex,uds_payload=bytes([0x27, key_subfunc])+material.key,
+                          expected=bytes([0x67, key_subfunc]),match='exact',confirmed=True,bench_authorization_id='')
             token=object()
             self._records[token]=dict(values=values,material=material,seed_transaction=seed_request.transaction_id,
                 connection=connection_id,epoch=epoch,authorization=authorization_id,deadline=deadline,

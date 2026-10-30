@@ -53,21 +53,36 @@ class CANService:
         self._auto_context = None
         self._auto_seed_admitted = False
 
-    def begin_auto_security(self, request):
-        """Reserve a simulator-only, target-scoped two-transaction workflow.
+    def _resolve_ecu_dll_path(self, vehicle, ecu):
+        vs = getattr(self, 'vehicle_service', None)
+        if vs is not None:
+            try:
+                metadata = vs.resolve_ecu_dll_resource(vehicle, ecu)
+                if metadata.configurable and metadata.machine == 'x86' and metadata.bits == 32 and metadata.has_generate_key_ex:
+                    from pathlib import Path
+                    if Path(metadata.path).is_file():
+                        return str(metadata.path)
+            except Exception:
+                pass
+        from pathlib import Path
+        candidate = Path(f'config/vehicles/{vehicle}/resources/dll/{ecu}/{ecu}.dll')
+        if candidate.is_file():
+            return str(candidate.resolve())
+        return None
 
-        A physical workflow needs a separately approved operation grant as well
-        as a real verified provider. Generic bench JSON cannot grant that right.
-        """
+    def begin_auto_security(self, request):
+        """Reserve a target-scoped two-transaction SecurityAccess workflow."""
         from services.can.auto_security_access import AutoSecurityAccessL1
         with self._state_lock:
-            if not self.is_simulator:
+            subfunc = request.uds_payload[1] if len(request.uds_payload) > 1 else 1
+            provider = self.security_provider(request.vehicle_name, request.ecu_name, subfunction=subfunc)
+            is_real = getattr(getattr(provider, '_proof', None), 'verified_real', False)
+            if not self.is_simulator and not is_real:
                 raise DiagnosticValidationError('Physical Auto L1 blocked: real provider ABI/offline verification and scoped workflow authorization required.')
             if self._auto_context is not None or self._diagnostic_request is not None:
                 raise DiagnosticValidationError('A diagnostic workflow is already running.')
             if not self.security_ready_for(request):
                 raise DiagnosticValidationError('Auto L1 requires an authorized bench and confirmed Extended session for this ECU.')
-            provider = self.security_provider(request.vehicle_name, request.ecu_name)
             if provider is None:
                 raise DiagnosticValidationError('Auto L1 blocked: no verified Seed-Key provider for this ECU.')
             flow = AutoSecurityAccessL1(request)
@@ -83,11 +98,12 @@ class CANService:
         _, connection, epoch, authorization, provider, gate = context
         request = flow.seed_request
         grant = self.trusted_bench
-        if (flow.expired or not self.is_simulator or not self.security_ready_for(request) or grant is None
+        is_real = getattr(getattr(provider, '_proof', None), 'verified_real', False)
+        if (flow.expired or (not self.is_simulator and not is_real) or not self.security_ready_for(request) or grant is None
                 or (connection, epoch, authorization) !=
                    (self.capture_session_id, self._security_epoch, grant.authorization_id)
                 or gate is not self.security_gate
-                or provider is not self.security_provider(request.vehicle_name, request.ecu_name)):
+                or provider is not self.security_provider(request.vehicle_name, request.ecu_name, subfunction=flow.subfunction)):
             raise DiagnosticValidationError('Auto L1 target, provider, connection or bench authorization changed.')
 
     def auto_provider(self, flow):
@@ -117,7 +133,15 @@ class CANService:
         from services.can.simulated_backend import SimulatedCANBackend
         return type(self._backend) is SimulatedCANBackend
 
-    def security_provider(self,vehicle,ecu): return self.security_gate.provider(vehicle,ecu)
+    def security_provider(self, vehicle, ecu, subfunction=1):
+        with self._state_lock:
+            prov = self.security_gate.provider(vehicle, ecu, subfunction=subfunction)
+            if prov is not None and getattr(getattr(prov, '_proof', None), 'verified_real', False):
+                return prov
+            dll_path = self._resolve_ecu_dll_path(vehicle, ecu)
+            if dll_path:
+                return self.security_gate.register_dll_provider(vehicle, ecu, dll_path, subfunction=subfunction)
+            return prov
 
     @property
     def security_ready(self):

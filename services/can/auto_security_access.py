@@ -1,4 +1,4 @@
-"""One logical L1 row, two independent UDS transactions. No I/O or Qt ownership."""
+"""Composite SecurityAccess workflow for Level 1 and Level 2. No I/O or Qt ownership."""
 from dataclasses import dataclass, replace
 from uuid import uuid4
 import time
@@ -24,16 +24,21 @@ class AutoPhysicalRecord:
 
 
 class AutoSecurityAccessL1:
-    """Composite protocol state; trace deliberately excludes requests/seed/key."""
+    """Composite protocol state for automated UDS SecurityAccess (L1 and L2)."""
     def __init__(self, logical_request, *, clock=time.monotonic):
         if not self.matches(logical_request):
-            raise ValueError('Auto L1 requires exact 27 01 and final expected 67 02.')
+            raise ValueError('Auto SecurityAccess requires 27 01 or 27 03.')
         self.logical_request = logical_request
+        self.subfunction = logical_request.uds_payload[1]
+        self.key_subfunction = self.subfunction + 1
+        self.expected_seed = bytes([0x67, self.subfunction])
+        self.expected_unlock = bytes([0x67, self.key_subfunction])
+        self.level_name = f'Level {1 if self.subfunction == 1 else 2}'
         self.workflow_id = uuid4().hex
         self._clock = clock
         self.deadline = clock() + logical_request.settings.total_s
         self.seed_request = replace(logical_request, transaction_id=uuid4().hex,
-                                    expected=b'\x67\x01', match='prefix', confirmed=True)
+                                    expected=self.expected_seed, match='prefix', confirmed=True)
         self.key_request = None
         self.phase = 'Requesting seed'
         self.result = None
@@ -41,7 +46,17 @@ class AutoSecurityAccessL1:
 
     @staticmethod
     def matches(request):
-        return request.uds_payload == b'\x27\x01' and request.expected == b'\x67\x02'
+        if not hasattr(request, 'uds_payload') or not isinstance(request.uds_payload, bytes) or len(request.uds_payload) != 2:
+            return False
+        if request.uds_payload[0] != 0x27:
+            return False
+        subfunc = request.uds_payload[1]
+        expected = getattr(request, 'expected', b'')
+        if subfunc == 1:
+            return expected in (b'\x67\x02', b'')
+        if subfunc == 3:
+            return expected in (b'\x67\x04', b'')
+        return False
 
     @property
     def expired(self):
@@ -64,19 +79,19 @@ class AutoSecurityAccessL1:
             self.finish(result.outcome, self._safe_response(result), 'Seed request: ' + result.detail)
             return False
         payload = result.response_payload
-        if not isinstance(payload, bytes) or len(payload) != 18 or payload[:2] != b'\x67\x01':
-            self.finish(Outcome.ERROR, detail='Seed response must be 67 01 plus the current profile\'s 16 bytes.')
+        if not isinstance(payload, bytes) or len(payload) != 18 or payload[:2] != self.expected_seed:
+            self.finish(Outcome.ERROR, detail=f"Seed response must be {self.expected_seed.hex(' ').upper()} plus 16 bytes.")
             return False
         if not any(payload[2:]):
-            self.finish(Outcome.NOT_EVALUATED, b'\x67\x01',
-                'Already unlocked (zero seed); no key sent and no 67 02 received.')
+            self.finish(Outcome.NOT_EVALUATED, self.expected_seed,
+                f"Already unlocked (zero seed); no key sent and no {self.expected_unlock.hex(' ').upper()} received.")
             return False
         self.phase = 'Seed received'
         return True
 
     def calculating(self):
         if self.phase != 'Seed received' or self.result is not None:
-            raise ValueError('No accepted seed for Auto L1 calculation.')
+            raise ValueError('No accepted seed for Auto SecurityAccess calculation.')
         self.phase = 'Calculating key'
 
     def key_ready(self, request):
@@ -87,7 +102,7 @@ class AutoSecurityAccessL1:
                    (self.seed_request.vehicle_name, self.seed_request.ecu_name,
                     self.seed_request.tx_id, self.seed_request.rx_id,
                     self.seed_request.step_id, self.seed_request.generation)):
-            raise ValueError('Generated key does not belong to the Auto L1 workflow.')
+            raise ValueError('Generated key does not belong to the Auto SecurityAccess workflow.')
         self.key_request = request
         self.phase = 'Waiting for ECU'
 
@@ -95,13 +110,16 @@ class AutoSecurityAccessL1:
         if self.result is not None or self.phase != 'Waiting for ECU' or result.request is not self.key_request:
             return False
         self._record(result)
-        success = accepted is True and result.outcome == Outcome.PASSED and result.response_payload == b'\x67\x02'
+        success = accepted is True and result.outcome == Outcome.PASSED and result.response_payload == self.expected_unlock
         outcome = Outcome.PASSED if success else Outcome.ERROR if result.outcome == Outcome.PASSED else result.outcome
-        detail = 'Security Unlocked (Level 1)' if success else 'Key request: ' + result.detail
-        self.finish(outcome, b'\x67\x02' if success else self._safe_response(result), detail)
+        detail = f'Security Unlocked ({self.level_name})' if success else 'Key request: ' + result.detail
+        self.finish(outcome, self.expected_unlock if success else self._safe_response(result), detail)
         return success
 
     @staticmethod
     def _safe_response(result):
         payload = result.response_payload
         return payload if isinstance(payload, bytes) and len(payload) == 3 and payload[:2] == b'\x7f\x27' else b''
+
+
+AutoSecurityAccessFlow = AutoSecurityAccessL1

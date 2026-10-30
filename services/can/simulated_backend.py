@@ -18,6 +18,8 @@ class SimulatedCANBackend:
         self.tx_id,self.rx_id=tx_id,rx_id
         self.seed=bytes(range(16))
         self.key_response=b'\x67\x02'
+        self.key_response_l2=b'\x67\x04'
+        self.expected_key=None
         self.pending_delay=0
         self.response_can_id=None
         self.frames=[]
@@ -79,18 +81,22 @@ class SimulatedCANBackend:
         if payload in (b'\x10\x01',b'\x10\x03'):
             self._extended=payload[1]==3
             self._response(b'\x50'+payload[1:2])
-        elif payload==b'\x27\x01':
-            self._response(b'\x67\x01'+self.seed if self._extended else b'\x7f\x27\x7f')
-        elif payload[:2]==b'\x27\x02':
+        elif payload in (b'\x27\x01', b'\x27\x03'):
+            self._response(bytes([0x67, payload[1]])+self.seed if self._extended else b'\x7f\x27\x7f')
+        elif payload[:2] in (b'\x27\x02', b'\x27\x04'):
+            sub = payload[1]
+            default_resp = self.key_response if sub == 2 else self.key_response_l2
             if not self._extended:
                 self._response(b'\x7f\x27\x7f')
-            elif not hmac.compare_digest(payload[2:],hmac_sha1_key(self.seed,b'SIMUL8!!')):
+            elif self.expected_key is not None and not hmac.compare_digest(payload[2:], self.expected_key):
+                self._response(b'\x7f\x27\x35')
+            elif self.expected_key is None and not hmac.compare_digest(payload[2:], hmac_sha1_key(self.seed, b'SIMUL8!!')):
                 self._response(b'\x7f\x27\x35')
             elif self.pending_delay:
                 self._response(b'\x7f\x27\x78')
-                self._deferred.append((time.monotonic()+self.pending_delay,self.key_response))
+                self._deferred.append((time.monotonic()+self.pending_delay, default_resp))
             else:
-                self._response(self.key_response)
+                self._response(default_resp)
         else:
             self._response(bytes((0x7f,payload[0],0x11)))
 

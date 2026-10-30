@@ -43,6 +43,8 @@ class SeedKeyRequest:
     seed: bytes = field(repr=False)
     output_size: int = 16
     timeout_s: float = 1.0
+    dll_path: str = ''
+    variant: str = ''
 
 
 @dataclass(frozen=True)
@@ -69,7 +71,9 @@ def _validate(request):
             or not isinstance(request.seed, bytes) or not 1 <= len(request.seed) <= MAX_SEED_BYTES
             or type(request.output_size) is not int or not 1 <= request.output_size <= MAX_KEY_BYTES
             or type(request.timeout_s) not in (int, float) or not math.isfinite(request.timeout_s)
-            or not .001 <= request.timeout_s <= 30):
+            or not .001 <= request.timeout_s <= 30
+            or not isinstance(request.dll_path, str) or len(request.dll_path) > 512
+            or not isinstance(request.variant, str) or len(request.variant) > 64):
         raise ProviderError(ProviderErrorCode.BAD_REQUEST)
 
 
@@ -101,23 +105,35 @@ def _decode(payload, code):
 
 def encode_request(request: SeedKeyRequest) -> bytes:
     _validate(request)
-    return _encode(dict(version=1, request_id=request.request_id, vehicle=request.vehicle,
-                        ecu=request.ecu, level=request.level, seed_hex=request.seed.hex(),
-                        output_size=request.output_size, timeout_ms=int(request.timeout_s*1000)))
+    data = dict(version=1, request_id=request.request_id, vehicle=request.vehicle,
+                ecu=request.ecu, level=request.level, seed_hex=request.seed.hex(),
+                output_size=request.output_size, timeout_ms=int(request.timeout_s*1000))
+    if request.dll_path:
+        data['dll_path'] = request.dll_path
+    if request.variant:
+        data['variant'] = request.variant
+    return _encode(data)
 
 
 def decode_request(payload: bytes) -> SeedKeyRequest:
     value = _decode(payload, ProviderErrorCode.BAD_REQUEST)
     try:
-        if set(value) != {'version','request_id','vehicle','ecu','level','seed_hex','output_size','timeout_ms'}:
+        expected_keys = {'version','request_id','vehicle','ecu','level','seed_hex','output_size','timeout_ms'}
+        extra_keys = set(value) - expected_keys
+        if extra_keys - {'dll_path', 'variant'}:
+            raise ValueError
+        if not expected_keys.issubset(set(value)):
             raise ValueError
         if type(value['version']) is not int or value['version'] != 1 or type(value['timeout_ms']) is not int:
             raise ValueError
         seed = value['seed_hex']
         if not isinstance(seed, str) or len(seed) > 2*MAX_SEED_BYTES or re.fullmatch(r'(?:[0-9a-fA-F]{2})+', seed) is None:
             raise ValueError
+        dll_path = value.get('dll_path', '')
+        variant = value.get('variant', '')
         request = SeedKeyRequest(value['request_id'],value['vehicle'],value['ecu'],value['level'],
-                                 bytes.fromhex(seed),value['output_size'],value['timeout_ms']/1000)
+                                 bytes.fromhex(seed),value['output_size'],value['timeout_ms']/1000,
+                                 dll_path=dll_path, variant=variant)
         _validate(request)
         return request
     except (ValueError, KeyError, TypeError):
@@ -129,7 +145,10 @@ def decode_response(payload: bytes, request: SeedKeyRequest) -> SeedKeyResponse:
     value = _decode(payload, ProviderErrorCode.BAD_RESPONSE)
     try:
         if (type(value['version']) is not int or value['version'] != 1
-                or value['request_id'] != request.request_id or value['mock_only'] is not True):
+                or value['request_id'] != request.request_id
+                or type(value.get('mock_only')) is not bool):
+            raise ValueError
+        if not request.dll_path and value['mock_only'] is not True:
             raise ValueError
         if value['status'] == 'error':
             if set(value) != {'version','request_id','status','error_code','mock_only'}:
@@ -140,7 +159,7 @@ def decode_response(payload: bytes, request: SeedKeyRequest) -> SeedKeyResponse:
         key = value['key_hex']
         if not isinstance(key, str) or len(key) != 2*request.output_size or re.fullmatch(r'[0-9a-fA-F]+',key) is None:
             raise ValueError
-        return SeedKeyResponse(request.request_id, bytes.fromhex(key))
+        return SeedKeyResponse(request.request_id, bytes.fromhex(key), mock_only=value['mock_only'])
     except ProviderError:
         raise
     except (ValueError, KeyError, TypeError):

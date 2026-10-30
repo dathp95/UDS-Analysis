@@ -20,6 +20,8 @@ class SecuritySeed:
 def parse_security_seed(
     request_payload: bytes,
     response_payload: bytes,
+    *,
+    allow_l2: bool = False,
 ) -> SecuritySeed:
     """
     Parse UDS SecurityAccess requestSeed response.
@@ -27,13 +29,17 @@ def parse_security_seed(
     Example:
         Request : 27 01
         Response: 67 01 AA BB CC DD
-
         Seed: AA BB CC DD
     """
 
-    if request_payload != b"\x27\x01":
+    if request_payload == b"\x27\x03" and not allow_l2:
         raise SecuritySeedError(
             "Only 27 01 is supported."
+        )
+
+    if request_payload not in (b"\x27\x01", b"\x27\x03"):
+        raise SecuritySeedError(
+            "Only 27 01 and 27 03 are supported."
         )
 
     if not isinstance(response_payload, bytes):
@@ -55,7 +61,8 @@ def parse_security_seed(
             "SecurityAccess response has no seed."
         )
 
-    if response_payload[:2] != b"\x67\x01":
+    expected_prefix = bytes([0x67, request_payload[1]])
+    if response_payload[:2] != expected_prefix:
         raise SecuritySeedError(
             "Unexpected SecurityAccess response."
         )
@@ -68,6 +75,6 @@ def parse_security_seed(
         )
 
     return SecuritySeed(
-        level=0x01,
+        level=request_payload[1],
         seed=seed,
     )

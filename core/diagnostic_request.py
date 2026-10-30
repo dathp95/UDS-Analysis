@@ -25,7 +25,7 @@ SAFE_SERVICES = frozenset((0x19, 0x22, 0x3E))
 CONFIRM_SERVICES = frozenset((0x10, 0x11, 0x14, 0x2E, 0x31, 0x85))
 TRUSTED_BENCH_PAYLOADS = frozenset((b'\x10\x01', b'\x10\x03', b'\x14\xff\xff\xff'))
 # Seed retrieval only, admitted independently of the general service allowlists.
-SECURITY_SEED_REQUESTS = frozenset((b'\x27\x01',))
+SECURITY_SEED_REQUESTS = frozenset((b'\x27\x01', b'\x27\x03'))
 
 
 @dataclass(frozen=True)
@@ -135,9 +135,9 @@ def response_belongs_to_request(request, payload):
     if payload[0] == 0x7F:
         return len(payload)>=2 and payload[1] == sent[0]
     if payload[0] != sent[0]+0x40: return False
-    if sent[:2] == b'\x27\x02':
+    if sent[:2] in (b'\x27\x02', b'\x27\x04'):
         from core.security_submission import is_key_submission
-        return is_key_submission(request) and payload == b'\x67\x02'
+        return is_key_submission(request) and payload == bytes([0x67, sent[1]])
     if sent[0] == 0x27 and (sent not in SECURITY_SEED_REQUESTS or len(payload) < 3):
         return False  # 67 01 alone is not a successful seed response.
     echo_length={0x10:1,0x11:1,0x19:1,0x22:2,0x27:1,0x2E:2,0x31:3,0x3E:1,0x85:1}.get(sent[0],0)

@@ -49,12 +49,15 @@ class SecurityKeyService:
         request_payload: bytes,
         response_payload: bytes,
         output_size: int,
+        dll_path: str = "",
+        variant: str = "",
         cancel=None,
     ) -> SecurityKeyResult:
 
         parsed = parse_security_seed(
             request_payload,
             response_payload,
+            allow_l2=True,
         )
 
         request = SeedKeyRequest(
@@ -65,6 +68,8 @@ class SecurityKeyService:
             seed=parsed.seed,
             output_size=output_size,
             timeout_s=1.0,
+            dll_path=dll_path,
+            variant=variant,
         )
 
         encode_request(request)  # Validate the contract even for injected providers.
@@ -78,7 +83,7 @@ class SecurityKeyService:
                 "Seed-Key provider response mismatch."
             )
 
-        if result.mock_only is not True:
+        if not dll_path and result.mock_only is not True:
             raise ValueError(
                 "Real provider requires a separately "
                 "validated DLL integration."
@@ -89,5 +94,5 @@ class SecurityKeyService:
             ecu=ecu,
             level=parsed.level,
             key=result.key,
-            mock_only=True,
+            mock_only=result.mock_only,
         )
