@@ -35,7 +35,8 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0001.READ&CDS.json": "VF5NP",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\test 3.json": "VF5NP",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\706.BPM&IO&R.json": "VF5NP",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.json": "VF5NP"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.json": "VF5NP",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\207.BCM&KeyFobLearn.json": "VF5NP"
     },
     "sources": [
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN.json",
@@ -104,6 +105,7 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\704.BPM&CDS&1.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\706.BPM&IO&R.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\204.BCM&CDS&1.json",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.json"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\202.WriteVIN&BCM&0.json",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\10.Extend_Session.json"
     ]
 }

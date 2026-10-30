@@ -57,7 +57,6 @@ class LicenseSupportTab(QWidget):
         layout = self._create_panel_layout(panel)
 
         self.title_label = self._create_title_label("License & Support")
-        self.plan_title_label = self._create_section_label("License Plan")
         self.license_details_button = DetailsButton()
         self.license_details_container = self._create_details_container()
         details_layout = self.license_details_container.layout()
@@ -76,7 +75,7 @@ class LicenseSupportTab(QWidget):
 
         self._load_support_qr()
 
-        self.payment_helper_label = self._create_body_label(
+        self.qr_helper_label = self._create_body_label(
             "Scan QR code to contact V-CODE Support."
         )
 
@@ -99,12 +98,15 @@ class LicenseSupportTab(QWidget):
 
         layout.addWidget(self.title_label)
         layout.addSpacing(4)
-        layout.addWidget(self.plan_title_label)
         layout.addWidget(self.license_details_button)
         layout.addWidget(self.license_details_container)
       
         
         details_layout.addWidget(self.payment_label)
+        details_layout.addWidget(
+                    self.qr_helper_label
+                )
+        
 
         details_layout.addWidget(
             self.qr_label,
@@ -112,10 +114,7 @@ class LicenseSupportTab(QWidget):
             Qt.AlignHCenter
         )
 
-        details_layout.addWidget(
-            self.payment_helper_label
-        )
-
+       
         details_layout.addWidget(
             self.telegram_button,
             0,
@@ -137,7 +136,7 @@ class LicenseSupportTab(QWidget):
 
         self.activation_title_label = self._create_title_label("Product Activation")
         self.activation_summary_label = self._create_body_label(
-            "Payment and activation inputs are prepared for administrator support."
+            "Activate your V-CODE license using an activation key.."
         )
         self.activation_details_button = DetailsButton()
         self.activation_details_container = self._create_details_container()
@@ -159,8 +158,8 @@ class LicenseSupportTab(QWidget):
         device_row.addWidget(self.copy_device_id_button)
 
         self.activation_helper_label = self._create_body_label(
-            "After completing payment, send your Device ID\n"
-            "to the administrator."
+            "Copy your Device ID and send it to Telegram Support\n"
+            "to request an activation key."
         )
 
         self.activation_key_label = self._create_field_label("Activation Key")
