@@ -19,6 +19,21 @@ from PySide6.QtWidgets import (
     QLineEdit, QStyledItemDelegate, QTableWidget
 
 )
+from gui.themes.theme_manager import ThemeManager
+
+from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
+
+from gui.widgets.controls.action_button import ActionButton
+
+from gui.widgets.controls.primary_combobox import PrimaryComboBox
+
+from gui.widgets.controls.primary_label import PrimaryLabel
+
+from gui.widgets.diagnostic.diagnostic_sequence_table import DiagnosticSequenceTable
+
+from gui.widgets.can_interface.panel_theme import apply_panel_theme
+
+from services.can.diag_ecu_mapper import find_ecu_by_can_ids
 
 def validate_and_format_hex(raw_text: str):
 
@@ -158,27 +173,18 @@ class ReadOnlyHexCell(QLineEdit):
 
         if table is not None:
 
-            index = table.indexAt(self.pos())
+            point = table.viewport().mapFrom(
+                    self,
+                    event.position().toPoint()
+                )
+
+            index = table.indexAt(point)
 
             if index.isValid():
 
                 table.selectRow(index.row())
 
-from gui.themes.theme_manager import ThemeManager
 
-from gui.themes.styles.controls.scrollbar_style import fn_apply_scrollbar_style
-
-from gui.widgets.controls.action_button import ActionButton
-
-from gui.widgets.controls.primary_combobox import PrimaryComboBox
-
-from gui.widgets.controls.primary_label import PrimaryLabel
-
-from gui.widgets.diagnostic.diagnostic_sequence_table import DiagnosticSequenceTable
-
-from gui.widgets.can_interface.panel_theme import apply_panel_theme
-
-from services.can.diag_ecu_mapper import find_ecu_by_can_ids
 
 class _RowButton(ActionButton):
 
@@ -349,6 +355,13 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self._copy_shortcut.activated.connect(self.copy_current_cell)
 
         self.hex_delegate = HexItemDelegate(self.table)
+
+        self.receive_delegate = ReceiveMessageDelegate(self.table)
+
+        self.table.setItemDelegateForColumn(
+            self.COL_RECEIVE,
+            self.receive_delegate
+        )
 
         self.table.setItemDelegateForColumn(self.COL_REQUEST, self.hex_delegate)
 
@@ -821,8 +834,8 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
             self.table.setCellWidget(row, self.COL_RECEIVE, cell)
 
         else:
-
-            cell.setText(payload)
+            if cell.text() != payload:
+                cell.setText(payload)
 
         # Task 5: Comment is 100% user-managed: never overwrite with auto_comments
 
@@ -1304,3 +1317,9 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
                 self._render_runtime(row)
 
+class ReceiveMessageDelegate(QStyledItemDelegate):
+    """Keep model data but do not paint duplicate text."""
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.text = ""
