@@ -6,7 +6,7 @@ import secrets
 from collections import deque
 
 from PySide6.QtCore import QObject,QTimer,Qt,Signal,Slot
-from core.diagnostic_request import DiagnosticResult,DiagnosticOutcome as Outcome,DiagnosticCancelled
+from core.diagnostic_request import DiagnosticResult,DiagnosticOutcome as Outcome,DiagnosticCancelled,is_security_seed_payload
 from services.can.can_connection import CANIoError
 from core.security_submission import is_key_submission
 
@@ -66,7 +66,7 @@ class CanDiagnosticSession(QObject):
             self.finished.emit(DiagnosticResult(request,Outcome.ERROR,detail='A diagnostic request is already running.'))
             return
         self.request=request
-        if (request.uds_payload == b'\x27\x01'
+        if (is_security_seed_payload(request.uds_payload)
                 and getattr(self.service, 'is_auto_request', lambda _: False)(request)):
             session_id = self.service.capture_session_id
             # Bound metadata to the active connection; no seed bytes are retained.
@@ -120,7 +120,6 @@ class CanDiagnosticSession(QObject):
                     frame=self.service.fn_receive_diagnostic_frame()
                     if frame is None:
                         self.client=self._client_class(self.request,self._send,self.cancelled)
-                        self._wall_start=time.time()
                         break
                     self._capture(frame)
                 if self.client is None:
@@ -134,11 +133,8 @@ class CanDiagnosticSession(QObject):
                 frame=self.service.fn_receive_diagnostic_frame()
                 if frame is None: break
                 self._capture(frame)
-                # Preserve stale frames for monitor, but not for a new transaction.
-                source_stamp=frame.source_timestamp_s if frame.timestamp_source.startswith('driver') else frame.wall_timestamp_s
-                if source_stamp is None or source_stamp >= self._wall_start:
-                    self.client.feed(frame)
-                    self.client.poll()
+                self.client.feed(frame)
+                self.client.poll()
             self.client.poll()
             if self.client.result is not None: self._finish(self.client.result)
         except DiagnosticCancelled:

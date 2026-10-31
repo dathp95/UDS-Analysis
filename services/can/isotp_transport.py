@@ -34,7 +34,7 @@ class IsoTpTransport:
                         tx_data_length=8,tx_padding=settings.padding,
                         tx_data_min_length=8 if settings.padding is not None else None,
                         max_frame_size=settings.max_payload,blocking_send=False,
-                        rate_limit_enable=True,rate_limit_max_bitrate=32000,rate_limit_window_size=0.02))
+                        rate_limit_enable=False))
         self.layer.send(request.uds_payload)
 
     def _error(self, error):
