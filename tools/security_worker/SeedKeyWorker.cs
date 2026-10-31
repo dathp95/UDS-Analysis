@@ -167,6 +167,12 @@ internal static class SeedKeyWorker
                     byte[] keyBuf = new byte[64];
                     uint actualSize = 0;
                     int status = generateKey(seed, (uint)seed.Length, (uint)level, variant, keyBuf, (uint)keyBuf.Length, ref actualSize);
+                    if ((status != 0 || actualSize == 0) && level > 1 && (level % 2 == 1))
+                    {
+                        uint altLevel = (uint)((level + 1) / 2);
+                        actualSize = 0;
+                        status = generateKey(seed, (uint)seed.Length, altLevel, variant, keyBuf, (uint)keyBuf.Length, ref actualSize);
+                    }
                     if (status != 0 || actualSize == 0 || actualSize > 64) return 2;
                     StringBuilder nativeKey = new StringBuilder();
                     for (int i = 0; i < actualSize; i++) nativeKey.Append(keyBuf[i].ToString("x2"));

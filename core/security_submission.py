@@ -5,7 +5,7 @@ from threading import Event, RLock
 import time
 from uuid import uuid4
 
-from core.diagnostic_request import DiagnosticRequest, DiagnosticValidationError as Invalid
+from core.diagnostic_request import DiagnosticRequest, DiagnosticValidationError as Invalid, is_security_seed_payload
 
 
 @dataclass(frozen=True,repr=False)
@@ -41,7 +41,7 @@ class SubmissionAuthority:
             for token,record in tuple(self._records.items()):
                 if self._clock()>=record['deadline'] or record['cancel'].is_set():
                     del self._records[token]
-            if (seed_request.uds_payload not in (b'\x27\x01', b'\x27\x03') or len(self._records)>=32
+            if (not is_security_seed_payload(seed_request.uds_payload) or len(self._records)>=32
                     or not self._validate_proof(material,seed_request.vehicle_name,seed_request.ecu_name,seed_request.transaction_id)
                     or not isinstance(connection_id,str) or not connection_id
                     or not isinstance(authorization_id,str) or not authorization_id

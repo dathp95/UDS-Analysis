@@ -124,6 +124,9 @@ class CodingValueTab(QWidget):
             return
 
         self.workspace_stack.setCurrentWidget(panel)
+        if hasattr(panel, "table") and getattr(panel.table, "_needs_theme_refresh", False):
+            panel.table._needs_theme_refresh = False
+            panel.table._apply_row_themes()
         if not self._restoring_workspaces:
             try:
                 self._restore_saved_workspace_snapshot(workspace_id)

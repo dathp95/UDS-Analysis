@@ -55,13 +55,21 @@ class CANService:
 
     def _resolve_ecu_dll_path(self, vehicle, ecu):
         vs = getattr(self, 'vehicle_service', None)
+        if vs is None:
+            try:
+                from services.vehicle_service import VehicleService
+                vs = VehicleService()
+                self.vehicle_service = vs
+            except Exception:
+                vs = None
         if vs is not None:
             try:
                 metadata = vs.resolve_ecu_dll_resource(vehicle, ecu)
-                if metadata.configurable and metadata.machine == 'x86' and metadata.bits == 32 and metadata.has_generate_key_ex:
+                if metadata.configurable and (metadata.machine == 'x86' or metadata.has_generate_key_ex or 'GenerateKeyEx' in metadata.exports):
                     from pathlib import Path
-                    if Path(metadata.path).is_file():
-                        return str(metadata.path)
+                    p = Path(metadata.path)
+                    if p.is_file():
+                        return str(p.resolve())
             except Exception:
                 pass
         from pathlib import Path
@@ -135,10 +143,11 @@ class CANService:
 
     def security_provider(self, vehicle, ecu, subfunction=1):
         with self._state_lock:
+            dll_path = self._resolve_ecu_dll_path(vehicle, ecu)
             prov = self.security_gate.provider(vehicle, ecu, subfunction=subfunction)
             if prov is not None and getattr(getattr(prov, '_proof', None), 'verified_real', False):
-                return prov
-            dll_path = self._resolve_ecu_dll_path(vehicle, ecu)
+                if getattr(prov, '_dll_path', None) == dll_path or not dll_path:
+                    return prov
             if dll_path:
                 return self.security_gate.register_dll_provider(vehicle, ecu, dll_path, subfunction=subfunction)
             return prov

@@ -5,7 +5,7 @@ from math import isfinite
 from threading import Event, RLock
 import time
 
-from core.diagnostic_request import DiagnosticOutcome, DiagnosticRequest, validate_send_policy
+from core.diagnostic_request import DiagnosticOutcome, DiagnosticRequest, validate_send_policy, is_security_seed_payload
 from services.can.security_seed_parser import parse_security_seed
 from services.can.security_key_service import SecurityKeyService
 
@@ -111,7 +111,7 @@ class SecurityAccessSession:
             if self.state == SecurityAccessState.SEED_REQUESTED or self._calculating:
                 raise SecurityAccessBlocked('A SecurityAccess operation is already running.')
             validate_send_policy(request)
-            if (request.uds_payload not in (b'\x27\x01', b'\x27\x03') or not isinstance(connection_id,str) or not connection_id
+            if (not is_security_seed_payload(request.uds_payload) or not isinstance(connection_id,str) or not connection_id
                     or type(session_epoch) is not int or session_epoch < 0):
                 raise SecurityAccessBlocked('A connected Level 1/2 seed request is required.')
             self._clear()
@@ -122,7 +122,7 @@ class SecurityAccessSession:
 
     def _check(self, request, connection_id, session_epoch):
         self.expire()
-        if (not isinstance(request,DiagnosticRequest) or request.uds_payload not in (b'\x27\x01', b'\x27\x03')
+        if (not isinstance(request,DiagnosticRequest) or not is_security_seed_payload(request.uds_payload)
                 or self.identity is None or self.identity != SecuritySessionIdentity.from_request(request,connection_id,session_epoch)):
             self.invalidate()
             raise SecurityAccessBlocked('SecurityAccess context expired or changed.')

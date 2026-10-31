@@ -21,8 +21,14 @@ class CANInterfaceTab(QWidget):
 
     def __init__(self, service=None, *, vehicle_service=None, sequence_repository=None, ui_store=None):
         super().__init__()
+        if vehicle_service is None:
+            try:
+                from services.vehicle_service import VehicleService
+                vehicle_service = VehicleService()
+            except Exception:
+                vehicle_service = None
         self._service = service if service is not None else CANService()
-        if vehicle_service is not None and not hasattr(self._service, 'vehicle_service'):
+        if vehicle_service is not None:
             self._service.vehicle_service = vehicle_service
         self.ui_store = ui_store if ui_store is not None else CanInterfaceUiStore()
         preferences = self.ui_store.load()

@@ -22,7 +22,7 @@ class NativeDllAutoSecurityTests(unittest.TestCase):
             CANConfig('vector', 0, 500000, bench_context=BenchAuthorizationContext('sim-bench', True))
         )
         self.addCleanup(self.service.fn_disconnect)
-        self.settings = DiagnosticSettings(p2_s=0.1, p2_star_s=0.2, total_s=2.0)
+        self.settings = DiagnosticSettings(p2_s=1.0, p2_star_s=2.0, total_s=5.0)
 
     def transact(self, request):
         self.service.fn_begin_diagnostic(request)
@@ -239,4 +239,21 @@ class NativeDllAutoSecurityTests(unittest.TestCase):
             self.service.end_auto_security(flow)
         finally:
             self.service._backend = original_backend
+    def test_auto_security_generic_ecu_and_subfunction_5(self):
+        # Test BMS ECU with subfunction 5 (Level 3)
+        provider = self.service.security_provider('VF5NP', 'BMS', subfunction=5)
+        self.assertIsNotNone(provider)
+        self.assertTrue(getattr(provider._proof, 'verified_real', False))
+        seed_bytes = bytes.fromhex('0102030405060708090a0b0c0d0e0f10')
+        key_material = provider.calculate(seed_bytes, source_transaction='tx_bms_calc')
+        self.assertEqual(len(key_material.key), 16)
+        self.assertTrue(key_material.verified_real)
+
+        # Test EPS ECU with subfunction 1 (Level 1)
+        eps_provider = self.service.security_provider('VF5NP', 'EPS', subfunction=1)
+        self.assertIsNotNone(eps_provider)
+        self.assertTrue(getattr(eps_provider._proof, 'verified_real', False))
+        eps_key = eps_provider.calculate(seed_bytes, source_transaction='tx_eps_calc')
+        self.assertEqual(len(eps_key.key), 16)
+        self.assertTrue(eps_key.verified_real)
 

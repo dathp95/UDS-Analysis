@@ -25,8 +25,10 @@ from shortcuts.shortcut_manager import load_shortcuts
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, license_status=None):
+    def __init__(self, license_status=None, progress_callback=None):
         super().__init__()
+        self._progress_callback = progress_callback
+        self._report_progress(25, "Initializing core window...")
 
         self.license_status = license_status
         self._deactivated_features = load_deactivated_features(
@@ -41,7 +43,16 @@ class MainWindow(QMainWindow):
 
         self.setup_ui()
         self._setup_shortcuts()
+        self._report_progress(82, "Applying visual themes...")
         self.fn_refresh_theme()
+        self._report_progress(96, "Finalizing workspace...")
+
+    def _report_progress(self, percent: int, message: str = "") -> None:
+        if callable(self._progress_callback):
+            try:
+                self._progress_callback(percent, message)
+            except Exception:
+                pass
 
     def _setup_shortcuts(self):
         actions = {
@@ -81,12 +92,19 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
+        self._report_progress(30, "Loading Log Analyzer...")
         self.log_analyzer_tab = LogAnalyzerTab()
+        self._report_progress(45, "Loading Coding Value...")
         self.coding_value_tab = CodingValueTab()
+        self._report_progress(58, "Loading CRC Converter...")
         self.crc_converter_tab = CRCConverterTab()
+        self._report_progress(64, "Loading CAN Interface...")
         self.can_interface_tab = CANInterfaceTab()
+        self._report_progress(70, "Loading Q Current...")
         self.q_current_tab = QCurrentTab()
+        self._report_progress(74, "Loading Vehicle Manager...")
         self.vehicle_manager_tab = VehicleManagerTab()
+        self._report_progress(78, "Loading License & Support...")
         self.license_support_tab = LicenseSupportTab()
 
         self._feature_tabs = (

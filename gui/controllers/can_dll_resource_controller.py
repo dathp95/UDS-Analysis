@@ -39,7 +39,8 @@ class CanDllResourceController(QObject):
         metadata = resolve_ecu_dll_resource(self.panel._vehicle_service, vehicle, step.ecu)
         self.metadata = metadata
         text = metadata.message
-        worker_ready = Path('build/security_worker/SeedKeyWorker.x86.exe').is_file()
+        worker_path = Path(__file__).resolve().parents[2] / 'build' / 'security_worker' / 'SeedKeyWorker.x86.exe'
+        worker_ready = worker_path.is_file() or Path('build/security_worker/SeedKeyWorker.x86.exe').is_file()
         if metadata.status == DllResourceStatus.METADATA_AVAILABLE:
             text = f'DLL configured ({metadata.machine}); Security Access ready.'
         elif metadata.status == DllResourceStatus.ARCH_UNSUPPORTED and metadata.machine == 'x86':

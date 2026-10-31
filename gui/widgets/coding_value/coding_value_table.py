@@ -540,12 +540,28 @@ class CodingValueTable(PrimaryTable):
         with QSignalBlocker(self):
             super().fn_refresh_theme()
 
-            for row in range(self.rowCount()):
-                combo = self.cellWidget(row, 5)
-                if hasattr(combo, "fn_refresh_theme"):
-                    with QSignalBlocker(combo):
-                        combo.fn_refresh_theme()
+            # Defer expensive per-row combobox styling for background/hidden tables
+            if not self.isVisible() and self.rowCount() > 0:
+                self._needs_theme_refresh = True
+                return
 
-                result_item = self.item(row, 8)
-                if result_item is not None:
-                    self._apply_result_style(row, result_item.text())
+            self._needs_theme_refresh = False
+            self._apply_row_themes()
+
+    def _apply_row_themes(self):
+        for row in range(self.rowCount()):
+            combo = self.cellWidget(row, 5)
+            if hasattr(combo, "fn_refresh_theme"):
+                with QSignalBlocker(combo):
+                    combo.fn_refresh_theme()
+
+            result_item = self.item(row, 8)
+            if result_item is not None:
+                self._apply_result_style(row, result_item.text())
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if getattr(self, "_needs_theme_refresh", False):
+            self._needs_theme_refresh = False
+            with QSignalBlocker(self):
+                self._apply_row_themes()

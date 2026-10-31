@@ -124,7 +124,9 @@ class _DllProvider:
         from pathlib import Path
         from services.can.seed_key_worker import ProcessWorkerTransport
         from services.seed_key_provider import SeedKeyRequest, encode_request, decode_response
-        worker_exe = Path('build/security_worker/SeedKeyWorker.x86.exe').resolve()
+        worker_exe = Path(__file__).resolve().parents[2] / 'build' / 'security_worker' / 'SeedKeyWorker.x86.exe'
+        if not worker_exe.is_file():
+            worker_exe = Path('build/security_worker/SeedKeyWorker.x86.exe').resolve()
         if not worker_exe.is_file():
             raise ProviderNotReady('SeedKeyWorker.x86.exe is not available.')
         transport = ProcessWorkerTransport([str(worker_exe), '--mock'])

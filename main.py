@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import sys
+import signal
 from core.services.startup_service import ensure_directories
 
 from PySide6.QtWidgets import QApplication
 
 from gui.windows.main_window import MainWindow
+from gui.windows.splash_screen import VCodeSplashScreen
 from gui.themes.icon_manager import IconManager
 from license.manager import LicenseManager
 
@@ -35,17 +37,27 @@ def fn_window_title(license_status) -> str:
 
 
 def main() -> int:
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     ensure_directories()
     ensure_start_menu_shortcut()
    
     app = QApplication(sys.argv)
     app.setWindowIcon(IconManager.app())
 
+    splash = VCodeSplashScreen()
+    splash.show()
+    splash.set_progress(10, "Verifying license & system environment...")
+
     license_status = LicenseManager.get_status()
+
+    splash.set_progress(20, "Initializing V-CODE workspace...")
 
     window = MainWindow(
         license_status=license_status,
+        progress_callback=splash.set_progress,
     )
+
+    splash.set_progress(100, "Starting V-CODE...")
 
   
 
@@ -53,6 +65,7 @@ def main() -> int:
         fn_window_title(license_status)
     )
 
+    splash.finish(window)
     window.showMaximized()
 
     return app.exec()

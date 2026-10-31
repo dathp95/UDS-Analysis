@@ -27,13 +27,13 @@ class AutoSecurityAccessL1:
     """Composite protocol state for automated UDS SecurityAccess (L1 and L2)."""
     def __init__(self, logical_request, *, clock=time.monotonic):
         if not self.matches(logical_request):
-            raise ValueError('Auto SecurityAccess requires 27 01 or 27 03.')
+            raise ValueError('Auto SecurityAccess requires an odd subfunction (e.g. 27 01, 27 03, 27 05).')
         self.logical_request = logical_request
         self.subfunction = logical_request.uds_payload[1]
         self.key_subfunction = self.subfunction + 1
         self.expected_seed = bytes([0x67, self.subfunction])
         self.expected_unlock = bytes([0x67, self.key_subfunction])
-        self.level_name = f'Level {1 if self.subfunction == 1 else 2}'
+        self.level_name = f'Level {(self.subfunction + 1) // 2}'
         self.workflow_id = uuid4().hex
         self._clock = clock
         self.deadline = clock() + logical_request.settings.total_s
@@ -51,12 +51,11 @@ class AutoSecurityAccessL1:
         if request.uds_payload[0] != 0x27:
             return False
         subfunc = request.uds_payload[1]
+        if subfunc % 2 == 0:
+            return False
         expected = getattr(request, 'expected', b'')
-        if subfunc == 1:
-            return expected in (b'\x67\x02', b'')
-        if subfunc == 3:
-            return expected in (b'\x67\x04', b'')
-        return False
+        expected_unlock = bytes([0x67, subfunc + 1])
+        return expected in (expected_unlock, b'')
 
     @property
     def expired(self):

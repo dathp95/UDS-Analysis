@@ -32,14 +32,10 @@ def parse_security_seed(
         Seed: AA BB CC DD
     """
 
-    if request_payload == b"\x27\x03" and not allow_l2:
+    from core.diagnostic_request import is_security_seed_payload
+    if not is_security_seed_payload(request_payload):
         raise SecuritySeedError(
-            "Only 27 01 is supported."
-        )
-
-    if request_payload not in (b"\x27\x01", b"\x27\x03"):
-        raise SecuritySeedError(
-            "Only 27 01 and 27 03 are supported."
+            "SecurityAccess requires an odd subfunction (e.g. 27 01, 27 03, 27 05)."
         )
 
     if not isinstance(response_payload, bytes):
