@@ -4,11 +4,12 @@
     "response_id": "63D",
     "aliases": [],
     "resources": {
-        "dll": "",
+        "dll": "resources/dll/3N1/3IN1.dll",
         "dbc": "",
         "odx": "",
         "dtc": "",
-        "request_library": ""
+        "request_library": "",
+        "dll_path_base": "vehicle"
     },
     "quick_requests": []
 }
