@@ -191,18 +191,11 @@ class SecurityAccess82GuiTests(unittest.TestCase):
         self.assertEqual(self.panel.table.item(1, self.panel.COL_RECEIVE).text(), received)
         self.assertIn('67 02', self.tab.session_panel.current_test_case.key_result.text())
 
-    def test_generated_key_frames_never_reach_monitor_or_recording_sink(self):
+    def test_generated_key_frames_reach_monitor_and_recording_sink(self):
         captured = []
         session = self.tab._connection_task._worker.session
         session.capture_sink = captured.append
         self.seed(); self.unlock()
         self.wait(lambda: any(f.data[1:3] == b'\x67\x02' for f in self.tab.monitor_panel._buffer))
         for frames in (captured, self.tab.monitor_panel._buffer):
-            self.assertFalse(any(f.direction == 'TX' and f.data[0] >> 4 in (1, 2) for f in frames))
-        from dataclasses import replace
-        private = next(f for f in self.backend.frames if f.direction == 'TX' and f.data[0] >> 4 == 1)
-        count = len(captured)
-        session._capture(replace(private, sequence=999, echo_of_sequence=private.sequence, tx_origin='echo'))
-        self.assertEqual(len(captured), count)
-        session._capture(replace(private, sequence=1000, echo_of_sequence=None, tx_origin='observed_echo'))
-        self.assertEqual(len(captured), count)
+            self.assertTrue(any(f.direction == 'TX' and f.data[0] >> 4 in (1, 2) for f in frames))

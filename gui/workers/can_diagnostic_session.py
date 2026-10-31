@@ -52,29 +52,6 @@ class CanDiagnosticSession(QObject):
         self.monitoring_changed.emit(False)
 
     def _capture(self,frame):
-        stream = (frame.session_id, frame.can_id)
-        if frame.direction == 'RX' and stream in self._private_seed_streams and frame.data:
-            kind = frame.data[0] >> 4
-            if kind == 0 and frame.data[1:3] == b'\x67\x01':
-                return
-            if kind == 1:
-                # A recognized non-seed FF opens its own public CF stream;
-                # orphan/seed CFs remain private even after workflow cancellation.
-                self._private_seed_streams[stream] = frame.data[2:4] == b'\x67\x01'
-            if kind in (1, 2) and self._private_seed_streams[stream]:
-                return
-        # Key bytes may reach the physical bus, but never generic Monitor/CSV/BLF.
-        # Retain only frame identity to suppress a later driver echo as well.
-        if (is_key_submission(self.request) and frame.direction == 'TX'
-                and frame.can_id == self.request.tx_id):
-            self._private_tx.append((frame.session_id, frame.sequence))
-            self._private_fingerprints.append(self._frame_fingerprint(frame))
-            return
-        if frame.echo_of_sequence is not None and (frame.session_id, frame.echo_of_sequence) in self._private_tx:
-            return
-        if (frame.direction == 'TX' and frame.tx_origin == 'observed_echo'
-                and self._frame_fingerprint(frame) in self._private_fingerprints):
-            return
         if self.capture_sink is not None: self.capture_sink(frame)
         self._frames.append(frame)
 
@@ -126,11 +103,7 @@ class CanDiagnosticSession(QObject):
         try:
             if self.request is None:
                 for _ in range(32):
-                    try:
-                        frame=self.service.fn_receive_capture_frame()
-                    except ValueError as err:
-                        LOG.warning('Skipped malformed CAN frame: %s', err)
-                        continue
+                    frame=self.service.fn_receive_capture_frame()
                     if frame is None: break
                     self._capture(frame)
                 return
@@ -144,11 +117,7 @@ class CanDiagnosticSession(QObject):
             if self.client is None:
                 for _ in range(32):
                     if self.cancelled.is_set(): self.cancel();return
-                    try:
-                        frame=self.service.fn_receive_diagnostic_frame()
-                    except ValueError as err:
-                        LOG.warning('Skipped malformed CAN frame: %s', err)
-                        continue
+                    frame=self.service.fn_receive_diagnostic_frame()
                     if frame is None:
                         self.client=self._client_class(self.request,self._send,self.cancelled)
                         self._wall_start=time.time()
@@ -162,11 +131,7 @@ class CanDiagnosticSession(QObject):
             for _ in range(32):
                 if self.client.result is not None: break
                 if self.cancelled.is_set(): self.cancel();return
-                try:
-                    frame=self.service.fn_receive_diagnostic_frame()
-                except ValueError as err:
-                    LOG.warning('Skipped malformed CAN frame: %s', err)
-                    continue
+                frame=self.service.fn_receive_diagnostic_frame()
                 if frame is None: break
                 self._capture(frame)
                 # Preserve stale frames for monitor, but not for a new transaction.

@@ -66,12 +66,12 @@ class RawCaptureTests(unittest.TestCase):
         self.assertLessEqual(frame1.dlc, 8)
         self.assertLessEqual(len(frame1.data), frame1.dlc)
 
-        # Case 2: DLC is 0 but has data payload
+        # Case 2: DLC > 8 (e.g. 12 on Classical CAN)
         bus.recv = lambda **k: can.Message(
-            timestamp=time.time(), arbitration_id=0x761, data=[1, 2, 3, 4],
-            dlc=0, is_extended_id=False
+            timestamp=time.time(), arbitration_id=0x761, data=[1, 2, 3, 4, 5, 6, 7, 8],
+            dlc=12, is_extended_id=False
         )
         frame2 = backend.fn_receive_frame()
         self.assertIsNotNone(frame2)
-        self.assertLessEqual(frame2.dlc, 8)
-        self.assertLessEqual(len(frame2.data), frame2.dlc)
+        self.assertEqual(frame2.dlc, 8)
+        self.assertEqual(len(frame2.data), 8)

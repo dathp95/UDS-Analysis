@@ -7,5 +7,83 @@
         "loop": 1,
         "command_delay_ms": 100
     },
-    "steps": []
+    "steps": [
+        {
+            "step": 1,
+            "sequence_name": "Start Diagnostic Session",
+            "ecu": "MHU",
+            "request": "10 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 03",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 2,
+            "sequence_name": "Perform Security Access -Requese seed -L1",
+            "ecu": "MHU",
+            "request": "27 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 02",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 3,
+            "sequence_name": "Perform Security Access -Requese seed -L2",
+            "ecu": "MHU",
+            "request": "27 03",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "67 04",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 4,
+            "sequence_name": "READ FRS - BEFORE",
+            "ecu": "MHU",
+            "request": "22 F1 5C",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "62 F1 5C",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 5,
+            "sequence_name": "OK-WRITE FRS",
+            "ecu": "MHU",
+            "request": "2E F1 5C 46 52 53 35 5A 2E 34 2E 30 2E 30 00 00 00 00 00 00 00 00 00",
+            "delay_ms": 1000,
+            "repeat": 1,
+            "expected_response": "6E F1 5C",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 6,
+            "sequence_name": "READ FRS- AFTER",
+            "ecu": "MHU",
+            "request": "22 F1 5C",
+            "delay_ms": 1000,
+            "repeat": 1,
+            "expected_response": "62 F1 5C",
+            "match": "prefix",
+            "comment": ""
+        },
+        {
+            "step": 7,
+            "sequence_name": "End Diagnostic Session",
+            "ecu": "MHU",
+            "request": "10 01",
+            "delay_ms": 100,
+            "repeat": 1,
+            "expected_response": "50 01",
+            "match": "prefix",
+            "comment": ""
+        }
+    ]
 }

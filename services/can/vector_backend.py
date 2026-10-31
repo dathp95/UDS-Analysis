@@ -194,10 +194,12 @@ class VectorBackend:
         rx=message.is_rx
         raw_data = bytes(message.data) if message.data is not None else b''
         raw_dlc = message.dlc if isinstance(message.dlc, int) and not isinstance(message.dlc, bool) else len(raw_data)
-        clamped_dlc = min(8, max(0, raw_dlc))
-        data = raw_data[:clamped_dlc]
-        dlc = min(8, max(clamped_dlc, len(data)))
-        data = data[:dlc]
+        if raw_dlc > 8:
+            dlc = 8
+            data = raw_data[:8]
+        else:
+            dlc = raw_dlc
+            data = raw_data
         return self._raw_frame('RX' if rx else 'TX',message.arbitration_id,dlc,data,
             stamp=message.timestamp,source_channel=message.channel,extended=message.is_extended_id,
             origin='' if rx else 'observed_echo',remote=message.is_remote_frame,error=message.is_error_frame)

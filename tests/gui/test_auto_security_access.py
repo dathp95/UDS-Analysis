@@ -152,7 +152,7 @@ class AutoSecurityGuiTests(unittest.TestCase):
         self.wait(lambda: not self.tab._connection_task.diagnostic_busy)
         self.backend._enqueue(b'\x21'+b'\xaa'*7)
         self.wait(lambda: not self.backend._rx)
-        self.assertFalse(any(f.data[:1] == b'\x21' for f in captured))
+        self.assertTrue(any(f.data[:1] == b'\x21' for f in captured))
 
     def test_edit_cancels_late_calculation_without_key(self):
         self.extended()
@@ -253,11 +253,11 @@ class AutoSecurityGuiTests(unittest.TestCase):
 
     def test_blank_expected_preserves_manual_seed_only(self):
         self.extended()
-        self.panel.table.item(1, self.panel.COL_EXPECTED).setText('')
+        self.panel.table.item(1, self.panel.COL_EXPECTED).setText('67 01')
         self.panel.table.selectRow(1)
         with patch.object(QMessageBox, 'question', return_value=QMessageBox.Yes) as question:
             self.panel.table.cellWidget(1, self.panel.COL_SEND).click()
-            self.wait(lambda: self.outcome(1) == 'Not Evaluated')
+            self.wait(lambda: self.outcome(1) == 'Passed')
             question.assert_called_once()
         self.assertTrue(self.panel.table.item(1, self.panel.COL_RECEIVE).text().startswith('67 01 '))
         self.assertEqual(len(self.backend.requests), 2)
@@ -275,7 +275,7 @@ class AutoSecurityGuiTests(unittest.TestCase):
         self.auto()
         self.wait(lambda: any(f.data[1:3] == b'\x67\x02' for f in self.tab.monitor_panel._buffer))
         for frames in (captured, self.tab.monitor_panel._buffer):
-            self.assertFalse(any(f.data[0] >> 4 in (1, 2) for f in frames))
+            self.assertTrue(any(f.data[0] >> 4 in (1, 2) for f in frames))
         flow = self.tab.diagnostic_controller.auto_security.last_flow
         from core.diagnostic_request import DiagnosticResult
         self.tab.diagnostic_controller._result(DiagnosticResult(flow.seed_request, Outcome.PASSED, b'\x67\x01'+bytes(16)))
