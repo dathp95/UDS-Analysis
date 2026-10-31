@@ -8,7 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
-import pandas as pd
+def _get_pandas():
+    import pandas as pd
+    return pd
 
 from config.paths import Q_CURRENT_DATABASE_DIR
 from core.q_current_column_detection import (
@@ -377,18 +379,20 @@ def _validate_source_file(source_path: str | Path) -> Path:
     return source
 
 
-def _read_source_frame(source: Path) -> pd.DataFrame:
+def _read_source_frame(source: Path):
+    pd = _get_pandas()
     if source.suffix.lower() == ".csv":
         return pd.read_csv(source, dtype=str)
     return pd.read_excel(source, dtype=str)
 
 
 def _normalize_source_frame(
-    frame: pd.DataFrame,
+    frame,
 ) -> tuple[list[tuple[str, float, float]], str]:
     if frame.empty:
         raise ValueError("Current data file is empty")
 
+    pd = _get_pandas()
     cleaned_frame = frame.replace(r"^\s*$", pd.NA, regex=True).dropna(how="all")
     if cleaned_frame.empty:
         raise ValueError("Current data file is empty")
@@ -439,14 +443,14 @@ def _detect_current_column(columns: Iterable[object]) -> object:
 
 
 def _normalize_time_value(value: object) -> str | None:
-    if pd.isna(value):
+    if value is None or _get_pandas().isna(value):
         return None
     time_text = str(value).strip()
     return time_text or None
 
 
 def _parse_current_value(value: object) -> float | None:
-    if pd.isna(value):
+    if value is None or _get_pandas().isna(value):
         return None
     current_text = str(value).strip()
     if not current_text:

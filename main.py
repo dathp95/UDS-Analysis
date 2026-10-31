@@ -1,18 +1,20 @@
-
 from __future__ import annotations
 
 import sys
 import signal
-from core.services.startup_service import ensure_directories
 
+# Clean interrupt handling immediately before any heavy imports
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+from core.services.startup_service import ensure_directories
 from PySide6.QtWidgets import QApplication
 
-from gui.windows.main_window import MainWindow
 from gui.windows.splash_screen import VCodeSplashScreen
 from gui.themes.icon_manager import IconManager
 from license.manager import LicenseManager
-
 from utils.windows_shortcut import ensure_start_menu_shortcut
+
+MainWindow = None
 
 
 APP_NAME = "V-CODE"
@@ -37,35 +39,52 @@ def fn_window_title(license_status) -> str:
 
 
 def main() -> int:
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    global MainWindow
+
     ensure_directories()
     ensure_start_menu_shortcut()
    
     app = QApplication(sys.argv)
     app.setWindowIcon(IconManager.app())
 
-    splash = VCodeSplashScreen()
-    splash.show()
-    splash.set_progress(10, "Verifying license & system environment...")
+    splash = None
+    if isinstance(QApplication, type) and isinstance(app, QApplication):
+        splash = VCodeSplashScreen()
+        splash.show()
+        splash.set_progress(10, "Verifying license & system environment...")
+        app.processEvents()
 
     license_status = LicenseManager.get_status()
 
-    splash.set_progress(20, "Initializing V-CODE workspace...")
+    if splash is not None:
+        splash.set_progress(25, "Loading application modules...")
+        app.processEvents()
 
-    window = MainWindow(
-        license_status=license_status,
-        progress_callback=splash.set_progress,
-    )
+    if MainWindow is None:
+        from gui.windows.main_window import MainWindow as _MainWindow
+        MainWindow = _MainWindow
 
-    splash.set_progress(100, "Starting V-CODE...")
+    if splash is not None:
+        splash.set_progress(40, "Initializing workspace & UI tabs...")
+        app.processEvents()
 
-  
+    kwargs = {"license_status": license_status}
+    if splash is not None:
+        kwargs["progress_callback"] = splash.set_progress
+
+    window = MainWindow(**kwargs)
+
+    if splash is not None:
+        splash.set_progress(100, "Starting V-CODE...")
+        app.processEvents()
 
     window.setWindowTitle(
         fn_window_title(license_status)
     )
 
-    splash.finish(window)
+    if splash is not None:
+        splash.finish(window)
+
     window.showMaximized()
 
     return app.exec()

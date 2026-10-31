@@ -3,7 +3,7 @@ from datetime import datetime
 from config.paths import LOG_ANALYZER_REPORT_DIR
 from PySide6.QtWidgets import QFileDialog
 
-from core.report_export import export_workbook
+# Lazy import in fn_export
 
 import re
 
@@ -31,6 +31,7 @@ class ReportService:
         if output_file is None:
             return None
 
+        from core.report_export import export_workbook
         success = export_workbook(
             summary=pipeline_result["summary"],
             ecu_reports=pipeline_result["ecu_reports"],
