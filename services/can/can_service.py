@@ -86,18 +86,21 @@ class CANService:
     def begin_auto_security(self, request):
         """Reserve a target-scoped two-transaction SecurityAccess workflow."""
         from services.can.auto_security_access import AutoSecurityAccessL1
+        from core.diagnostic_request import SECURITY_LEVELS
         with self._state_lock:
             subfunc = request.uds_payload[1] if len(request.uds_payload) > 1 else 1
+            cfg = SECURITY_LEVELS.get(subfunc, {"level": (subfunc + 1) // 2, "send_key": subfunc + 1})
+            lvl_name = f'Level {cfg["level"]}'
             provider = self.security_provider(request.vehicle_name, request.ecu_name, subfunction=subfunc)
             is_real = getattr(getattr(provider, '_proof', None), 'verified_real', False)
             if not self.is_simulator and not is_real:
-                raise DiagnosticValidationError('Physical Auto L1 blocked: real provider ABI/offline verification and scoped workflow authorization required.')
+                raise DiagnosticValidationError(f'Physical Auto L{cfg["level"]} blocked: real provider ABI/offline verification and scoped workflow authorization required. Security {lvl_name} unavailable: no verified {request.ecu_name} DLL provider.')
             if self._auto_context is not None or self._diagnostic_request is not None:
                 raise DiagnosticValidationError('A diagnostic workflow is already running.')
             if not self.security_ready_for(request):
-                raise DiagnosticValidationError('Auto L1 requires an authorized bench and confirmed Extended session for this ECU.')
+                raise DiagnosticValidationError(f'Auto {lvl_name} requires an authorized bench and confirmed Extended session for this ECU.')
             if provider is None:
-                raise DiagnosticValidationError('Auto L1 blocked: no verified Seed-Key provider for this ECU.')
+                raise DiagnosticValidationError(f'Physical Auto L{cfg["level"]} blocked: Security {lvl_name} unavailable: no verified {request.ecu_name} DLL provider.')
             flow = AutoSecurityAccessL1(request)
             self._auto_context = (flow, self.capture_session_id, self._security_epoch,
                 self.trusted_bench.authorization_id, provider, self.security_gate)
@@ -107,7 +110,7 @@ class CANService:
     def _check_auto_security(self, flow):
         context = self._auto_context
         if context is None or context[0] is not flow:
-            raise DiagnosticValidationError('Auto L1 workflow was revoked.')
+            raise DiagnosticValidationError(f'Auto {flow.level_name} workflow was revoked.')
         _, connection, epoch, authorization, provider, gate = context
         request = flow.seed_request
         grant = self.trusted_bench
@@ -117,7 +120,7 @@ class CANService:
                    (self.capture_session_id, self._security_epoch, grant.authorization_id)
                 or gate is not self.security_gate
                 or provider is not self.security_provider(request.vehicle_name, request.ecu_name, subfunction=flow.subfunction)):
-            raise DiagnosticValidationError('Auto L1 target, provider, connection or bench authorization changed.')
+            raise DiagnosticValidationError(f'Auto {flow.level_name} target, provider, connection or bench authorization changed.')
 
     def auto_provider(self, flow):
         with self._state_lock:
@@ -151,7 +154,7 @@ class CANService:
             dll_path = self._resolve_ecu_dll_path(vehicle, ecu)
             prov = self.security_gate.provider(vehicle, ecu, subfunction=subfunction)
             if prov is not None and getattr(getattr(prov, '_proof', None), 'verified_real', False):
-                if getattr(prov, '_dll_path', None) == dll_path or not dll_path:
+                if (getattr(prov, '_dll_path', None) == dll_path or not dll_path) and getattr(prov, '_subfunction', None) == subfunction:
                     return prov
             if dll_path:
                 return self.security_gate.register_dll_provider(vehicle, ecu, dll_path, subfunction=subfunction)

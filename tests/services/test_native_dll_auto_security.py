@@ -5,6 +5,8 @@ from dataclasses import replace
 from core.bench_authorization import BenchAuthorizationContext
 from core.diagnostic_request import (
     DiagnosticRequest,
+    DiagnosticResult,
+    DiagnosticValidationError,
     DiagnosticSettings,
     DiagnosticOutcome,
 )
@@ -271,4 +273,99 @@ class NativeDllAutoSecurityTests(unittest.TestCase):
         mhu_key_3 = mhu_provider_3.calculate(seed_bytes, source_transaction='tx_mhu_calc3')
         self.assertEqual(len(mhu_key_3.key), 16)
         self.assertTrue(mhu_key_3.verified_real)
+
+        # Provider cache distinction: subfunction 1 provider is NOT reused for subfunction 3
+        self.assertNotEqual(mhu_provider_1._subfunction, mhu_provider_3._subfunction)
+        self.assertNotEqual(mhu_provider_1._proof.fingerprint, mhu_provider_3._proof.fingerprint)
+
+    def test_auto_security_all_four_levels_activation_rules(self):
+        from services.can.auto_security_access import AutoSecurityAccessL1
+
+        # Level 1: 27 01 -> only 67 02 activates auto
+        req_l1 = DiagnosticRequest('t', 's', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x01', b'\x67\x02', settings=self.settings)
+        self.assertTrue(AutoSecurityAccessL1.matches(req_l1))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l1, expected=b'\x67\x01')))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l1, expected=b'')))
+
+        # Level 2: 27 03 -> only 67 04 activates auto
+        req_l2 = DiagnosticRequest('t', 's', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x03', b'\x67\x04', settings=self.settings)
+        self.assertTrue(AutoSecurityAccessL1.matches(req_l2))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l2, expected=b'\x67\x03')))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l2, expected=b'')))
+
+        # Level 3: 27 05 -> only 67 06 activates auto
+        req_l3 = DiagnosticRequest('t', 's', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x05', b'\x67\x06', settings=self.settings)
+        self.assertTrue(AutoSecurityAccessL1.matches(req_l3))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l3, expected=b'\x67\x05')))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l3, expected=b'')))
+
+        # Level 4: 27 07 -> only 67 08 activates auto
+        req_l4 = DiagnosticRequest('t', 's', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x07', b'\x67\x08', settings=self.settings)
+        self.assertTrue(AutoSecurityAccessL1.matches(req_l4))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l4, expected=b'\x67\x07')))
+        self.assertFalse(AutoSecurityAccessL1.matches(replace(req_l4, expected=b'')))
+
+        # Unsupported subfunction 0x09: blocked by diagnostic request policy
+        with self.assertRaises(DiagnosticValidationError):
+            DiagnosticRequest('t', 's', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x09', b'\x67\x0A', settings=self.settings)
+
+    def test_auto_security_l3_end_to_end_flow(self):
+        # 1. Extended session 10 03 -> 50 03
+        ext_req = DiagnosticRequest('tx_ext3', 'step_1', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x10\x03', b'\x50\x03', settings=self.settings, confirmed=True)
+        self.assertEqual(self.transact(ext_req).outcome, DiagnosticOutcome.PASSED)
+
+        seed_bytes = bytes.fromhex('0102030405060708090a0b0c0d0e0f10')
+        self.backend.seed = seed_bytes
+
+        # Logical request 27 05 -> expected 67 06
+        logical_req = DiagnosticRequest('tx_l3', 'step_5', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x05', b'\x67\x06', settings=self.settings, confirmed=True)
+        flow = self.service.begin_auto_security(logical_req)
+        self.assertEqual(flow.subfunction, 5)
+        self.assertEqual(flow.key_subfunction, 6)
+        self.assertEqual(flow.expected_unlock, b'\x67\x06')
+        self.assertEqual(flow.level_name, 'Level 3')
+
+        seed_res = self.transact(flow.seed_request)
+        self.assertTrue(flow.accept_seed(seed_res))
+
+        provider, gate = self.service.auto_provider(flow)
+        flow.calculating()
+        key_material = provider.calculate(seed_bytes, source_transaction=flow.seed_request.transaction_id)
+        self.assertEqual(len(key_material.key), 16)
+        self.backend.expected_key = key_material.key
+
+        from services.can.security_access_session import SecurityAccessSession
+        session = SecurityAccessSession()
+        session.start(flow.seed_request, self.service.capture_session_id, 1)
+        session.receive(seed_res, self.service.capture_session_id, 1)
+        session.calculate_verified(provider, gate)
+        key_req = self.service.prepare_auto_submission(flow, session, 1)
+        self.assertEqual(key_req.uds_payload[:2], b'\x27\x06')
+        self.assertEqual(key_req.expected, b'\x67\x06')
+        flow.key_ready(key_req)
+
+        key_res = self.transact(key_req)
+        accepted = session.finish_submission(key_res)
+        self.assertTrue(accepted)
+        self.assertTrue(flow.accept_key(key_res, accepted=accepted))
+        self.assertEqual(flow.result.outcome, DiagnosticOutcome.PASSED)
+        self.assertEqual(flow.result.response, b'\x67\x06')
+        self.assertIn('Level 3', flow.result.detail)
+        self.service.end_auto_security(flow)
+
+    def test_auto_security_negative_response_stops_workflow(self):
+        ext_req = DiagnosticRequest('tx_ext_nrc', 'step_1', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x10\x03', b'\x50\x03', settings=self.settings, confirmed=True)
+        self.assertEqual(self.transact(ext_req).outcome, DiagnosticOutcome.PASSED)
+
+        logical_req = DiagnosticRequest('tx_l1_nrc', 'step_2', 1, 'VF5NP', 'BCM', 0x681, 0x601, b'\x27\x01', b'\x67\x02', settings=self.settings, confirmed=True)
+        flow = self.service.begin_auto_security(logical_req)
+
+        # ECU responds with NRC 0x35 (Invalid Key / Attempts Exceeded)
+        nrc_result = DiagnosticResult(flow.seed_request, DiagnosticOutcome.FAILED, b'\x7F\x27\x35', nrc=0x35, detail='NRC 0x35')
+        advance = flow.accept_seed(nrc_result)
+        self.assertFalse(advance)
+        self.assertEqual(flow.phase, 'Finished')
+        self.assertEqual(flow.result.outcome, DiagnosticOutcome.FAILED)
+        self.assertEqual(flow.result.response, b'\x7F\x27\x35')
+        self.service.end_auto_security(flow)
 

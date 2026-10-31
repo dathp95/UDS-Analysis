@@ -19,7 +19,12 @@ class AutoSecurityController(QObject):
     def start(self, request):
         owner = self.owner
         owner._invalidate_security()
-        flow = owner.service.begin_auto_security(request)
+        try:
+            flow = owner.service.begin_auto_security(request)
+        except (ValueError, RuntimeError) as error:
+            owner.panel.show_notice(str(error))
+            owner.panel.set_auto_step_result(request.step_id, '', 'Error', str(error))
+            return
         self.flow = flow
         owner.panel.table.selectRow(owner.panel.step_ids.index(request.step_id))
         try:
@@ -28,18 +33,18 @@ class AutoSecurityController(QObject):
             self._progress('Preflight complete; requesting seed')
             self._dispatch(flow.seed_request)
         except (ValueError, RuntimeError):
-            self._finish(Outcome.ERROR, detail='Auto L1 could not start; no automatic retry.')
+            self._finish(Outcome.ERROR, detail=f'Auto {flow.level_name} could not start; no automatic retry.')
 
     def _progress(self, text):
         owner, flow = self.owner, self.flow
         owner.panel.set_request_busy(True)
-        owner.panel.set_auto_step_result(flow.logical_request.step_id, '', 'Running', 'Auto L1: ' + text)
-        owner.panel.show_notice('Simulator Auto L1: ' + text)
+        owner.panel.set_auto_step_result(flow.logical_request.step_id, '', 'Running', f'Auto {flow.level_name}: ' + text)
+        owner.panel.show_notice(f'Auto {flow.level_name}: ' + text)
 
     def _current(self):
         owner, flow = self.owner, self.flow
         if flow.expired or owner._closed or not owner._seed_context_current(flow.seed_request):
-            raise ValueError('Auto L1 context changed.')
+            raise ValueError(f'Auto {flow.level_name} context changed.')
         owner._validate_seed_target(flow.seed_request)
         owner.service.auto_provider(flow)  # Re-check exact provider/gate, bench and owner epoch.
 
@@ -47,7 +52,7 @@ class AutoSecurityController(QObject):
         # Set identity before dispatch; even a synchronous/reentrant result is safe.
         self.owner._active = request
         if not self.owner.task.submit_diagnostic(request):
-            raise ValueError('Auto L1 owner submission rejected.')
+            raise ValueError('Auto security owner submission rejected.')
 
     def consume_result(self, result):
         flow, owner = self.flow, self.owner
@@ -80,7 +85,7 @@ class AutoSecurityController(QObject):
                 self._finish()
         except (ValueError, RuntimeError):
             outcome = Outcome.TIMEOUT if flow.expired else Outcome.CANCELLED
-            self._finish(outcome, detail='Auto L1 context changed or expired; no further request sent.')
+            self._finish(outcome, detail=f'Auto {flow.level_name} context changed or expired; no further request sent.')
         return True
 
     def _calculated(self):
@@ -105,17 +110,17 @@ class AutoSecurityController(QObject):
             self._dispatch(key)
         except (ValueError, RuntimeError):
             outcome = Outcome.TIMEOUT if flow.expired else Outcome.ERROR
-            self._finish(outcome, detail='Auto L1 authorization or provider expired; no key sent.')
+            self._finish(outcome, detail=f'Auto {flow.level_name} authorization or provider expired; no key sent.')
 
     def check_timeout(self):
         if self.flow is not None and self.flow.expired:
             self.owner.task.cancel_diagnostic()
-            self._finish(Outcome.TIMEOUT, detail='Auto L1 total workflow budget expired; no retry.')
+            self._finish(Outcome.TIMEOUT, detail=f'Auto {self.flow.level_name} total workflow budget expired; no retry.')
 
     def cancel(self):
         if self.flow is not None:
             self.owner.task.cancel_diagnostic()
-            self._finish(Outcome.CANCELLED, detail='Auto L1 cancelled; no further request sent.')
+            self._finish(Outcome.CANCELLED, detail=f'Auto {self.flow.level_name} cancelled; no further request sent.')
 
     def _finish(self, outcome=None, *, detail=''):
         flow, owner = self.flow, self.owner
@@ -124,7 +129,7 @@ class AutoSecurityController(QObject):
         if outcome is not None:
             flow.finish(outcome, detail=detail)
         if flow.result is None:
-            flow.finish(Outcome.ERROR, detail='Auto L1 did not complete.')
+            flow.finish(Outcome.ERROR, detail=f'Auto {flow.level_name} did not complete.')
         result = flow.result
         if result.outcome != Outcome.PASSED:
             owner.task.cancel_diagnostic()
@@ -141,6 +146,7 @@ class AutoSecurityController(QObject):
                           f'UDS time: {sum(record.elapsed_s for record in flow.trace):.3f} s')
                 owner.panel.set_auto_step_result(request.step_id, result.response.hex(' ').upper(),
                                                  result.outcome.value, detail)
+                owner.panel.show_notice(f'Auto {flow.level_name}: ' + detail)
                 owner.panel.show_notice('Simulator Auto L1: ' + detail)
             else:
                 owner.panel.invalidate_step_result(request.step_id)

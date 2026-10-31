@@ -104,8 +104,8 @@ class RealSeedKeyProvider(_HmacProvider):
 
 
 class _DllProvider:
-    def __init__(self, gate, proof, dll_path, subfunction=1):
-        self._gate, self._proof, self._dll_path, self._subfunction = gate, proof, dll_path, subfunction
+    def __init__(self, gate, proof, dll_path, subfunction=1, variant=""):
+        self._gate, self._proof, self._dll_path, self._subfunction, self._variant = gate, proof, dll_path, subfunction, variant
 
     def calculate(self, seed, *, source_transaction, cancel=None):
         if not isinstance(source_transaction, str) or not 0 < len(source_transaction) <= 128:
@@ -140,10 +140,13 @@ class _DllProvider:
                 output_size=16,
                 timeout_s=2.0,
                 dll_path=self._dll_path,
+                variant=self._variant,
             )
             payload = encode_request(req)
             resp_bytes = transport.exchange(payload, timeout_s=2.0, cancel=cancel)
             resp = decode_response(resp_bytes, req)
+            if not resp.key or len(resp.key) != 16:
+                raise ProviderNotReady(f'Worker returned invalid key length ({len(resp.key) if resp.key else 0} bytes).')
             return resp.key
         finally:
             transport.close()
@@ -157,30 +160,26 @@ class ProviderVerificationGate:
         self._materials=WeakKeyDictionary()
         self._lock=RLock()
 
-    def register_dll_provider(self, vehicle, ecu, dll_path, subfunction=1):
+    def register_dll_provider(self, vehicle, ecu, dll_path, subfunction=1, variant=""):
         with self._lock:
             key = (vehicle, ecu, subfunction)
-            proof = _ProviderProof(vehicle, ecu, f'x86-dll-{subfunction}:{dll_path}', True)
+            proof = _ProviderProof(vehicle, ecu, f'x86-dll-sf{subfunction}:{dll_path}', True)
             self._proofs.add(proof)
-            provider = _DllProvider(self, proof, dll_path, subfunction=subfunction)
+            provider = _DllProvider(self, proof, dll_path, subfunction=subfunction, variant=variant)
             self._providers[key] = provider
-            if (vehicle, ecu) not in self._providers or not self._simulator:
-                self._providers[(vehicle, ecu)] = provider
             return provider
 
-    def provider(self,vehicle,ecu,subfunction=1):
+    def provider(self, vehicle, ecu, subfunction=1):
         with self._lock:
-            key_sub=(vehicle,ecu,subfunction)
+            key_sub = (vehicle, ecu, subfunction)
             if key_sub in self._providers:
                 return self._providers[key_sub]
-            key=(vehicle,ecu)
-            if key in self._providers:
-                return self._providers[key]
             if self._simulator:
-                proof=_ProviderProof(vehicle,ecu,'simulator-public-hmac-sha1-128-v1',False)
+                proof = _ProviderProof(vehicle, ecu, f'simulator-public-hmac-sha1-128-sf{subfunction}', False)
                 self._proofs.add(proof)
-                self._providers[key]=_HmacProvider(self,proof,b'SIMUL8!!')  # PUBLIC SIMULATOR ONLY
-                return self._providers[key]
+                prov = _HmacProvider(self, proof, b'SIMUL8!!')
+                self._providers[key_sub] = prov
+                return prov
             return None
 
     def _record(self,result):

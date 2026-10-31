@@ -77,9 +77,12 @@ class SecurityAccessSession:
                 label='Key calculated' if self.state==SecurityAccessState.KEY_CALCULATED else self.state.value
                 return ('Simulator only: ' if not self._material.verified_real else '')+label
             if self.state==SecurityAccessState.UNLOCKED:
+                subfunc = self.identity.subfunction if self.identity else 1
+                from core.diagnostic_request import SECURITY_LEVELS
+                lvl = SECURITY_LEVELS.get(subfunc, {}).get("level", (subfunc + 1) // 2)
                 prefix = 'Simulator only: ' if self._simulated_unlock else ''
                 suffix = ' (already active; zero seed)' if self._already_unlocked else ''
-                return prefix + self.state.value + suffix
+                return prefix + f'Security Unlocked (Level {lvl})' + suffix
             return self.state.value
 
     def _clear(self):

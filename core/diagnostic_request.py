@@ -24,12 +24,23 @@ class DiagnosticOutcome(Enum):
 SAFE_SERVICES = frozenset((0x19, 0x22, 0x3E))
 CONFIRM_SERVICES = frozenset((0x10, 0x11, 0x14, 0x2E, 0x31, 0x85))
 TRUSTED_BENCH_PAYLOADS = frozenset((b'\x10\x01', b'\x10\x03', b'\x14\xff\xff\xff'))
-# Seed retrieval only, admitted independently of the general service allowlists.
+SECURITY_LEVELS = {
+    0x01: {"level": 1, "send_key": 0x02},
+    0x03: {"level": 2, "send_key": 0x04},
+    0x05: {"level": 3, "send_key": 0x06},
+    0x07: {"level": 4, "send_key": 0x08},
+}
+
+SECURITY_SEED_REQUESTS = frozenset(bytes([0x27, sf]) for sf in SECURITY_LEVELS)
+
+
 def is_security_seed_payload(payload: bytes) -> bool:
-    return isinstance(payload, bytes) and len(payload) == 2 and payload[0] == 0x27 and payload[1] % 2 == 1
-
-
-SECURITY_SEED_REQUESTS = frozenset((b'\x27\x01', b'\x27\x03'))
+    return (
+        isinstance(payload, bytes)
+        and len(payload) == 2
+        and payload[0] == 0x27
+        and payload[1] in SECURITY_LEVELS
+    )
 
 
 @dataclass(frozen=True)

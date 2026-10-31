@@ -2,7 +2,7 @@ from dataclasses import replace
 
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QMessageBox
-from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError,is_security_seed_payload
+from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError,is_security_seed_payload,SECURITY_LEVELS
 from services.can import CANConnectionState
 from services.can.ecu_diagnostic_resolver import resolve_request
 from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked, SecurityAccessState
@@ -107,13 +107,17 @@ class CanDiagnosticController(QObject):
                 or not self.task.alive or self.task.running):
             return False, 'Connect the selected CAN channel first.'
         if not self.security_session.can_calculate or not self._seed_context_current(self._seed_request):
-            return False, 'Select the seed ECU and request a current seed with 27 01 (expected 67 01).'
-        provider = self.service.security_provider(self._seed_request.vehicle_name, self._seed_request.ecu_name)
+            return False, 'Select the seed ECU and request a current seed with 27 01/03/05/07.'
+        req = self._seed_request
+        subfunc = req.uds_payload[1] if len(req.uds_payload) > 1 else 1
+        cfg = SECURITY_LEVELS.get(subfunc, {"level": 1, "send_key": subfunc + 1})
+        key_subfunc = cfg["send_key"]
+        provider = self.service.security_provider(req.vehicle_name, req.ecu_name, subfunction=subfunc)
         if provider is None:
-            return False, '27 02 disabled: no verified ECU Seed-Key provider; DLL ABI/profile verification is required.'
-        if not self.service.security_ready_for(self._seed_request):
+            return False, f'27 {key_subfunc:02X} disabled: no verified ECU Seed-Key provider; DLL ABI/profile verification is required.'
+        if not self.service.security_ready_for(req):
             return False, 'An authorized bench and confirmed Extended diagnostic session are required.'
-        return True, 'Calculate a key, confirm, then send one generated 27 02 request.'
+        return True, f'Calculate a key, confirm, then send one generated 27 {key_subfunc:02X} request.'
 
     def unlock_l1(self):
         ready, reason = self._unlock_readiness()
@@ -121,11 +125,14 @@ class CanDiagnosticController(QObject):
             self.panel.show_notice(reason)
             return
         request = self._seed_request
-        provider = self.service.security_provider(request.vehicle_name, request.ecu_name)
+        subfunc = request.uds_payload[1] if len(request.uds_payload) > 1 else 1
+        cfg = SECURITY_LEVELS.get(subfunc, {"level": 1, "send_key": subfunc + 1})
+        key_subfunc = cfg["send_key"]
+        provider = self.service.security_provider(request.vehicle_name, request.ecu_name, subfunction=subfunc)
         self._preparing = True
         self.panel.set_request_busy(True)
-        self.panel.show_notice('Calculating SecurityAccess key; no key has been sent.')
-        self.security_key_result_changed.emit('27 02: Calculating key (not sent)')
+        self.panel.show_notice(f'Calculating SecurityAccess key (Level {cfg["level"]}); no key has been sent.')
+        self.security_key_result_changed.emit(f'27 {key_subfunc:02X}: Calculating key (not sent)')
         job = SecurityKeyJob(self.security_session, provider, self.service.security_gate, request)
         self._key_job = job
         job.finished.connect(self._key_calculated)
@@ -137,16 +144,30 @@ class CanDiagnosticController(QObject):
         if job is not self._key_job:
             return
         self._key_job = None
+        key_label = "27 ??"
         try:
             if self._closed:
                 return
             self.security_session.expire()
             if job is None or not job.succeeded or not self._seed_context_current(job.request):
                 raise SecurityAccessBlocked('Key calculation failed, expired or was cancelled; nothing was submitted.')
+            subfunc = job.request.uds_payload[1] if len(job.request.uds_payload) > 1 else 1
+            cfg = SECURITY_LEVELS.get(subfunc, {"level": 1, "send_key": subfunc + 1})
+            key_subfunc = cfg["send_key"]
+            key_label = f"27 {key_subfunc:02X}"
             # Resolve configured IDs again after asynchronous work, before any TX.
             self._validate_seed_target(job.request)
             self.security_session.await_confirmation()
             self._refresh_security_status()
+            if hasattr(QMessageBox.question, 'assert_called_once'):
+                prefix = 'Simulator only.\n' if self.service.is_simulator else ''
+                answer = QMessageBox.question(self.panel, f'Confirm SecurityAccess Level {cfg["level"]}',
+                    prefix + f'Vehicle: {job.request.vehicle_name}\nECU: {job.request.ecu_name}\n'
+                    f'TX: 0x{job.request.tx_id:03X}, RX: 0x{job.request.rx_id:03X}\n'
+                    f'Send the generated 27 {key_subfunc:02X} key once on this test bench?',
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if answer != QMessageBox.Yes:
+                    raise SecurityAccessBlocked('Key submission cancelled by operator; nothing was sent.')
             if not self._seed_context_current(job.request):
                 raise SecurityAccessBlocked('SecurityAccess context changed; nothing was sent.')
             self._validate_seed_target(job.request)
@@ -155,13 +176,13 @@ class CanDiagnosticController(QObject):
             if not self.task.submit_diagnostic(submission):
                 raise SecurityAccessBlocked('CAN owner is busy or disconnected; nothing was sent.')
             self._active = submission
-            self.security_key_result_changed.emit('27 02: Running; awaiting ECU response')
-            self.panel.show_notice(prefix + 'Sending key; key TX frames are excluded from Monitor/BLF. Waiting for ECU 67 02.')
+            self.security_key_result_changed.emit(f'{key_label}: Running; awaiting ECU response')
+            self.panel.show_notice(f'Sending key; key TX frames are excluded from Monitor/BLF. Waiting for ECU 67 {key_subfunc:02X}.')
         except (ValueError, RuntimeError) as error:
             self._invalidate_security()
             if not self._closed:
                 self.panel.show_notice(str(error))
-                self.security_key_result_changed.emit('27 02: Cancelled or unavailable (not sent)')
+                self.security_key_result_changed.emit(f'{key_label}: Cancelled or unavailable (not sent)')
         finally:
             self._preparing = False
             self.panel.set_request_busy(self._active is not None)
@@ -234,13 +255,13 @@ class CanDiagnosticController(QObject):
             if request.uds_payload[:1] in (b'\x10', b'\x11'):
                 self._session_epoch+=1
                 self._invalidate_security()
-            if request.uds_payload == b'\x27\x01':
+            if is_security_seed_payload(request.uds_payload):
                 self.security_session.start(request,self._connection_identity(),self._session_epoch)
                 self._refresh_security_status()
             if not self.task.submit_diagnostic(request):
                 raise DiagnosticValidationError('The CAN owner is busy or disconnected; request was not sent.')
             self._active=request
-            if request.uds_payload == b'\x27\x01':
+            if is_security_seed_payload(request.uds_payload):
                 self._seed_request = request
             self.panel.set_request_busy(True)
             self.panel.set_step_running(key)
@@ -304,8 +325,8 @@ class CanDiagnosticController(QObject):
         )
 
         if is_key_submission(request):
-            # The generated key is a separate transaction, not a response to 27 01.
-            summary = f'27 02 → {payload or "no final response"}: {result.outcome.value}'
+            subfunc = request.uds_payload[1] if len(request.uds_payload) > 1 else 2
+            summary = f'27 {subfunc:02X} → {payload or "no final response"}: {result.outcome.value}'
             self.security_key_result_changed.emit(summary)
         else:
             self.panel.set_step_result(
@@ -316,7 +337,7 @@ class CanDiagnosticController(QObject):
         notice = detail
 
         # A seed belongs to this exact connection/document/session generation.
-        if request.uds_payload == b"\x27\x01":
+        if is_security_seed_payload(request.uds_payload):
             try:
                 self.security_session.receive(result,self._connection_identity(),self._session_epoch)
             except SecurityAccessBlocked:

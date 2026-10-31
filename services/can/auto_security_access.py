@@ -1,9 +1,9 @@
-"""Composite SecurityAccess workflow for Level 1 and Level 2. No I/O or Qt ownership."""
+"""Composite SecurityAccess workflow for Level 1, 2, 3, and 4. No I/O or Qt ownership."""
 from dataclasses import dataclass, replace
 from uuid import uuid4
 import time
 
-from core.diagnostic_request import DiagnosticOutcome as Outcome
+from core.diagnostic_request import SECURITY_LEVELS, DiagnosticOutcome as Outcome
 from core.security_submission import is_key_submission
 
 
@@ -24,16 +24,18 @@ class AutoPhysicalRecord:
 
 
 class AutoSecurityAccessL1:
-    """Composite protocol state for automated UDS SecurityAccess (L1 and L2)."""
+    """Composite protocol state for automated UDS SecurityAccess (L1..L4)."""
     def __init__(self, logical_request, *, clock=time.monotonic):
         if not self.matches(logical_request):
-            raise ValueError('Auto SecurityAccess requires an odd subfunction (e.g. 27 01, 27 03, 27 05).')
+            raise ValueError('Auto SecurityAccess requires a valid request (27 01, 27 03, 27 05, 27 07) with expected unlock response.')
         self.logical_request = logical_request
         self.subfunction = logical_request.uds_payload[1]
-        self.key_subfunction = self.subfunction + 1
+        cfg = SECURITY_LEVELS[self.subfunction]
+        self.key_subfunction = cfg["send_key"]
+        self.level_number = cfg["level"]
+        self.level_name = f'Level {self.level_number}'
         self.expected_seed = bytes([0x67, self.subfunction])
         self.expected_unlock = bytes([0x67, self.key_subfunction])
-        self.level_name = f'Level {(self.subfunction + 1) // 2}'
         self.workflow_id = uuid4().hex
         self._clock = clock
         self.deadline = clock() + logical_request.settings.total_s
@@ -51,11 +53,11 @@ class AutoSecurityAccessL1:
         if request.uds_payload[0] != 0x27:
             return False
         subfunc = request.uds_payload[1]
-        if subfunc % 2 == 0:
+        if subfunc not in SECURITY_LEVELS:
             return False
         expected = getattr(request, 'expected', b'')
-        expected_unlock = bytes([0x67, subfunc + 1])
-        return expected in (expected_unlock, b'')
+        expected_unlock = bytes([0x67, SECURITY_LEVELS[subfunc]["send_key"]])
+        return expected == expected_unlock
 
     @property
     def expired(self):

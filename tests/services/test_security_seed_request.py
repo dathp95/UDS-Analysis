@@ -21,7 +21,10 @@ class SecuritySeedPolicyTests(unittest.TestCase):
         self.assertTrue(admitted.requires_confirmation)
         with self.assertRaises(DiagnosticValidationError): validate_send_policy(admitted)
         validate_send_policy(replace(admitted, confirmed=True))
-        for payload in (b'\x27', b'\x27\x00', b'\x27\x02', b'\x27\x03',
+        for payload in (b'\x27\x01', b'\x27\x03', b'\x27\x05', b'\x27\x07'):
+            with self.subTest(payload=payload):
+                self.assertIsNotNone(seed_request(uds_payload=payload))
+        for payload in (b'\x27', b'\x27\x00', b'\x27\x02', b'\x27\x09',
                         b'\x27\x81', b'\x27\xff', b'\x27\x01\x00', b'\x27\x02\x00\x00'):
             with self.subTest(payload=payload), self.assertRaises(DiagnosticValidationError):
                 seed_request(uds_payload=payload)

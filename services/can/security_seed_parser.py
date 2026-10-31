@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from core.diagnostic_request import SECURITY_LEVELS, is_security_seed_payload
 
 
 class SecuritySeedError(ValueError):
@@ -9,10 +10,12 @@ class SecuritySeedError(ValueError):
 class SecuritySeed:
     level: int
     seed: bytes
+    subfunction: int = 1
 
     def __repr__(self):
         return (
             f"SecuritySeed(level={self.level}, "
+            f"subfunction=0x{self.subfunction:02X}, "
             f"seed_length={len(self.seed)})"
         )
 
@@ -26,21 +29,22 @@ def parse_security_seed(
     """
     Parse UDS SecurityAccess requestSeed response.
 
-    Example:
-        Request : 27 01
-        Response: 67 01 AA BB CC DD
-        Seed: AA BB CC DD
+    Supports 27 01, 27 03, 27 05, 27 07.
     """
-
-    from core.diagnostic_request import is_security_seed_payload
     if not is_security_seed_payload(request_payload):
         raise SecuritySeedError(
-            "SecurityAccess requires an odd subfunction (e.g. 27 01, 27 03, 27 05)."
+            "SecurityAccess requires a valid subfunction in SECURITY_LEVELS (27 01, 27 03, 27 05, 27 07)."
         )
 
     if not isinstance(response_payload, bytes):
         raise SecuritySeedError(
             "Response must be bytes."
+        )
+
+    subfunc = request_payload[1]
+    if not allow_l2 and subfunc != 0x01:
+        raise SecuritySeedError(
+            f"SecurityAccess subfunction 0x{subfunc:02X} requires allow_l2/multi-level flag."
         )
 
     if (
@@ -57,7 +61,7 @@ def parse_security_seed(
             "SecurityAccess response has no seed."
         )
 
-    expected_prefix = bytes([0x67, request_payload[1]])
+    expected_prefix = bytes([0x67, subfunc])
     if response_payload[:2] != expected_prefix:
         raise SecuritySeedError(
             "Unexpected SecurityAccess response."
@@ -71,6 +75,7 @@ def parse_security_seed(
         )
 
     return SecuritySeed(
-        level=request_payload[1],
+        level=SECURITY_LEVELS[subfunc]["level"],
         seed=seed,
+        subfunction=subfunc,
     )

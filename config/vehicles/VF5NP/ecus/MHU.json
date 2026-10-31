@@ -6,7 +6,7 @@
         "IVC_MHU"
     ],
     "resources": {
-        "dll": "resources/dll/MHU/MHU.dll",
+        "dll": "resources/dll/MHU/IVC_MHU.dll",
         "dbc": "",
         "odx": "",
         "dtc": "",

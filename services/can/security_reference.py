@@ -82,13 +82,13 @@ def extract_reference_rows(rows):
             counts['positive'] += 1
         else:
             counts['missing_or_invalid_response'] += 1
-        if request in (b'\x27\x01', b'\x27\x03'):
+        if len(request) == 2 and request[:1] == b'\x27' and request[1] in (1, 3, 5, 7):
             subfunction = request[1]
             if response[:2] == bytes((0x67, subfunction)) and 3 <= len(response) <= 4095:
                 pending[ecu] = (subfunction, response[2:], timestamp, timestamp + rt/1000, sessions[ecu])
             else:
                 counts['invalid_seed'] += 1
-        elif len(request) > 2 and request[1] in (2, 4):
+        elif len(request) > 2 and request[:1] == b'\x27' and request[1] in (2, 4, 6, 8):
             if (candidate is not None and candidate[0]+1 == request[1]
                     and response == bytes((0x67, request[1])) and timestamp >= candidate[3]
                     and candidate[4] == sessions[ecu]):
