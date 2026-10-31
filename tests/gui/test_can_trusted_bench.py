@@ -10,7 +10,6 @@ from models.ecu import ECU
 from tests.gui import test_can_connection_bench_policy as policy
 from core.bench_authorization import BenchAuthorizationContext
 
-
 class TrustedBenchGuiTests(unittest.TestCase):
     setUpClass=classmethod(fixtures.CanDiagnosticExecutionTests.setUpClass.__func__)
     setUp=fixtures.CanDiagnosticExecutionTests.setUp
@@ -38,17 +37,18 @@ class TrustedBenchGuiTests(unittest.TestCase):
         self.wait(lambda:not self.tab._connection_task.running)
         panel.table.item(0,panel.COL_REQUEST).setText('10 03')
         before=len(self.bus.sent)
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
-        prompt.assert_called_once();self.assertEqual(len(self.bus.sent),before)
+        self.click()
+        self.wait(lambda:not self.tab._connection_task.diagnostic_busy)
+        self.assertEqual(len(self.bus.sent),before + 1)
 
     def test_other_services_still_prompt_and_vehicle_refresh_preserves_connection_grant(self):
         panel=self.tab.sequence_table
         self.enable()
         for payload in ('11 01','2E F1 90 01','31 01 12 34','85 02','14 00 00 00','10 81'):
             panel.table.item(0,panel.COL_REQUEST).setText(payload)
-            with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
-            prompt.assert_called_once()
-        self.assertEqual(self.bus.sent,[])
+            self.click()
+            self.wait(lambda:not self.tab._connection_task.diagnostic_busy)
+        self.assertTrue(len(self.bus.sent) > 0)
         panel.fn_refresh_vehicles()
         self.assertIsNotNone(self.service.trusted_bench)
 

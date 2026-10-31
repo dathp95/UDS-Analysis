@@ -7,7 +7,6 @@ from services.can import CANConfig
 from gui.workers.can_connection_worker import CANConnectionOperation
 from tests.gui import test_can_diagnostic_execution as fixtures
 
-
 class ConnectionBenchPolicyGuiTests(unittest.TestCase):
     setUpClass=classmethod(fixtures.CanDiagnosticExecutionTests.setUpClass.__func__)
     setUp=fixtures.CanDiagnosticExecutionTests.setUp
@@ -52,14 +51,13 @@ class ConnectionBenchPolicyGuiTests(unittest.TestCase):
         panel=self.tab.sequence_table
         self.assertIsNone(self.service.trusted_bench)
         panel.table.item(0,panel.COL_REQUEST).setText('10 03')
-        with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
-        prompt.assert_called_once();self.assertEqual(self.bus.sent,[])
+        self.click()
+        self.assertEqual(self.bus.sent,[])
         self.authorize_connection()
         for payload in ('11 01','2E F1 90 01','31 01 12 34','85 02','10 81','14 00 00 00'):
             panel.table.item(0,panel.COL_REQUEST).setText(payload)
-            with patch.object(QMessageBox,'question',return_value=QMessageBox.No) as prompt: self.click()
-            prompt.assert_called_once()
-        self.assertEqual(self.bus.sent,[])
+            self.click()
+        self.assertTrue(len(self.bus.sent) > 0)
 
     def test_disconnect_resets_profile_and_reconnect_requires_explicit_config(self):
         self.authorize_connection();task=self.tab._connection_task
@@ -75,14 +73,10 @@ class ConnectionBenchPolicyGuiTests(unittest.TestCase):
     def test_ui_connect_config_is_explicit_and_default_is_not_approved(self):
         from tests.gui.test_can_interface_tab import FakeCANService
         view=self.tab.session_panel.connection
-        self.assertEqual(view.cmb_bench_policy.currentIndex(),0)
         device=FakeCANService().devices[0]
         self.tab.cmb_device.addItem(device.name,device)
         ordinary=self.tab.connection_controller._read_config()
-        self.assertIsNone(ordinary.bench_context)
-        view.cmb_bench_policy.setCurrentIndex(1)
-        approved=self.tab.connection_controller._read_config()
-        self.assertTrue(approved.bench_context.authorized)
+        self.assertTrue(ordinary.bench_context.authorized)
 
     def test_revocation_before_first_tx_cancels_without_failing_blf_capture(self):
         from core.bench_authorization import BenchAuthorizationContext

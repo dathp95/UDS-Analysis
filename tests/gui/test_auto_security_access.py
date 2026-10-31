@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QMessageBox
 from core.diagnostic_request import DiagnosticOutcome as Outcome, DiagnosticSettings
 from tests.gui import test_security_access82 as fixtures
 
-
 class AutoSecurityGuiTests(unittest.TestCase):
     setUpClass = classmethod(fixtures.SecurityAccess82GuiTests.setUpClass.__func__)
     def setUp(self):
@@ -34,7 +33,8 @@ class AutoSecurityGuiTests(unittest.TestCase):
         self.auto()
         self.assertEqual(self.outcome(1), 'Passed')
         self.assertEqual(self.panel.table.item(1, self.panel.COL_RECEIVE).text(), '67 02')
-        self.assertIn('Security Unlocked', self.panel.table.item(1, self.panel.COL_COMMENT).text())
+        self.assertEqual(self.panel.table.item(1, self.panel.COL_COMMENT).text(), '')
+        self.assertIn('Security Unlocked', self.panel.table.item(1, self.panel.COL_RESULT).toolTip())
         flow = self.tab.diagnostic_controller.auto_security.last_flow
         self.assertEqual(len(flow.trace), 2)
         self.assertNotEqual(flow.trace[0].transaction_id, flow.trace[1].transaction_id)
@@ -281,7 +281,6 @@ class AutoSecurityGuiTests(unittest.TestCase):
         self.tab.diagnostic_controller._result(DiagnosticResult(flow.seed_request, Outcome.PASSED, b'\x67\x01'+bytes(16)))
         self.assertEqual(self.outcome(1), 'Passed')
         self.assertEqual(len(self.backend.requests), 3)
-
 
 class PhysicalAutoGateGuiTests(unittest.TestCase):
     from tests.gui import test_can_diagnostic_execution as fixtures
