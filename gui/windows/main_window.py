@@ -155,6 +155,13 @@ class MainWindow(QMainWindow):
                 label,
             )
 
+        # Place CAN Connection widget on the right side of the tabbar
+        if hasattr(self, "can_interface_tab") and hasattr(self.can_interface_tab, "session_panel"):
+            conn_panel = self.can_interface_tab.session_panel.connection
+            self.tabs.setCornerWidget(conn_panel, Qt.TopRightCorner)
+            self.tabs.currentChanged.connect(self._on_tab_changed_update_corner)
+            self._on_tab_changed_update_corner(self.tabs.currentIndex())
+
         self._apply_feature_access()
         self.license_support_tab.activationSucceeded.connect(
             self._on_license_activated
@@ -167,6 +174,11 @@ class MainWindow(QMainWindow):
         self.crc_converter_tab.crc_transfer_requested.connect(
             self.coding_value_tab.fn_set_crc_value
         )
+
+    def _on_tab_changed_update_corner(self, index):
+        if hasattr(self, "can_interface_tab") and hasattr(self.can_interface_tab, "session_panel"):
+            is_can = self.tabs.currentWidget() == self.can_interface_tab
+            self.can_interface_tab.session_panel.connection.setVisible(is_can)
 
     def _apply_feature_access(self):
         license_is_valid = self._license_is_valid()

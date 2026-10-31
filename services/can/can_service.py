@@ -76,6 +76,11 @@ class CANService:
         candidate = Path(f'config/vehicles/{vehicle}/resources/dll/{ecu}/{ecu}.dll')
         if candidate.is_file():
             return str(candidate.resolve())
+        ecu_dir = Path(f'config/vehicles/{vehicle}/resources/dll/{ecu}')
+        if ecu_dir.is_dir():
+            for dll_file in ecu_dir.glob('*.dll'):
+                if dll_file.is_file():
+                    return str(dll_file.resolve())
         return None
 
     def begin_auto_security(self, request):

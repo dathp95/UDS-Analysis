@@ -212,6 +212,20 @@ class CanConnectionController(QObject):
         for combo in (self.cmb_vendor, self.cmb_device, self.cmb_channel, self.cmb_baudrate,self.cmb_bench_policy):
             combo.setEnabled(idle and not busy)
 
+        if hasattr(self.view, "btn_action"):
+            if snapshot.state == State.CONNECTED:
+                self.view.btn_action.setText("Disconnect")
+                self.view.btn_action.setEnabled(self.btn_disconnect.isEnabled())
+            elif snapshot.state == State.CONNECTING:
+                self.view.btn_action.setText("Connecting...")
+                self.view.btn_action.setEnabled(False)
+            elif snapshot.state == State.DISCONNECTING:
+                self.view.btn_action.setText("Disconnecting...")
+                self.view.btn_action.setEnabled(False)
+            else:
+                self.view.btn_action.setText("Connect")
+                self.view.btn_action.setEnabled(self.btn_connect.isEnabled())
+
     def close(self):
         if not self._closing:
             self._closing = True
@@ -238,11 +252,14 @@ class CanConnectionController(QObject):
             "No devices": muted,
             "No CAN channel": colors.WARNING,
         }
+        color = state_colors.get(self._status_state, colors.TEXT)
         self.lbl_status.setStyleSheet(
             f"""
             QLabel {{
-                color: {state_colors.get(self._status_state, colors.TEXT)};
-                font-weight: 600;
+                color: {color};
+                font-weight: bold;
             }}
             """
         )
+        if hasattr(self.view, "lbl_status_dot"):
+            self.view.lbl_status_dot.setStyleSheet(f"color: {color}; font-size: 14px;")

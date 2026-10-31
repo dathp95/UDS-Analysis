@@ -2,13 +2,16 @@
     "name": "MHU",
     "request_id": "684",
     "response_id": "604",
-    "aliases": [],
+    "aliases": [
+        "IVC_MHU"
+    ],
     "resources": {
-        "dll": "",
+        "dll": "resources/dll/MHU/MHU.dll",
         "dbc": "",
         "odx": "",
         "dtc": "",
-        "request_library": ""
+        "request_library": "",
+        "dll_path_base": "vehicle"
     },
     "quick_requests": []
 }

@@ -257,3 +257,18 @@ class NativeDllAutoSecurityTests(unittest.TestCase):
         self.assertEqual(len(eps_key.key), 16)
         self.assertTrue(eps_key.verified_real)
 
+        # Test MHU ECU with subfunction 1 and subfunction 3
+        mhu_provider_1 = self.service.security_provider('VF5NP', 'MHU', subfunction=1)
+        self.assertIsNotNone(mhu_provider_1)
+        self.assertTrue(getattr(mhu_provider_1._proof, 'verified_real', False))
+        mhu_key_1 = mhu_provider_1.calculate(seed_bytes, source_transaction='tx_mhu_calc1')
+        self.assertEqual(len(mhu_key_1.key), 16)
+        self.assertTrue(mhu_key_1.verified_real)
+
+        mhu_provider_3 = self.service.security_provider('VF5NP', 'MHU', subfunction=3)
+        self.assertIsNotNone(mhu_provider_3)
+        self.assertTrue(getattr(mhu_provider_3._proof, 'verified_real', False))
+        mhu_key_3 = mhu_provider_3.calculate(seed_bytes, source_transaction='tx_mhu_calc3')
+        self.assertEqual(len(mhu_key_3.key), 16)
+        self.assertTrue(mhu_key_3.verified_real)
+

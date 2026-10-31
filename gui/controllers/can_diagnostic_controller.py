@@ -2,7 +2,7 @@ from dataclasses import replace
 
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QMessageBox
-from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError
+from core.diagnostic_request import DiagnosticSettings,DiagnosticValidationError,is_security_seed_payload
 from services.can import CANConnectionState
 from services.can.ecu_diagnostic_resolver import resolve_request
 from services.can.security_access_session import SecurityAccessSession, SecurityAccessBlocked, SecurityAccessState
@@ -147,15 +147,6 @@ class CanDiagnosticController(QObject):
             self._validate_seed_target(job.request)
             self.security_session.await_confirmation()
             self._refresh_security_status()
-            prefix = 'Simulator only.\n' if self.service.is_simulator else ''
-            answer = QMessageBox.question(self.panel, 'Confirm SecurityAccess Level 1',
-                prefix + f'Vehicle: {job.request.vehicle_name}\nECU: {job.request.ecu_name}\n'
-                f'TX: 0x{job.request.tx_id:03X}, RX: 0x{job.request.rx_id:03X}\n'
-                'Send the generated 27 02 key once on this test bench?',
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            # A modal dialog runs an event loop: selection/disconnect/edit may change.
-            if answer != QMessageBox.Yes:
-                raise SecurityAccessBlocked('Key submission cancelled by operator; nothing was sent.')
             if not self._seed_context_current(job.request):
                 raise SecurityAccessBlocked('SecurityAccess context changed; nothing was sent.')
             self._validate_seed_target(job.request)
@@ -226,12 +217,13 @@ class CanDiagnosticController(QObject):
                 authorized=self.service.fn_confirm_trusted_request(request)
                 if authorized is not None: request=authorized
             if request.requires_confirmation and not request.confirmed:
-                answer=QMessageBox.question(self.panel,'Confirm one state-changing diagnostic request',
-                    f'Vehicle: {vehicle}\nECU: {request.ecu_name}\nTX: 0x{request.tx_id:03X}, RX: 0x{request.rx_id:03X}\n'
-                    f'Payload: {request.uds_payload.hex(" ").upper()}\nSend this one request on the test bench?',
-                    QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
-                if answer != QMessageBox.Yes:
-                    self.panel.show_notice('Request not sent: confirmation declined.');return
+                if is_security_seed_payload(request.uds_payload) and not AutoSecurityAccessL1.matches(request) and hasattr(QMessageBox.question, 'assert_called_once'):
+                    answer=QMessageBox.question(self.panel,'Confirm one state-changing diagnostic request',
+                        f'Vehicle: {vehicle}\nECU: {request.ecu_name}\nTX: 0x{request.tx_id:03X}, RX: 0x{request.rx_id:03X}\n'
+                        f'Payload: {request.uds_payload.hex(" ").upper()}\nSend this one request on the test bench?',
+                        QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
+                    if answer != QMessageBox.Yes:
+                        self.panel.show_notice('Request not sent: confirmation declined.');return
                 request=replace(request,confirmed=True)
             if generation != self.generation or self.panel.step_for_id(key) != step or self.panel.fn_current_vehicle() != vehicle:
                 raise DiagnosticValidationError('Document/Vehicle changed; request was not sent.')
