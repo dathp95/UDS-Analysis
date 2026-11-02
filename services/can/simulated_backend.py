@@ -97,6 +97,8 @@ class SimulatedCANBackend:
                 self._deferred.append((time.monotonic()+self.pending_delay, default_resp))
             else:
                 self._response(default_resp)
+        elif payload[:1] == b'\x2e':
+            self._response(b'\x6e' + payload[1:3])
         else:
             self._response(bytes((0x7f,payload[0],0x11)))
 
@@ -127,7 +129,7 @@ class SimulatedCANBackend:
             self._outgoing=b''
         return frame
 
-    def fn_receive_frame(self):
+    def fn_receive_frame(self, timeout=0.0):
         self._guard()
         while self._deferred and self._deferred[0][0]<=time.monotonic():
             self._response(self._deferred.popleft()[1])

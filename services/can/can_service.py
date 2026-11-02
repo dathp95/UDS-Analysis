@@ -115,11 +115,12 @@ class CANService:
         request = flow.seed_request
         grant = self.trusted_bench
         is_real = getattr(getattr(provider, '_proof', None), 'verified_real', False)
+        curr_provider = self.security_provider(request.vehicle_name, request.ecu_name, subfunction=flow.subfunction)
         if (flow.expired or (not self.is_simulator and not is_real) or not self.security_ready_for(request) or grant is None
                 or (connection, epoch, authorization) !=
                    (self.capture_session_id, self._security_epoch, grant.authorization_id)
                 or gate is not self.security_gate
-                or provider is not self.security_provider(request.vehicle_name, request.ecu_name, subfunction=flow.subfunction)):
+                or provider is not curr_provider):
             raise DiagnosticValidationError(f'Auto {flow.level_name} target, provider, connection or bench authorization changed.')
 
     def auto_provider(self, flow):
@@ -392,20 +393,26 @@ class CANService:
                 raise DiagnosticCancelled(str(error)) from error
             return self._backend.fn_send_frame(can_id,data)
 
-    def fn_receive_diagnostic_frame(self):
+    def fn_receive_diagnostic_frame(self, timeout=0.0):
         self._guard_diagnostic_owner()
         from core.security_submission import is_key_submission
         if is_key_submission(self._diagnostic_request):
             with self._bench_tx_lock:
                 try: self._validate_key_submission(self._diagnostic_request)
                 except DiagnosticValidationError as error: raise DiagnosticCancelled(str(error)) from None
-        return self.fn_receive_capture_frame()
+        return self.fn_receive_capture_frame(timeout=timeout)
 
-    def fn_receive_capture_frame(self):
+    def fn_receive_capture_frame(self, timeout=0.0):
         """Nonblocking read on the native owner; idle capture holds no lease."""
         if self.snapshot.state != State.CONNECTED:
             raise CANConnectionError('Capture requires a connected CAN bus.')
-        return self._backend.fn_receive_frame()
+        recv = getattr(self._backend, 'fn_receive_frame', None)
+        if recv is None:
+            return None
+        try:
+            return recv(timeout=timeout)
+        except TypeError:
+            return recv()
 
     def fn_end_diagnostic(self, transaction_id):
         # Revoked authorization must stop I/O, never prevent owner cleanup.

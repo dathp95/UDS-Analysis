@@ -74,7 +74,6 @@ class CanDiagnosticSession(QObject):
                                           if key[0] == session_id}
             self._private_seed_streams[(session_id, request.rx_id)] = True
         self.cancelled=cancelled
-        self.started=time.monotonic()
         try:
             # Import lazily: missing optional transport dependency never breaks
             # discovery/connection or application startup, and sends no frame.
@@ -82,6 +81,7 @@ class CanDiagnosticSession(QObject):
             self._client_class=DiagnosticClient
             self.service.fn_begin_diagnostic(request)
             self._leased=True
+            self.started=time.monotonic()
             if not self.monitoring: self.start_monitoring()
         except Exception as error:
             LOG.exception('Cannot start diagnostic transport')
@@ -135,6 +135,22 @@ class CanDiagnosticSession(QObject):
                 self._capture(frame)
                 self.client.feed(frame)
                 self.client.poll()
+            # Active burst window for ISO-TP multi-frame transmission and reception.
+            # Avoids passive timer sleep/jitter during critical inter-frame timeouts (N_Cr, N_Bs).
+            if self.client.result is None and (self.client.engine.transmitting or self.client.engine.receiving):
+                burst_deadline = time.monotonic() + 0.030
+                while (self.client.result is None
+                       and (self.client.engine.transmitting or self.client.engine.receiving)
+                       and not self.cancelled.is_set()
+                       and time.monotonic() < burst_deadline):
+                    frame = self.service.fn_receive_diagnostic_frame(timeout=0.001)
+                    if frame is not None:
+                        self._capture(frame)
+                        self.client.feed(frame)
+                    self.client.poll()
+                    if self.client.result is not None or not (self.client.engine.transmitting or self.client.engine.receiving):
+                        break
+                    time.sleep(0.0005)
             self.client.poll()
             if self.client.result is not None: self._finish(self.client.result)
         except DiagnosticCancelled:

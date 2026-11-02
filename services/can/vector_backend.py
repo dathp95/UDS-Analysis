@@ -177,10 +177,10 @@ class VectorBackend:
         self._accepted_tx.append(frame)
         return frame
 
-    def fn_receive_frame(self):
+    def fn_receive_frame(self, timeout=0.0):
         self._guard_io()
         try:
-            message=self._bus.recv(timeout=0.0)
+            message=self._bus.recv(timeout=timeout)
         except Exception as error:
             LOG.exception('Vector receive failed')
             raise CANIoError('Vector CAN receive failed. Disconnect/rediscovery is required.') from error
