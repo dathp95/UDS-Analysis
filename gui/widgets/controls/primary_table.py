@@ -1,7 +1,8 @@
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 
 from PySide6.QtWidgets import (
+    QApplication,
     QAbstractItemView,
     QHeaderView,
     QTableWidget,
@@ -155,8 +156,10 @@ class PrimaryTable(QTableWidget):
         self.cellClicked.connect(self._on_editable_cell_clicked)
 
 
+    
     def _on_editable_cell_clicked(self, row, column):
-        # Preserve Ctrl/Shift multi-selection.
+        """Open editor immediately on a single click."""
+
         modifiers = QApplication.keyboardModifiers()
 
         if modifiers & (
@@ -171,35 +174,16 @@ class PrimaryTable(QTableWidget):
         if item is None:
             return
 
-        if not (item.flags() & Qt.ItemIsEditable):
-            return
-
         if not (item.flags() & Qt.ItemIsEnabled):
             return
 
-        # Open the editor after Qt finishes processing the click.
-        QTimer.singleShot(
-            0,
-            lambda: self._open_clicked_editor(
-                row, column, item
-            )
-        )
-
-
-    def _open_clicked_editor(self, row, column, item):
-        if self.item(row, column) is not item:
-            return
-
-        if (
-            self.currentRow() != row
-            or self.currentColumn() != column
-        ):
-            return
-
         if not (item.flags() & Qt.ItemIsEditable):
             return
 
+        # Open the editor directly after the click.
         self.editItem(item)
+
+
 
 
     def fn_refresh_theme(self):

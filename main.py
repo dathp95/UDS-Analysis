@@ -89,7 +89,7 @@ def main() -> int:
         app.processEvents()
         splash.finish(window)
 
-        return app.exec()
+    return app.exec()
 
 
 if __name__ == "__main__":

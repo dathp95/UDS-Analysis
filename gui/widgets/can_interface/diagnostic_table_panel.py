@@ -38,6 +38,21 @@ from services.can.diag_ecu_mapper import find_ecu_by_can_ids
 from gui.themes.styles.controls.lineedit_style import fn_lineedit_style
 from gui.themes.styles.controls.table_style import fn_table_style
 
+HEX_FONT_SIZE = 11
+
+HEX_FONT_FAMILY = QFontDatabase.systemFont(
+    QFontDatabase.FixedFont
+).family()
+
+
+def fn_hex_font():
+    font = QFontDatabase.systemFont(
+        QFontDatabase.FixedFont
+    )
+    font.setPointSize(HEX_FONT_SIZE)
+    font.setBold(True)
+    return font
+
 def validate_and_format_hex(raw_text: str):
 
     """
@@ -86,50 +101,118 @@ def validate_and_format_hex(raw_text: str):
 
     return True, " ".join(bytes_list), ""
 
-class HexItemDelegate(QStyledItemDelegate):
 
-    """Item delegate that formats HEX on commit and live-updates warning border/color while typing."""
+class HexItemDelegate(QStyledItemDelegate):
+    """HEX editor for compact diagnostic table cells."""
 
     def createEditor(self, parent, option, index):
-
         editor = QLineEdit(parent)
+        editor.setObjectName("diagnosticHexEditor")
 
-        editor.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+        editor.setFont(fn_hex_font())
 
-        editor.textChanged.connect(lambda text: self._on_text_changed(editor, text))
+        editor.setAlignment(
+            Qt.AlignLeft | Qt.AlignVCenter
+        )
 
+        editor.textChanged.connect(
+            lambda text: self._on_text_changed(editor, text)
+        )
+
+        self._on_text_changed(editor, "")
+        
         return editor
+
+    def _apply_editor_style(self, editor, invalid=False):
+        colors = ThemeManager.fn_colors()
+
+        state = (ThemeManager.fn_theme(), bool(invalid))
+        if getattr(editor, "_hex_style_state", None) == state:
+            return
+
+        border_color = (
+            colors.WARNING if invalid else colors.PRIMARY
+        )
+        text_color = (
+            colors.WARNING if invalid else colors.TEXT
+        )
+
+        selected_text = (
+            colors.WINDOW
+            if ThemeManager.fn_is_dark()
+            else colors.TEXT_INVERT
+        )
+
+        mono_font = QFontDatabase.systemFont(
+            QFontDatabase.FixedFont
+        ).family()
+
+        style = fn_lineedit_style() + f"""
+        QLineEdit#diagnosticHexEditor,
+        QLineEdit#diagnosticHexEditor:focus {{
+            background-color: {colors.WINDOW};
+            color: {text_color};
+
+            border: 1px solid {border_color};
+            border-radius: 2px;
+
+            padding: 0px 4px;
+
+            font-family: "{mono_font}";
+
+            selection-background-color: {colors.PRIMARY};
+            selection-color: {selected_text};
+        }}
+        """
+
+        editor.setStyleSheet(style)
+        editor._hex_style_state = state
 
     def _on_text_changed(self, editor, text):
         is_valid, _, warning = validate_and_format_hex(text)
 
         colors = ThemeManager.fn_colors()
-        style = fn_lineedit_style()
 
-        if not is_valid:
-            style += f"""
-            QLineEdit,
-            QLineEdit:focus {{
-                color: {colors.WARNING};
-                border: 1px solid {colors.WARNING};
+        text_color = (
+            colors.TEXT if is_valid else colors.WARNING
+        )
+
+        border_color = (
+            colors.BORDER if is_valid else colors.WARNING
+        )
+
+        style = fn_lineedit_style() + f"""
+            QLineEdit#diagnosticHexEditor,
+            QLineEdit#diagnosticHexEditor:focus {{
+                background-color: {colors.WINDOW};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 0px;
+                padding: 0px;
+
+                font-family: "{HEX_FONT_FAMILY}";
+                font-size: {HEX_FONT_SIZE}pt;
+                font-weight: bold;
             }}
-            """
-
-            editor.setToolTip(f"Warning: {warning}")
-        else:
-            editor.setToolTip("")
+        """
 
         editor.setStyleSheet(style)
+        editor.setToolTip(
+            f"Warning: {warning}" if not is_valid else ""
+        )
 
     def setModelData(self, editor, model, index):
-
         raw_text = editor.text()
+        is_valid, formatted, _ = validate_and_format_hex(
+            raw_text
+        )
 
-        is_valid, formatted, _ = validate_and_format_hex(raw_text)
-
-        new_text = formatted if is_valid and formatted else raw_text
+        new_text = (
+            formatted if is_valid and formatted else raw_text
+        )
 
         model.setData(index, new_text, Qt.EditRole)
+
 
 
 class ReadOnlyHexCell(QLineEdit):
@@ -141,8 +224,10 @@ class ReadOnlyHexCell(QLineEdit):
         self.setObjectName("receiveMessageCell")
         self.setReadOnly(True)
         self.setFrame(False)
-        self.setFont(
-            QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        self.setFont(fn_hex_font())
+
+        self.setAlignment(
+            Qt.AlignLeft | Qt.AlignVCenter
         )
 
         self._style_signature = None
@@ -201,6 +286,9 @@ class ReadOnlyHexCell(QLineEdit):
                 padding: 0px 4px;
                 selection-background-color: {selection_bg};
                 selection-color: {selection_fg};
+                font-family: "{HEX_FONT_FAMILY}";
+                font-size: {HEX_FONT_SIZE}pt;
+                font-weight: bold;
             }}
 
             QLineEdit#receiveMessageCell:focus {{
@@ -550,9 +638,17 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
         item.setToolTip(escape(str(value)))
 
-        if column in (self.COL_REQUEST, self.COL_EXPECTED, self.COL_RECEIVE):
+       
+        if column in (
+            self.COL_REQUEST,
+            self.COL_EXPECTED,
+            self.COL_RECEIVE
+        ):
+            item.setFont(fn_hex_font())
 
-            item.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+            item.setTextAlignment(
+                Qt.AlignLeft | Qt.AlignVCenter
+            )
 
         if column in (self.COL_REQUEST, self.COL_EXPECTED):
 

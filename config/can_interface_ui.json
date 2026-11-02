@@ -6,7 +6,7 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\203.BCM&BasicDID.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\test 3.json"
     ],
-    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9700.VDKCU&S.json",
+    "selected_id": "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9601.USSF&S.json",
     "vehicles": {
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\0002_READ_VIN copy.json": "LIMO",
         "C:\\VF5NP\\SW\\Version 3.2 CBT\\Version 3.2 CBT\\SeqList\\0001.READ&CDS.diag": "VF5NP",
@@ -122,6 +122,7 @@
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\920.SGC&S.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9300.MHU&S.json",
         "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9601.USSF&S.json",
-        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9700.VDKCU&S.json"
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9700.VDKCU&S.json",
+        "C:\\REDO\\CODINGTOOL\\config\\diagnostic_sequences\\9328.MHU&F115&1.json"
     ]
 }
