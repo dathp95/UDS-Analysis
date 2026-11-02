@@ -4,11 +4,12 @@
     "response_id": "629",
     "aliases": [],
     "resources": {
-        "dll": "",
+        "dll": "resources/dll/ABS/ABS_Diva.dll",
         "dbc": "",
         "odx": "",
         "dtc": "",
-        "request_library": ""
+        "request_library": "",
+        "dll_path_base": "vehicle"
     },
     "quick_requests": []
 }

@@ -113,7 +113,9 @@ class SimulatedCANBackend:
             self._incoming_size=((data[0]&15)<<8)|data[1]
             self._incoming=bytearray(data[2:])
             self._next_sequence=1
-            self._enqueue(b'\x30'+bytes(7))
+            bs = getattr(self, 'fc_block_size', 0)
+            stmin = getattr(self, 'fc_stmin', 0)
+            self._enqueue(bytes([0x30, bs, stmin]) + bytes(5))
         elif kind==2 and self._incoming_size:
             if data[0]&15!=self._next_sequence: raise ValueError('Simulator received an invalid CF sequence.')
             self._next_sequence=(self._next_sequence+1)&15
@@ -131,6 +133,13 @@ class SimulatedCANBackend:
 
     def fn_receive_frame(self, timeout=0.0):
         self._guard()
-        while self._deferred and self._deferred[0][0]<=time.monotonic():
-            self._response(self._deferred.popleft()[1])
-        return self._rx.popleft() if self._rx else None
+        deadline = time.monotonic() + max(0.0, timeout)
+        while True:
+            while self._deferred and self._deferred[0][0]<=time.monotonic():
+                self._response(self._deferred.popleft()[1])
+            if self._rx:
+                return self._rx.popleft()
+            if time.monotonic() >= deadline:
+                return None
+            remaining = deadline - time.monotonic()
+            time.sleep(min(0.001, max(0.0001, remaining)))
