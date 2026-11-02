@@ -1,5 +1,4 @@
-from PySide6.QtCore import Qt
-
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 
 from PySide6.QtWidgets import (
@@ -17,6 +16,7 @@ from gui.themes.styles.controls.table_style import (
 from gui.themes.styles.controls.scrollbar_style import (
     fn_apply_scrollbar_style,
 )
+
 
 class PrimaryTable(QTableWidget):
 
@@ -136,6 +136,71 @@ class PrimaryTable(QTableWidget):
                 if item:
 
                     item.setBackground(QColor(bg))
+
+
+    
+    def fn_enable_one_click_edit(self):
+        """Enable immediate editing on editable table cells."""
+        if getattr(self, "_one_click_edit_enabled", False):
+            return
+
+        self._one_click_edit_enabled = True
+
+        # Keep keyboard editing, but do not require double-click.
+        self.setEditTriggers(
+            QAbstractItemView.EditKeyPressed
+            | QAbstractItemView.AnyKeyPressed
+        )
+
+        self.cellClicked.connect(self._on_editable_cell_clicked)
+
+
+    def _on_editable_cell_clicked(self, row, column):
+        # Preserve Ctrl/Shift multi-selection.
+        modifiers = QApplication.keyboardModifiers()
+
+        if modifiers & (
+            Qt.ControlModifier
+            | Qt.ShiftModifier
+            | Qt.AltModifier
+        ):
+            return
+
+        item = self.item(row, column)
+
+        if item is None:
+            return
+
+        if not (item.flags() & Qt.ItemIsEditable):
+            return
+
+        if not (item.flags() & Qt.ItemIsEnabled):
+            return
+
+        # Open the editor after Qt finishes processing the click.
+        QTimer.singleShot(
+            0,
+            lambda: self._open_clicked_editor(
+                row, column, item
+            )
+        )
+
+
+    def _open_clicked_editor(self, row, column, item):
+        if self.item(row, column) is not item:
+            return
+
+        if (
+            self.currentRow() != row
+            or self.currentColumn() != column
+        ):
+            return
+
+        if not (item.flags() & Qt.ItemIsEditable):
+            return
+
+        self.editItem(item)
+
 
     def fn_refresh_theme(self):
 

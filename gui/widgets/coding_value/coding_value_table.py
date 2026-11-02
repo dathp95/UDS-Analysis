@@ -63,11 +63,7 @@ class CodingValueTable(PrimaryTable):
 
     def _setup_table(self):
         self.setSortingEnabled(False)
-        self.setEditTriggers(
-            QAbstractItemView.DoubleClicked
-            | QAbstractItemView.EditKeyPressed
-            | QAbstractItemView.SelectedClicked
-        )
+        self.fn_enable_one_click_edit()
         self.itemChanged.connect(self._handle_item_changed)
         self.setTextElideMode(Qt.ElideRight)
 

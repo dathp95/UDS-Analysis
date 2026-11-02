@@ -38,7 +38,7 @@ class DiagnosticSequenceTable(QWidget):
 
     sequence_modified = Signal(object)
 
-    ROW_HEIGHT = 34
+    ROW_HEIGHT = 40
 
     COL_STEP = 0
     COL_SEQUENCE_NAME = 1
@@ -137,11 +137,7 @@ class DiagnosticSequenceTable(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.verticalHeader().setDefaultSectionSize(self.ROW_HEIGHT)
-        self.table.setEditTriggers(
-            QAbstractItemView.DoubleClicked
-            | QAbstractItemView.EditKeyPressed
-            | QAbstractItemView.AnyKeyPressed
-        )
+        self.table.fn_enable_one_click_edit()
         self.table.installEventFilter(self)
         self.table.horizontalHeader().setStretchLastSection(True)
         self._configure_columns()
@@ -627,6 +623,7 @@ class DiagnosticSequenceTable(QWidget):
             QSizePolicy.Expanding,
             QSizePolicy.Expanding,
         )
+        self.table.verticalHeader().setDefaultSectionSize(40)
 
     def fn_refresh_theme(self):
         self.vehicle_selector.fn_refresh_theme()

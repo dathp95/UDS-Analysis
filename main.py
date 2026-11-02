@@ -82,12 +82,14 @@ def main() -> int:
         fn_window_title(license_status)
     )
 
-    if splash is not None:
-        splash.finish(window)
-
+    # Show the main window before closing the splash screen.
     window.showMaximized()
 
-    return app.exec()
+    if splash is not None:
+        app.processEvents()
+        splash.finish(window)
+
+        return app.exec()
 
 
 if __name__ == "__main__":
