@@ -1,6 +1,13 @@
+import os
+import sys
 import unittest
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from PySide6.QtWidgets import QMessageBox
 from core.diagnostic_request import DiagnosticSettings
@@ -103,3 +110,7 @@ class SecuritySeedGuiTests(unittest.TestCase):
         self.wait(lambda:len(self.bus.queue)==0)
         self.assertNotEqual(self.outcome(),'Passed')
         self.assertEqual(panel._runtime,{})
+
+
+if __name__ == '__main__':
+    unittest.main()

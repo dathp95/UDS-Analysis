@@ -211,3 +211,7 @@ class CanDiagnosticExecutionTests(unittest.TestCase):
         self.wait(lambda:self.outcome()=='Failed')
         self.assertEqual(panel.table.item(0,panel.COL_RECEIVE).text(),'7F 2E 33')
         self.assertEqual(len(self.bus.sent),1)
+
+
+if __name__ == '__main__':
+    unittest.main()

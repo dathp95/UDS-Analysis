@@ -35,6 +35,9 @@ from gui.widgets.can_interface.panel_theme import apply_panel_theme
 
 from services.can.diag_ecu_mapper import find_ecu_by_can_ids
 
+from gui.themes.styles.controls.lineedit_style import fn_lineedit_style
+from gui.themes.styles.controls.table_style import fn_table_style
+
 def validate_and_format_hex(raw_text: str):
 
     """
@@ -98,22 +101,25 @@ class HexItemDelegate(QStyledItemDelegate):
         return editor
 
     def _on_text_changed(self, editor, text):
-
         is_valid, _, warning = validate_and_format_hex(text)
 
         colors = ThemeManager.fn_colors()
+        style = fn_lineedit_style()
 
         if not is_valid:
-
-            editor.setStyleSheet(f"QLineEdit {{ color: {colors.WARNING}; border: 1px solid {colors.WARNING}; }}")
+            style += f"""
+            QLineEdit,
+            QLineEdit:focus {{
+                color: {colors.WARNING};
+                border: 1px solid {colors.WARNING};
+            }}
+            """
 
             editor.setToolTip(f"Warning: {warning}")
-
         else:
-
-            editor.setStyleSheet("")
-
             editor.setToolTip("")
+
+        editor.setStyleSheet(style)
 
     def setModelData(self, editor, model, index):
 
@@ -125,63 +131,107 @@ class HexItemDelegate(QStyledItemDelegate):
 
         model.setData(index, new_text, Qt.EditRole)
 
-class ReadOnlyHexCell(QLineEdit):
 
-    """Selectable, copyable read-only hex display for Receive Message."""
+class ReadOnlyHexCell(QLineEdit):
+    """Read-only HEX cell using the existing V-CODE theme."""
 
     def __init__(self, text="", parent=None):
-
         super().__init__(text, parent)
 
+        self.setObjectName("receiveMessageCell")
         self.setReadOnly(True)
-
         self.setFrame(False)
+        self.setFont(
+            QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        )
 
-        self.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+        self._style_signature = None
+        self.fn_refresh_theme()
 
-        self.setStyleSheet("""
+    def fn_refresh_theme(self, selected=False, row=0):
+        signature = (
+            ThemeManager.fn_theme(),
+            bool(selected),
+            row % 2,
+        )
 
-            QLineEdit {
+        if signature == self._style_signature:
+            return
 
-                background: transparent;
+        colors = ThemeManager.fn_colors()
 
+        # Match the selected-row colors of V-CODE.
+        selected_text = (
+            colors.WINDOW
+            if ThemeManager.fn_is_dark()
+            else colors.TEXT_INVERT
+        )
+
+        background = (
+            colors.PRIMARY
+            if selected
+            else (
+                colors.TABLE_ROW
+                if row % 2 == 0
+                else colors.TABLE_ROW_ALT
+            )
+        )
+
+        foreground = (
+            selected_text if selected else colors.TEXT
+        )
+
+        # Make text selection visible even when the row is selected.
+        selection_bg = (
+            colors.TABLE_HEADER if selected else colors.PRIMARY
+        )
+
+        selection_fg = (
+            colors.TEXT if selected else selected_text
+        )
+
+        self.setStyleSheet(
+            fn_lineedit_style()
+            + f"""
+            QLineEdit#receiveMessageCell {{
+                background-color: {background};
+                color: {foreground};
                 border: none;
-
+                border-radius: 0px;
                 padding: 0px 4px;
+                selection-background-color: {selection_bg};
+                selection-color: {selection_fg};
+            }}
 
-                color: palette(text);
+            QLineEdit#receiveMessageCell:focus {{
+                border: none;
+            }}
+            """
+        )
 
-                selection-background-color: #2563eb;
-
-                selection-color: #ffffff;
-
-            }
-
-        """)
+        self._style_signature = signature
 
     def mousePressEvent(self, event):
-
         super().mousePressEvent(event)
 
         table = self.parent()
 
-        while table is not None and not isinstance(table, QTableWidget):
-
+        while table is not None and not isinstance(
+            table, QTableWidget
+        ):
             table = table.parent()
 
-        if table is not None:
+        if table is None:
+            return
 
-            point = table.viewport().mapFrom(
-                    self,
-                    event.position().toPoint()
-                )
+        point = table.viewport().mapFrom(
+            self, event.position().toPoint()
+        )
 
-            index = table.indexAt(point)
+        index = table.indexAt(point)
 
-            if index.isValid():
-
-                table.selectRow(index.row())
-
+        if index.isValid():
+            table.selectRow(index.row())
 
 
 class _RowButton(ActionButton):
@@ -345,6 +395,9 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         self.btn_export.clicked.connect(self.save_requested)
 
         self.table.currentCellChanged.connect(self._selection_changed)
+        self.table.itemSelectionChanged.connect(
+            self._refresh_receive_selection_colors
+        )
 
         self._copy_shortcut = QShortcut(QKeySequence.Copy, self.table)
 
@@ -837,6 +890,21 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
         # Task 5: Comment is 100% user-managed: never overwrite with auto_comments
 
+        selection_model = self.table.selectionModel()
+        model = self.table.model()
+
+        if selection_model is None:
+            return
+
+        index = model.index(row, self.COL_RECEIVE)
+        is_selected = selection_model.isSelected(index)
+
+        cell.fn_refresh_theme(
+            selected=is_selected,
+            row=row,
+        )
+
+
         step = self._test_case.steps[row]
 
         self._set_item(row, self.COL_COMMENT, step.comment, editable=True)
@@ -883,6 +951,31 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
 
             (ecu.name, ecu.request_id, ecu.response_id) for ecu in self._available_ecus)))
 
+    
+    def _refresh_receive_selection_colors(self):
+        selection_model = self.table.selectionModel()
+        model = self.table.model()
+
+        if selection_model is None:
+            return
+
+        for row in range(self.table.rowCount()):
+            cell = self.table.cellWidget(
+                row, self.COL_RECEIVE
+            )
+
+            if not isinstance(cell, ReadOnlyHexCell):
+                continue
+
+            index = model.index(row, self.COL_RECEIVE)
+            is_selected = selection_model.isSelected(index)
+
+            cell.fn_refresh_theme(
+                selected=is_selected,
+                row=row,
+            )
+
+    
     def fn_refresh_vehicles(self, selected_vehicle_name="", *, preserve_unchanged=False):
 
         previous = self._transport_configuration()
@@ -1287,25 +1380,64 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         except ValueError:
             return None
 
+    
     def fn_refresh_theme(self):
-
         apply_panel_theme(self, "canDiagnosticTablePanel")
 
         with QSignalBlocker(self.table):
-
             super().fn_refresh_theme()
 
-            for widget in (self.title, self.notice, self.btn_delete, self.btn_load, self.btn_settings):
+            colors = ThemeManager.fn_colors()
 
+            # Match the foreground of selected table rows.
+            selected_text = (
+                colors.WINDOW
+                if ThemeManager.fn_is_dark()
+                else colors.TEXT_INVERT
+            )
+
+            # Reuse the existing V-CODE table style.
+            # Only override selection foreground locally.
+            self.table.setStyleSheet(
+                fn_table_style()
+                + f"""
+                QTableWidget::item:selected {{
+                    background-color: {colors.PRIMARY};
+                    color: {selected_text};
+                }}
+                """
+            )
+
+            for widget in (
+                self.title,
+                self.notice,
+                self.btn_delete,
+                self.btn_load,
+                self.btn_settings,
+            ):
                 widget.fn_refresh_theme()
 
             for row in range(self.table.rowCount()):
+                send_button = self.table.cellWidget(
+                    row, self.COL_SEND
+                )
 
-                self.table.cellWidget(row, self.COL_SEND).fn_refresh_theme()
+                if send_button is not None:
+                    send_button.fn_refresh_theme()
 
-                fn_apply_scrollbar_style(self.table.cellWidget(row, self.COL_ECU).view())
+                ecu_combo = self.table.cellWidget(
+                    row, self.COL_ECU
+                )
+
+                if ecu_combo is not None:
+                    fn_apply_scrollbar_style(
+                        ecu_combo.view()
+                    )
 
                 self._render_runtime(row)
+
+        self._refresh_receive_selection_colors()
+
 
 class ReceiveMessageDelegate(QStyledItemDelegate):
     """Keep model data but do not paint duplicate text."""
