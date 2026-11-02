@@ -51,10 +51,8 @@ def validate_and_format_hex(raw_text: str):
 
         return True, "", ""
 
-    clean_chars = set("0123456789abcdefABCDEF \t")
-
-    if any(c not in clean_chars for c in text):
-
+    clean_hex = set("0123456789abcdefABCDEF")
+    if any(not (c in clean_hex or c.isspace()) for c in text):
         return False, str(raw_text), "Chứa ký tự không phải HEX"
 
     tokens = text.split()
@@ -1280,21 +1278,13 @@ class CanDiagnosticTablePanel(DiagnosticSequenceTable):
         )
 
     @classmethod
-
     def _request_payload(cls, value):
-
-        is_valid, formatted, _ = validate_and_format_hex(value)
-
-        if not is_valid or not formatted:
-
+        tokens = str(value or "").split()
+        if not tokens or not all(len(t) == 2 and set(t) <= set("0123456789abcdefABCDEF") for t in tokens):
             return None
-
         try:
-
-            return bytes.fromhex(formatted)
-
+            return bytes.fromhex(" ".join(tokens))
         except ValueError:
-
             return None
 
     def fn_refresh_theme(self):

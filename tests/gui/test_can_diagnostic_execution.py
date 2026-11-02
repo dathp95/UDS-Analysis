@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import tempfile
 import unittest
@@ -7,6 +8,10 @@ from pathlib import Path
 from threading import get_ident
 from types import SimpleNamespace
 from unittest.mock import patch
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import can

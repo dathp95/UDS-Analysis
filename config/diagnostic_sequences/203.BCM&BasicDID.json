@@ -36,7 +36,7 @@
             "step": 3,
             "sequence_name": "",
             "ecu": "BCM",
-            "request": "27 02",
+            "request": "27 03",
             "delay_ms": 100,
             "repeat": 1,
             "expected_response": "",

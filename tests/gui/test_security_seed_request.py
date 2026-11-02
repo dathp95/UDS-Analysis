@@ -27,7 +27,7 @@ class SecuritySeedGuiTests(unittest.TestCase):
         self.assertTrue(button.isEnabled())
         sent = []
         panel.row_send_requested.connect(sent.append)
-        for text in ('27 02','27 03','27 01 00','27 0a','27 81','27','2701','27 0G','0x27 01',''):
+        for text in ('27 02','27 09','27 01 00','27 0a','27 81','27','270','27 0G','0x27 01',''):
             panel.table.item(0,panel.COL_REQUEST).setText(text)
             self.assertFalse(panel.table.cellWidget(0,panel.COL_SEND).isEnabled(),text)
             panel._request_step(panel.step_ids[0])
