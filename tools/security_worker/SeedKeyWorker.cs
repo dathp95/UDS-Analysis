@@ -22,12 +22,13 @@ internal static class SeedKeyWorker
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool FreeLibrary(IntPtr hModule);
 
+    // Match the shipped tool's ABI (HandleDLL.cs): ipVariant is passed by ref (char**).
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int GenerateKeyExDelegate(
         [In] byte[] ipSeedArray,
         uint iSeedArraySize,
         uint iSecurityLevel,
-        [MarshalAs(UnmanagedType.LPStr)] string ipVariant,
+        [MarshalAs(UnmanagedType.LPStr)] ref string ipVariant,
         [Out] byte[] ioKeyArray,
         uint iMaxKeyArraySize,
         ref uint oActualKeyArraySize
@@ -166,12 +167,14 @@ internal static class SeedKeyWorker
                     GenerateKeyExDelegate generateKey = (GenerateKeyExDelegate)Marshal.GetDelegateForFunctionPointer(pFunc, typeof(GenerateKeyExDelegate));
                     byte[] keyBuf = new byte[64];
                     uint actualSize = 0;
-                    int status = generateKey(seed, (uint)seed.Length, (uint)level, variant, keyBuf, (uint)keyBuf.Length, ref actualSize);
+                    string variantRef = variant;
+                    int status = generateKey(seed, (uint)seed.Length, (uint)level, ref variantRef, keyBuf, (uint)keyBuf.Length, ref actualSize);
                     if ((status != 0 || actualSize == 0) && level > 1 && (level % 2 == 1))
                     {
                         uint altLevel = (uint)((level + 1) / 2);
                         actualSize = 0;
-                        status = generateKey(seed, (uint)seed.Length, altLevel, variant, keyBuf, (uint)keyBuf.Length, ref actualSize);
+                        variantRef = variant;
+                        status = generateKey(seed, (uint)seed.Length, altLevel, ref variantRef, keyBuf, (uint)keyBuf.Length, ref actualSize);
                     }
                     if (status != 0 || actualSize == 0 || actualSize > 64) return 2;
                     StringBuilder nativeKey = new StringBuilder();

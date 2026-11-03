@@ -219,7 +219,9 @@ class SecurityAccessSession:
                 self._material,self._verified_gate=result,gate
                 self.state=SecurityAccessState.KEY_CALCULATED
                 return result
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.getLogger('vcode.seedkey').error('calculate_verified FAILED | %s: %s', type(exc).__name__, exc)
             with self._lock:
                 if self.identity==identity:
                     self._clear();self.state=SecurityAccessState.FAILED

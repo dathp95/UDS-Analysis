@@ -38,10 +38,29 @@ def fn_window_title(license_status) -> str:
     )
 
 
+def _enable_low_latency_timing() -> None:
+    """ISO-TP multi-frame needs ms-level turnaround (ECU N_Cr ~150 ms).
+    Default Windows timer resolution is 15.6 ms, which made each frame
+    hand-off cost ~70 ms and the ECU silently aborted SecurityAccess keys."""
+    try:
+        sys.setswitchinterval(0.001)
+    except Exception:
+        pass
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.winmm.timeBeginPeriod(1)
+        except Exception:
+            pass
+
+
 def main() -> int:
     global MainWindow
 
+    _enable_low_latency_timing()
     ensure_directories()
+    from services.logging_service import init_logging
+    init_logging()
     ensure_start_menu_shortcut()
    
     app = QApplication(sys.argv)

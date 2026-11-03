@@ -129,6 +129,12 @@ class _DllProvider:
             worker_exe = Path('build/security_worker/SeedKeyWorker.x86.exe').resolve()
         if not worker_exe.is_file():
             raise ProviderNotReady('SeedKeyWorker.x86.exe is not available.')
+        import logging, time
+        log = logging.getLogger('vcode.seedkey')
+        log.debug('SEEDKEY start | %s/%s | level=%s variant=%r seed_len=%d | worker=%s | dll=%s (exists=%s)',
+                  self._proof.vehicle, self._proof.ecu, self._subfunction, self._variant, len(seed or b''),
+                  worker_exe, self._dll_path, Path(str(self._dll_path)).is_file())
+        t0 = time.monotonic()
         transport = ProcessWorkerTransport([str(worker_exe), '--mock'])
         try:
             req = SeedKeyRequest(
@@ -147,7 +153,13 @@ class _DllProvider:
             resp = decode_response(resp_bytes, req)
             if not resp.key or len(resp.key) != 16:
                 raise ProviderNotReady(f'Worker returned invalid key length ({len(resp.key) if resp.key else 0} bytes).')
+            log.debug('SEEDKEY ok | key_len=%d | mock_only=%s | %.3fs', len(resp.key),
+                      getattr(resp, 'mock_only', '?'), time.monotonic() - t0)
             return resp.key
+        except Exception as exc:
+            log.error('SEEDKEY FAILED | %s/%s | level=%s | %s: %s | %.3fs', self._proof.vehicle, self._proof.ecu,
+                      self._subfunction, type(exc).__name__, exc, time.monotonic() - t0)
+            raise
         finally:
             transport.close()
 

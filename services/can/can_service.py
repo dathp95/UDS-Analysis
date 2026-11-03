@@ -54,6 +54,34 @@ class CANService:
         self._auto_seed_admitted = False
 
     def _resolve_ecu_dll_path(self, vehicle, ecu):
+        # Called on EVERY diagnostic frame during Auto SecurityAccess (via
+        # _guard_diagnostic_owner -> _check_auto_security -> security_provider).
+        # The uncached lookup parses the DLL PE metadata (~70 ms), which delayed
+        # ISO-TP flow control/CFs past the ECU N_Cr timeout. Cache briefly and
+        # re-validate with a cheap stat so a changed/removed DLL is still noticed.
+        import os, time as _time
+        cache = self.__dict__.setdefault('_dll_path_cache', {})
+        hit = cache.get((vehicle, ecu))
+        if hit is not None:
+            path, sig, stamp = hit
+            if _time.monotonic() - stamp < 5.0:
+                try:
+                    st = os.stat(path)
+                    if (st.st_mtime_ns, st.st_size) == sig:
+                        return path
+                except OSError:
+                    pass
+            cache.pop((vehicle, ecu), None)
+        path = self._resolve_ecu_dll_path_uncached(vehicle, ecu)
+        if path:
+            try:
+                st = os.stat(path)
+                cache[(vehicle, ecu)] = (path, (st.st_mtime_ns, st.st_size), _time.monotonic())
+            except OSError:
+                pass
+        return path
+
+    def _resolve_ecu_dll_path_uncached(self, vehicle, ecu):
         vs = getattr(self, 'vehicle_service', None)
         if vs is None:
             try:

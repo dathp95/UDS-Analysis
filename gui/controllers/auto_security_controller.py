@@ -131,6 +131,9 @@ class AutoSecurityController(QObject):
         if flow.result is None:
             flow.finish(Outcome.ERROR, detail=f'Auto {flow.level_name} did not complete.')
         result = flow.result
+        import logging
+        logging.getLogger('vcode.autosec').info('AUTO %s finished | outcome=%s | resp=%s | detail=%s',
+            flow.level_name, result.outcome.value, result.response.hex(' ').upper(), result.detail)
         if result.outcome != Outcome.PASSED:
             owner.task.cancel_diagnostic()
         if result.outcome != Outcome.PASSED and owner.security_session.state != SecurityAccessState.UNLOCKED:

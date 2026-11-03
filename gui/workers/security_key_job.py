@@ -23,7 +23,9 @@ class SecurityKeyJob(QThread):
         try:
             self.session.calculate_verified(self.provider, self.gate)
             self.succeeded = True
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.getLogger('vcode.seedkey').error('SecurityKeyJob failed: %s: %s', type(exc).__name__, exc)
             # Never propagate provider exceptions containing seed/key/secret data.
             self.succeeded = False
 
